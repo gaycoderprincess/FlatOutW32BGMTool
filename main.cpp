@@ -742,22 +742,27 @@ void WriteW32(const std::string& fileName, bool isFO2) {
 	uint32_t unk1Count = aUnknownArray1.size();
 	file.write((char*)&unk1Count, 4);
 	for (auto& data : aUnknownArray1) {
-		if (nExportMapVersion < 0x20000 && nImportMapVersion != nExportMapVersion) {
-			auto tmp = (uint8_t*)&data;
-			tmp[3] = 0xFD; // FO2 has 0x02 and FO1 has 0xFD i believe?
-		}
+		//if (nExportMapVersion < 0x20000 && nImportMapVersion != nExportMapVersion) {
+		//	auto tmp = (uint8_t *) &data;
+		//	tmp[3] = 0xFD; // FO2 has 0x02 and FO1 has 0xFD i believe?
+		//}
 		file.write((char*)&data, 4);
 	}
+
+	// tree rendering related crash:
+	// +1A0 off of smth with vft 00662968
+	// written to by 004C1393 and 004C16AB
+	// 004C1393 is terrain, 004C16AB is plants
 
 	uint32_t unk2Count = aUnknownArray2.size();
 	file.write((char*)&unk2Count, 4);
 	for (auto& data : aUnknownArray2) {
 		file.write((char*)data.vPos, sizeof(data.vPos));
 		file.write((char*)data.fValues, sizeof(data.fValues));
-		if (nExportMapVersion < 0x20000 && nImportMapVersion != nExportMapVersion) {
-			auto tmp = (uint8_t*)&data.nValues[1];
-			tmp[3] = 0xFD; // FO2 has 0x02 and FO1 has 0xFD i believe?
-		}
+		//if (nExportMapVersion < 0x20000 && nImportMapVersion != nExportMapVersion) {
+		//	auto tmp = (uint8_t *) &data.nValues[1];
+		//	tmp[3] = 0xFD; // FO2 has 0x02 and FO1 has 0xFD i believe?
+		//}
 		file.write((char*)data.nValues, sizeof(data.nValues));
 	}
 
@@ -1012,7 +1017,7 @@ void WriteW32ToText() {
 		WriteFile("nSurfaceId2: " + std::to_string(treeMesh.nSurfaceId2));
 		WriteFile("nSurfaceId3: " + std::to_string(treeMesh.nSurfaceId3));
 		WriteFile("nSurfaceId4: " + std::to_string(treeMesh.nSurfaceId4));
-		WriteFile("nIdInUnknownArray1: " + std::to_string(treeMesh.nIdInUnknownArray1));
+		WriteFile("nIdInUnknownArray1: " + std::to_string(treeMesh.nIdInUnkArray1));
 		WriteFile("nIdInUnknownArray2: " + std::to_string(treeMesh.nIdInUnkArray2));
 		WriteFile("nMaterialId: " + std::to_string(treeMesh.nMaterialId));
 		WriteFile("");
