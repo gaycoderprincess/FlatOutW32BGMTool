@@ -26,9 +26,15 @@
 #define STREAM_VERTEX_TERRAIN	(VERTEX_POSITION | VERTEX_UV2 | VERTEX_NORMAL)
 #define STREAM_VERTEX_TERRAIN2	(VERTEX_POSITION | VERTEX_UV2)
 
-std::string sFileName;
+// import options
+bool bDumpMaterialData = true;
+bool bDumpStreams = true;
 
+// export options
 bool bDisableProps = true;
+bool bConvertToFO1 = true;
+
+std::string sFileName;
 
 void WriteConsole(const std::string& str) {
 	auto& out = std::cout;
@@ -903,6 +909,21 @@ void WriteW32ToText() {
 	WriteFile("");
 	for (auto& material : aMaterials) {
 		WriteFile("Name: " + material.sName);
+		if (bDumpMaterialData) {
+			WriteFile("nAlpha: " + std::to_string(material.nAlpha));
+			WriteFile("nUnknown1: " + std::to_string(material.v92));
+			WriteFile("nNumTextures: " + std::to_string(material.nNumTextures));
+			WriteFile("nUnknown2: " + std::to_string(material.v73));
+			WriteFile("nUnknown3: " + std::to_string(material.v75));
+			WriteFile("nUnknown4: " + std::to_string(material.v74));
+			WriteFile("nUnknown5: " + std::to_string(material.v108[0]) + ", " + std::to_string(material.v108[1]) + ", " + std::to_string(material.v108[2]));
+			WriteFile("nUnknown6: " + std::to_string(material.v109[0]) + ", " + std::to_string(material.v109[1]) + ", " + std::to_string(material.v109[2]));
+			WriteFile("nUnknown7: " + std::to_string(material.v98[0]) + ", " + std::to_string(material.v98[1]) + ", " + std::to_string(material.v98[2]) + ", " + std::to_string(material.v98[3]));
+			WriteFile("nUnknown8: " + std::to_string(material.v99[0]) + ", " + std::to_string(material.v99[1]) + ", " + std::to_string(material.v99[2]) + ", " + std::to_string(material.v99[3]));
+			WriteFile("nUnknown9: " + std::to_string(material.v100[0]) + ", " + std::to_string(material.v100[1]) + ", " + std::to_string(material.v100[2]) + ", " + std::to_string(material.v100[3]));
+			WriteFile("nUnknown10: " + std::to_string(material.v101[0]) + ", " + std::to_string(material.v101[1]) + ", " + std::to_string(material.v101[2]) + ", " + std::to_string(material.v101[3]));
+			WriteFile("nUnknown11: " + std::to_string(material.v102));
+		}
 		WriteFile("Texture 1: " + material.sTextureNames[0]);
 		WriteFile("Texture 2: " + material.sTextureNames[1]);
 		WriteFile("Texture 3: " + material.sTextureNames[2]);
@@ -922,16 +943,65 @@ void WriteW32ToText() {
 				WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
 				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
 				WriteFile(std::format("nFlags: 0x{:X}", buf.flags));
+				if (bDumpStreams) {
+					auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
+
+					int nVertexColorOffset = -1;
+					if ((buf.flags & 0x40) != 0) {
+						nVertexColorOffset = 3;
+						if ((buf.flags & 0x10) != 0) {
+							nVertexColorOffset = 6;
+						}
+					}
+
+					size_t j = 0;
+					while (j < dataSize) {
+						std::string out;
+						for (int k = 0; k < buf.vertexSize / sizeof(float); k++) {
+							if (k == nVertexColorOffset) {
+								out += std::format("0x{:X}", *(uint32_t*)&buf.data[j]);
+							}
+							else {
+								out += std::to_string(buf.data[j]);
+							}
+							out += " ";
+							j++;
+						}
+						WriteFile(out);
+					}
+				}
 			}
 		}
 		for (auto& buf : aVegVertexBuffers) {
 			if (buf.id == i) {
 				WriteFile("Vegetation vertex buffer");
+				WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
+				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
+				if (bDumpStreams) {
+					auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
+
+					size_t j = 0;
+					while (j < dataSize) {
+						std::string out;
+						for (int k = 0; k < buf.vertexSize / sizeof(float); k++) {
+							out += std::to_string(buf.data[j]);
+							out += " ";
+							j++;
+						}
+						WriteFile(out);
+					}
+				}
 			}
 		}
 		for (auto& buf : aIndexBuffers) {
 			if (buf.id == i) {
 				WriteFile("Index buffer");
+				WriteFile(std::format("Index Count: {}", buf.indexCount));
+				if (bDumpStreams) {
+					for (int j = 0; j < buf.indexCount; j++) {
+						WriteFile(std::to_string(buf.data[j]));
+					}
+				}
 			}
 		}
 		WriteFile("");
@@ -1147,8 +1217,8 @@ int main(int argc, char *argv[]) {
 		WriteConsole("Failed to load " + (std::string)argv[1] + "!");
 	}
 	else {
-		WriteW32(argv[1], false);
+		WriteW32ToText();
+		WriteW32(argv[1], !bConvertToFO1 && nImportMapVersion >= 0x20000);
 	}
-	WriteW32ToText();
 	return 0;
 }
