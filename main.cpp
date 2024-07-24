@@ -127,6 +127,8 @@ struct tSurface {
 	int nNumStreamsUsed;
 	uint32_t nStreamId[2];
 	uint32_t nStreamOffset[2];
+
+	bool _bUsedByAnything = false;
 };
 struct tStaticBatch {
 	uint32_t nCenterId1;
@@ -144,12 +146,12 @@ struct tUnknownStructure {
 struct tTreeMesh {
 	int nUnk1;
 	int nUnk2;
-	int nSurfaceId;
-	int nIdInSomeMemoryArray;
-	float fUnk[19];
+	int nSurfaceId1;
 	int nSurfaceId2;
+	float fUnk[19];
 	int nSurfaceId3;
 	int nSurfaceId4;
+	int nSurfaceId5;
 	int nIdInUnkArray1;
 	int nIdInUnkArray2;
 	int nMaterialId;
@@ -207,6 +209,13 @@ std::vector<tCompactMesh> aCompactMeshes;
 std::vector<tBoundingBox> aBoundingBoxes;
 std::vector<tBoundingBoxMeshAssoc> aBoundingBoxMeshAssoc;
 uint32_t nCompactMeshGroupCount;
+
+tVertexBuffer* FindVertexBuffer(int id) {
+	for (auto& buf : aVertexBuffers) {
+		if (buf.id == id) return &buf;
+	}
+	return nullptr;
+}
 
 bool ParseW32Materials(std::ifstream& file) {
 	uint32_t numMaterials;
@@ -340,6 +349,8 @@ bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 		ReadFromFile(file, &staticBatch.nSurfaceId, 4);
 		if (staticBatch.nSurfaceId >= aSurfaces.size()) return false;
 
+		aSurfaces[staticBatch.nSurfaceId]._bUsedByAnything = true;
+
 		if (mapVersion >= 0x20000) {
 			ReadFromFile(file, staticBatch.vAbsoluteCenter, 12);
 			ReadFromFile(file, staticBatch.vRelativeCenter, 12);
@@ -369,15 +380,27 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 		tTreeMesh treeMesh;
 		ReadFromFile(file, &treeMesh.nUnk1, 4);
 		ReadFromFile(file, &treeMesh.nUnk2, 4);
-		ReadFromFile(file, &treeMesh.nSurfaceId, 4);
-		ReadFromFile(file, &treeMesh.nIdInSomeMemoryArray, 4);
-		ReadFromFile(file, treeMesh.fUnk, sizeof(treeMesh.fUnk));
+		ReadFromFile(file, &treeMesh.nSurfaceId1, 4);
 		ReadFromFile(file, &treeMesh.nSurfaceId2, 4);
+		ReadFromFile(file, treeMesh.fUnk, sizeof(treeMesh.fUnk));
 		ReadFromFile(file, &treeMesh.nSurfaceId3, 4);
 		ReadFromFile(file, &treeMesh.nSurfaceId4, 4);
+		ReadFromFile(file, &treeMesh.nSurfaceId5, 4);
 		ReadFromFile(file, &treeMesh.nIdInUnkArray1, 4);
 		ReadFromFile(file, &treeMesh.nIdInUnkArray2, 4);
 		ReadFromFile(file, &treeMesh.nMaterialId, 4);
+
+		if (treeMesh.nSurfaceId1 >= 0 && treeMesh.nSurfaceId1 >= aSurfaces.size()) return false;
+		if (treeMesh.nSurfaceId2 >= 0 && treeMesh.nSurfaceId2 >= aSurfaces.size()) return false;
+		if (treeMesh.nSurfaceId3 >= 0 && treeMesh.nSurfaceId3 >= aSurfaces.size()) return false;
+		if (treeMesh.nSurfaceId4 >= 0 && treeMesh.nSurfaceId4 >= aSurfaces.size()) return false;
+		if (treeMesh.nSurfaceId5 >= 0 && treeMesh.nSurfaceId5 >= aSurfaces.size()) return false;
+		if (treeMesh.nSurfaceId1 >= 0) aSurfaces[treeMesh.nSurfaceId1]._bUsedByAnything = true;
+		if (treeMesh.nSurfaceId2 >= 0) aSurfaces[treeMesh.nSurfaceId2]._bUsedByAnything = true;
+		if (treeMesh.nSurfaceId3 >= 0) aSurfaces[treeMesh.nSurfaceId3]._bUsedByAnything = true;
+		if (treeMesh.nSurfaceId4 >= 0) aSurfaces[treeMesh.nSurfaceId4]._bUsedByAnything = true;
+		if (treeMesh.nSurfaceId5 >= 0) aSurfaces[treeMesh.nSurfaceId5]._bUsedByAnything = true;
+
 		aTreeMeshes.push_back(treeMesh);
 	}
 	return true;
@@ -403,6 +426,9 @@ bool ParseW32Models(std::ifstream& file) {
 			int surface;
 			ReadFromFile(file, &surface, sizeof(surface));
 			model.aSurfaces.push_back(surface);
+
+			if (surface >= aSurfaces.size()) return false;
+			aSurfaces[surface]._bUsedByAnything = true;
 		}
 		aModels.push_back(model);
 	}
@@ -588,13 +614,6 @@ void WriteVegVertexBufferToFile(std::ofstream& file, const tVegVertexBuffer& buf
 	file.write((char*)buf.data, buf.vertexCount * buf.vertexSize);
 }
 
-tVertexBuffer* FindVertexBuffer(int id) {
-	for (auto& buf : aVertexBuffers) {
-		if (buf.id == id) return &buf;
-	}
-	return nullptr;
-}
-
 void WriteSurfaceToFile(std::ofstream& file, tSurface& surface) {
 	if (nExportMapVersion < 0x20000 && nExportMapVersion != nImportMapVersion && IsBufferReductionRequiredForFO1(surface.nFlags)) {
 		surface.nFlags -= 0x10;
@@ -639,12 +658,12 @@ void WriteStaticBatchToFile(std::ofstream& file, const tStaticBatch& staticBatch
 void WriteTreeMeshToFile(std::ofstream& file, const tTreeMesh& treeMesh) {
 	file.write((char*)&treeMesh.nUnk1, 4);
 	file.write((char*)&treeMesh.nUnk2, 4);
-	file.write((char*)&treeMesh.nSurfaceId, 4);
-	file.write((char*)&treeMesh.nIdInSomeMemoryArray, 4);
-	file.write((char*)treeMesh.fUnk, sizeof(treeMesh.fUnk));
+	file.write((char*)&treeMesh.nSurfaceId1, 4);
 	file.write((char*)&treeMesh.nSurfaceId2, 4);
+	file.write((char*)treeMesh.fUnk, sizeof(treeMesh.fUnk));
 	file.write((char*)&treeMesh.nSurfaceId3, 4);
 	file.write((char*)&treeMesh.nSurfaceId4, 4);
+	file.write((char*)&treeMesh.nSurfaceId5, 4);
 	file.write((char*)&treeMesh.nIdInUnkArray1, 4);
 	file.write((char*)&treeMesh.nIdInUnkArray2, 4);
 	file.write((char*)&treeMesh.nMaterialId, 4);
@@ -908,6 +927,7 @@ void WriteW32ToText() {
 	WriteFile("Count: " + std::to_string(aMaterials.size()));
 	WriteFile("");
 	for (auto& material : aMaterials) {
+		WriteFile("Material " + std::to_string(&material - &aMaterials[0]));
 		WriteFile("Name: " + material.sName);
 		if (bDumpMaterialData) {
 			WriteFile("nAlpha: " + std::to_string(material.nAlpha));
@@ -937,6 +957,7 @@ void WriteW32ToText() {
 	WriteFile("Count: " + std::to_string(numStreams));
 	WriteFile("");
 	for (int i = 0; i < numStreams; i++) {
+		WriteFile("Stream " + std::to_string(i));
 		for (auto& buf : aVertexBuffers) {
 			if (buf.id == i) {
 				WriteFile("Vertex buffer");
@@ -1013,6 +1034,7 @@ void WriteW32ToText() {
 	WriteFile("Count: " + std::to_string(aSurfaces.size()));
 	WriteFile("");
 	for (auto& surface : aSurfaces) {
+		WriteFile("Surface " + std::to_string(&surface - &aSurfaces[0]));
 		WriteFile("nIsVegetation: " + std::to_string(surface.nIsVegetation));
 		WriteFile("nMaterialId: " + std::to_string(surface.nMaterialId));
 		WriteFile("nVertNum: " + std::to_string(surface.nVertNum));
@@ -1087,14 +1109,14 @@ void WriteW32ToText() {
 	for (auto& treeMesh : aTreeMeshes) {
 		WriteFile("nUnknown1: " + std::to_string(treeMesh.nUnk1));
 		WriteFile("nUnknown2: " + std::to_string(treeMesh.nUnk2));
-		WriteFile("nSurfaceId: " + std::to_string(treeMesh.nSurfaceId));
-		WriteFile("nIdInSomeMemoryArray: " + std::to_string(treeMesh.nIdInSomeMemoryArray));
+		WriteFile("nSurfaceId1: " + std::to_string(treeMesh.nSurfaceId1));
+		WriteFile("nSurfaceId2: " + std::to_string(treeMesh.nSurfaceId2));
 		for (int j = 0; j < 19; j++) {
 			WriteFile("fUnk[" + std::to_string(j) + "]: " + std::to_string(treeMesh.fUnk[j]));
 		}
-		WriteFile("nSurfaceId2: " + std::to_string(treeMesh.nSurfaceId2));
 		WriteFile("nSurfaceId3: " + std::to_string(treeMesh.nSurfaceId3));
 		WriteFile("nSurfaceId4: " + std::to_string(treeMesh.nSurfaceId4));
+		WriteFile("nSurfaceId5: " + std::to_string(treeMesh.nSurfaceId5));
 		WriteFile("nIdInUnknownArray1: " + std::to_string(treeMesh.nIdInUnkArray1));
 		WriteFile("nIdInUnknownArray2: " + std::to_string(treeMesh.nIdInUnkArray2));
 		WriteFile("nMaterialId: " + std::to_string(treeMesh.nMaterialId));
@@ -1205,6 +1227,12 @@ void WriteW32ToText() {
 	}
 	WriteFile("Compact Meshes end");
 	WriteFile("");
+
+	for (auto& surface : aSurfaces) {
+		if (!surface._bUsedByAnything) {
+			WriteConsole("WARNING: Surface " + std::to_string(&surface - &aSurfaces[0]) + " goes unused! The game will not like this!!");
+		}
+	}
 }
 
 int main(int argc, char *argv[]) {
