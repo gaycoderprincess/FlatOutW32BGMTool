@@ -8,6 +8,10 @@
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
 
+std::string sFileName;
+
+bool bDisableProps = true;
+
 void WriteConsole(const std::string& str) {
 	auto& out = std::cout;
 	out << str;
@@ -16,7 +20,7 @@ void WriteConsole(const std::string& str) {
 }
 
 void WriteFile(const std::string& str) {
-	static auto out = std::ofstream("nya.txt");
+	static auto out = std::ofstream(sFileName + "_log.txt");
 	out << str;
 	out << "\n";
 	out.flush();
@@ -67,15 +71,12 @@ void ReadFromFile(std::ifstream& file, void* out, size_t numBytes) {
 struct tVertexBuffer {
 	int id;
 	int field_0;
-	int vertexCount;
-	int vertexSize;
+	uint32_t vertexCount;
+	uint32_t vertexSize;
 	uint32_t flags;
 	float* data;
 
-	bool _bFixedUpForFO1 = false;
-	uint32_t _flagsBeforeFO1 = 0;
 	uint32_t _vertexSizeBeforeFO1 = 0;
-	std::vector<float> aDataAfterFO1;
 };
 struct tIndexBuffer {
 	int id;
@@ -109,7 +110,13 @@ struct tMaterial {
 	std::string sTextureNames[3];
 };
 struct tSurface {
-	int v37[7];
+	int nIsVegetation;
+	int nMaterialId;
+	int nVertNum;
+	int nFlags;
+	int nPolyNum;
+	int nPolyMode;
+	int nPolyNumIndex;
 	float vAbsoluteCenter[3] = { 0, 0, 0 };
 	float vRelativeCenter[3] = { 0, 0, 0 };
 	int nNumStreamsUsed;
@@ -127,7 +134,7 @@ struct tStaticBatch {
 struct tUnknownStructure {
 	float vPos[3];
 	float fValues[2];
-	int nValues[2];
+	uint32_t nValues[2];
 };
 struct tTreeMesh {
 	int nUnk1;
@@ -291,7 +298,13 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 	aSurfaces.reserve(nSurfaceCount);
 	for (int i = 0; i < nSurfaceCount; i++) {
 		tSurface surface;
-		ReadFromFile(file, surface.v37, 28);
+		ReadFromFile(file, &surface.nIsVegetation, 4);
+		ReadFromFile(file, &surface.nMaterialId, 4);
+		ReadFromFile(file, &surface.nVertNum, 4);
+		ReadFromFile(file, &surface.nFlags, 4);
+		ReadFromFile(file, &surface.nPolyNum, 4);
+		ReadFromFile(file, &surface.nPolyMode, 4);
+		ReadFromFile(file, &surface.nPolyNumIndex, 4);
 
 		if (mapVersion < 0x20000) {
 			ReadFromFile(file, surface.vAbsoluteCenter, 12);
@@ -503,11 +516,8 @@ void WriteMaterialToFile(std::ofstream& file, const tMaterial& material) {
 
 void WriteVertexBufferToFile(std::ofstream& file, tVertexBuffer& buf) {
 	bool bRemoveNormals = false;
-	if (nExportMapVersion < 0x20000 && (buf.flags & 0x10) != 0) {
-		buf._flagsBeforeFO1 = buf.flags;
+	if (nExportMapVersion < 0x20000 && nExportMapVersion != nImportMapVersion && (buf.flags & 0x10) != 0) {
 		buf._vertexSizeBeforeFO1 = buf.vertexSize;
-		buf._bFixedUpForFO1 = true;
-
 		buf.flags -= 0x10;
 		buf.vertexSize -= 0xC;
 		bRemoveNormals = true;
@@ -531,7 +541,6 @@ void WriteVertexBufferToFile(std::ofstream& file, tVertexBuffer& buf) {
 					continue;
 				}
 				file.write((char*)&buf.data[j], 4);
-				buf.aDataAfterFO1.push_back(buf.data[j]);
 				j++;
 				numWritten++;
 			}
@@ -565,8 +574,30 @@ void WriteVegVertexBufferToFile(std::ofstream& file, const tVegVertexBuffer& buf
 	file.write((char*)buf.data, buf.vertexCount * buf.vertexSize);
 }
 
-void WriteSurfaceToFile(std::ofstream& file, const tSurface& surface) {
-	file.write((char*)surface.v37, sizeof(surface.v37));
+tVertexBuffer* FindVertexBuffer(int id) {
+	for (auto& buf : aVertexBuffers) {
+		if (buf.id == id) return &buf;
+	}
+	return nullptr;
+}
+
+void WriteSurfaceToFile(std::ofstream& file, tSurface& surface) {
+	if (nExportMapVersion < 0x20000 && nExportMapVersion != nImportMapVersion && (surface.nFlags & 0x10) != 0) {
+		surface.nFlags -= 0x10;
+		auto stream = FindVertexBuffer(surface.nStreamId[0]);
+		auto vertexSizeBefore = stream->_vertexSizeBeforeFO1;
+		auto vertexSizeAfter = stream->vertexSize;
+		surface.nStreamOffset[0] /= vertexSizeBefore;
+		surface.nStreamOffset[0] *= vertexSizeAfter;
+	}
+
+	file.write((char*)&surface.nIsVegetation, 4);
+	file.write((char*)&surface.nMaterialId, 4);
+	file.write((char*)&surface.nVertNum, 4);
+	file.write((char*)&surface.nFlags, 4);
+	file.write((char*)&surface.nPolyNum, 4);
+	file.write((char*)&surface.nPolyMode, 4);
+	file.write((char*)&surface.nPolyNumIndex, 4);
 	if (nExportMapVersion < 0x20000) {
 		file.write((char*)surface.vAbsoluteCenter, 12);
 		file.write((char*)surface.vRelativeCenter, 12);
@@ -713,7 +744,6 @@ void WriteW32(const std::string& fileName, bool isFO2) {
 	for (auto& data : aUnknownArray1) {
 		file.write((char*)&data, 4);
 	}
-
 	uint32_t unk2Count = aUnknownArray2.size();
 	file.write((char*)&unk2Count, 4);
 	for (auto& data : aUnknownArray2) {
@@ -734,37 +764,50 @@ void WriteW32(const std::string& fileName, bool isFO2) {
 		}
 	}
 
-	uint32_t modelCount = aModels.size();
-	file.write((char*)&modelCount, 4);
-	for (auto& model : aModels) {
-		WriteModelToFile(file, model);
+	if (bDisableProps) {
+		uint32_t tmpCount = 0;
+		file.write((char*)&tmpCount, 4); // models
+		file.write((char*)&tmpCount, 4); // objects
+		if (nImportMapVersion >= 0x20000) {
+			file.write((char*)&tmpCount, 4); // bbox
+			file.write((char*)&tmpCount, 4); // bbox assoc
+		}
+		file.write((char*)&tmpCount, 4); // compactmesh groups
+		file.write((char*)&tmpCount, 4); // compactmesh
 	}
-
-	uint32_t objectCount = aObjects.size();
-	file.write((char*)&objectCount, 4);
-	for (auto& object : aObjects) {
-		WriteObjectToFile(file, object);
-	}
-
-	if (nImportMapVersion >= 0x20000) {
-		uint32_t boundingBoxCount = aBoundingBoxes.size();
-		file.write((char*)&boundingBoxCount, 4);
-		for (auto& bbox : aBoundingBoxes) {
-			WriteBoundingBoxToFile(file, bbox);
+	else {
+		uint32_t modelCount = aModels.size();
+		file.write((char*)&modelCount, 4);
+		for (auto& model : aModels) {
+			WriteModelToFile(file, model);
 		}
 
-		uint32_t boundingBoxAssocCount = aBoundingBoxMeshAssoc.size();
-		file.write((char*)&boundingBoxAssocCount, 4);
-		for (auto& bboxAssoc : aBoundingBoxMeshAssoc) {
-			WriteBoundingBoxMeshAssocToFile(file, bboxAssoc);
+		uint32_t objectCount = aObjects.size();
+		file.write((char*)&objectCount, 4);
+		for (auto& object : aObjects) {
+			WriteObjectToFile(file, object);
 		}
-	}
 
-	uint32_t compactMeshCount = aCompactMeshes.size();
-	file.write((char*)&nCompactMeshGroupCount, 4);
-	file.write((char*)&compactMeshCount, 4);
-	for (auto& mesh : aCompactMeshes) {
-		WriteCompactMeshToFile(file, mesh);
+		if (nImportMapVersion >= 0x20000) {
+			uint32_t boundingBoxCount = aBoundingBoxes.size();
+			file.write((char*)&boundingBoxCount, 4);
+			for (auto& bbox : aBoundingBoxes) {
+				WriteBoundingBoxToFile(file, bbox);
+			}
+
+			uint32_t boundingBoxAssocCount = aBoundingBoxMeshAssoc.size();
+			file.write((char*)&boundingBoxAssocCount, 4);
+			for (auto& bboxAssoc : aBoundingBoxMeshAssoc) {
+				WriteBoundingBoxMeshAssocToFile(file, bboxAssoc);
+			}
+		}
+
+		uint32_t compactMeshCount = aCompactMeshes.size();
+		file.write((char*)&nCompactMeshGroupCount, 4);
+		file.write((char*)&compactMeshCount, 4);
+		for (auto& mesh : aCompactMeshes) {
+			WriteCompactMeshToFile(file, mesh);
+		}
 	}
 
 	file.flush();
@@ -857,36 +900,6 @@ void WriteW32ToText() {
 				WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
 				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
 				WriteFile(std::format("nFlags: 0x{:X}", buf.flags));
-				if (buf._bFixedUpForFO1 && (buf._flagsBeforeFO1 & 0x10) != 0) {
-					WriteFile(std::format("nFlagsBeforeFO1: 0x{:X}", buf._flagsBeforeFO1));
-					WriteFile(std::format("nVertexSizeBeforeFO1: {}", buf._vertexSizeBeforeFO1));
-					auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
-
-					int nValueAsInt = -1;
-					if ((buf.flags & 0x40) != 0) {
-						nValueAsInt = 3;
-						if ((buf.flags & 0x10) != 0) {
-							nValueAsInt = 6;
-						}
-					}
-
-					size_t j = 0;
-					while (j < dataSize) {
-
-						std::string out;
-						for (int k = 0; k < buf.vertexSize / sizeof(float); k++) {
-							if (k == nValueAsInt) {
-								out += std::format("0x{:X}", *(uint32_t*)&buf.aDataAfterFO1[j]);
-							}
-							else {
-								out += std::to_string(buf.aDataAfterFO1[j]);
-							}
-							out += " ";
-							j++;
-						}
-						WriteFile(out);
-					}
-				}
 			}
 		}
 		for (auto& buf : aVegVertexBuffers) {
@@ -908,13 +921,13 @@ void WriteW32ToText() {
 	WriteFile("Count: " + std::to_string(aSurfaces.size()));
 	WriteFile("");
 	for (auto& surface : aSurfaces) {
-		WriteFile("nIsVegetation: " + std::to_string(surface.v37[0]));
-		WriteFile("nMaterialId: " + std::to_string(surface.v37[1]));
-		WriteFile("nVertNum: " + std::to_string(surface.v37[2]));
-		WriteFile(std::format("nFormat: 0x{:X}", surface.v37[3]));
-		WriteFile("nPolyNum: " + std::to_string(surface.v37[4]));
-		WriteFile("nPolyMode: " + std::to_string(surface.v37[5])); // 4-triindx or 5-tristrip
-		WriteFile("nPolyNumIndex: " + std::to_string(surface.v37[6]));
+		WriteFile("nIsVegetation: " + std::to_string(surface.nIsVegetation));
+		WriteFile("nMaterialId: " + std::to_string(surface.nMaterialId));
+		WriteFile("nVertNum: " + std::to_string(surface.nVertNum));
+		WriteFile(std::format("nFormat: 0x{:X}", surface.nFlags));
+		WriteFile("nPolyNum: " + std::to_string(surface.nPolyNum));
+		WriteFile("nPolyMode: " + std::to_string(surface.nPolyMode)); // 4-triindx or 5-tristrip
+		WriteFile("nPolyNumIndex: " + std::to_string(surface.nPolyNumIndex));
 		WriteFile("vAbsoluteCenter.x: " + std::to_string(surface.vAbsoluteCenter[0]));
 		WriteFile("vAbsoluteCenter.y: " + std::to_string(surface.vAbsoluteCenter[1]));
 		WriteFile("vAbsoluteCenter.z: " + std::to_string(surface.vAbsoluteCenter[2]));
@@ -1107,6 +1120,7 @@ int main(int argc, char *argv[]) {
 		WriteConsole("Usage: FlatOut2W32Extractor_gcp.exe <filename>");
 		return 0;
 	}
+	sFileName = argv[1];
 	if (!ParseW32(argv[1])) {
 		WriteConsole("Failed to load " + (std::string)argv[1] + "!");
 	}
