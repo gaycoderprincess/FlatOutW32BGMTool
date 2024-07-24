@@ -4,9 +4,27 @@
 #include <fstream>
 #include <format>
 #include <vector>
-#include "assimp/Exporter.hpp"
-#include "assimp/scene.h"
-#include "assimp/postprocess.h"
+
+// research:
+// vertex buffer data:
+// 1 2 3 always coords
+// 0x202 flag seems to be the terrain
+// 0x152 -> 4 5 6 are normals, 7 unknown, 8 and 9 are UV coords
+// 0x212 -> 4 5 6 are normals, 7 8 9 10 unknown
+
+// gulbroz stuff:
+// Vertex stream flags
+#define VERTEX_POSITION			(1<<1)
+#define VERTEX_UV				(1<<8)
+#define VERTEX_UV2				(1<<9)
+#define VERTEX_NORMAL			(1<<4)
+#define VERTEX_BLEND			(1<<6)
+#define STREAM_VERTEX_DECAL		(VERTEX_POSITION | VERTEX_UV)
+#define STREAM_VERTEX_MODEL		(VERTEX_POSITION | VERTEX_UV  | VERTEX_NORMAL)
+#define STREAM_VERTEX_STATIC	(VERTEX_POSITION | VERTEX_UV  | VERTEX_BLEND)
+#define STREAM_VERTEX_WINDOW	(VERTEX_POSITION | VERTEX_UV  | VERTEX_NORMAL | VERTEX_BLEND)
+#define STREAM_VERTEX_TERRAIN	(VERTEX_POSITION | VERTEX_UV2 | VERTEX_NORMAL)
+#define STREAM_VERTEX_TERRAIN2	(VERTEX_POSITION | VERTEX_UV2)
 
 std::string sFileName;
 
@@ -48,25 +66,6 @@ std::string ReadStringFromFile(std::ifstream& file) {
 void ReadFromFile(std::ifstream& file, void* out, size_t numBytes) {
 	file.read((char*)out, numBytes);
 }
-
-// vertex buffer data:
-// 1 2 3 always coords
-// 0x202 flag seems to be the terrain
-// 0x152 -> 4 5 6 are normals, 7 unknown, 8 and 9 are UV coords
-// 0x212 -> 4 5 6 are normals, 7 8 9 10 unknown
-
-// Vertex stream flags
-#define VERTEX_POSITION			(1<<1)
-#define VERTEX_UV				(1<<8)
-#define VERTEX_UV2				(1<<9)
-#define VERTEX_NORMAL			(1<<4)
-#define VERTEX_BLEND			(1<<6)
-#define STREAM_VERTEX_DECAL		(VERTEX_POSITION | VERTEX_UV)
-#define STREAM_VERTEX_MODEL		(VERTEX_POSITION | VERTEX_UV  | VERTEX_NORMAL)
-#define STREAM_VERTEX_STATIC	(VERTEX_POSITION | VERTEX_UV  | VERTEX_BLEND)
-#define STREAM_VERTEX_WINDOW	(VERTEX_POSITION | VERTEX_UV  | VERTEX_NORMAL | VERTEX_BLEND)
-#define STREAM_VERTEX_TERRAIN	(VERTEX_POSITION | VERTEX_UV2 | VERTEX_NORMAL)
-#define STREAM_VERTEX_TERRAIN2	(VERTEX_POSITION | VERTEX_UV2)
 
 struct tVertexBuffer {
 	int id;
@@ -514,9 +513,18 @@ void WriteMaterialToFile(std::ofstream& file, const tMaterial& material) {
 	}
 }
 
+// FO1 doesn't support the vertex color + vertex normal combo and so crashes
+// for exporting to FO1, i adjust the vertex buffers to not have normals if they also have vertex colors
+// this could prolly be fixed with a plugin too to actually get rid of the issue
+bool IsBufferReductionRequiredForFO1(uint32_t flags) {
+	if ((flags & 0x10) == 0) return false;
+	if ((flags & 0x40) == 0) return false;
+	return true;
+}
+
 void WriteVertexBufferToFile(std::ofstream& file, tVertexBuffer& buf) {
 	bool bRemoveNormals = false;
-	if (nExportMapVersion < 0x20000 && nExportMapVersion != nImportMapVersion && (buf.flags & 0x10) != 0) {
+	if (nExportMapVersion < 0x20000 && nExportMapVersion != nImportMapVersion && IsBufferReductionRequiredForFO1(buf.flags)) {
 		buf._vertexSizeBeforeFO1 = buf.vertexSize;
 		buf.flags -= 0x10;
 		buf.vertexSize -= 0xC;
@@ -582,7 +590,7 @@ tVertexBuffer* FindVertexBuffer(int id) {
 }
 
 void WriteSurfaceToFile(std::ofstream& file, tSurface& surface) {
-	if (nExportMapVersion < 0x20000 && nExportMapVersion != nImportMapVersion && (surface.nFlags & 0x10) != 0) {
+	if (nExportMapVersion < 0x20000 && nExportMapVersion != nImportMapVersion && IsBufferReductionRequiredForFO1(surface.nFlags)) {
 		surface.nFlags -= 0x10;
 		auto stream = FindVertexBuffer(surface.nStreamId[0]);
 		auto vertexSizeBefore = stream->_vertexSizeBeforeFO1;
