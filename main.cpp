@@ -140,13 +140,13 @@ struct tTreeMesh {
 	int nUnk1;
 	int nUnk2;
 	int nSurfaceId;
-	int nUnk3;
+	int nIdInSomeMemoryArray;
 	float fUnk[19];
 	int nSurfaceId2;
 	int nSurfaceId3;
 	int nSurfaceId4;
-	int nUnk4;
-	int nUnk5;
+	int nIdInUnkArray1;
+	int nIdInUnkArray2;
 	int nMaterialId;
 };
 struct tModel {
@@ -192,7 +192,7 @@ std::vector<tVegVertexBuffer> aVegVertexBuffers;
 std::vector<tMaterial> aMaterials;
 std::vector<tSurface> aSurfaces;
 std::vector<tStaticBatch> aStaticBatches;
-std::vector<int> aUnknownArray1;
+std::vector<uint32_t> aUnknownArray1;
 std::vector<tUnknownStructure> aUnknownArray2;
 std::vector<tTreeMesh> aTreeMeshes;
 std::vector<float> aUnknownArray3;
@@ -365,13 +365,13 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 		ReadFromFile(file, &treeMesh.nUnk1, 4);
 		ReadFromFile(file, &treeMesh.nUnk2, 4);
 		ReadFromFile(file, &treeMesh.nSurfaceId, 4);
-		ReadFromFile(file, &treeMesh.nUnk3, 4);
+		ReadFromFile(file, &treeMesh.nIdInSomeMemoryArray, 4);
 		ReadFromFile(file, treeMesh.fUnk, sizeof(treeMesh.fUnk));
 		ReadFromFile(file, &treeMesh.nSurfaceId2, 4);
 		ReadFromFile(file, &treeMesh.nSurfaceId3, 4);
 		ReadFromFile(file, &treeMesh.nSurfaceId4, 4);
-		ReadFromFile(file, &treeMesh.nUnk4, 4);
-		ReadFromFile(file, &treeMesh.nUnk5, 4);
+		ReadFromFile(file, &treeMesh.nIdInUnkArray1, 4);
+		ReadFromFile(file, &treeMesh.nIdInUnkArray2, 4);
 		ReadFromFile(file, &treeMesh.nMaterialId, 4);
 		aTreeMeshes.push_back(treeMesh);
 	}
@@ -626,13 +626,13 @@ void WriteTreeMeshToFile(std::ofstream& file, const tTreeMesh& treeMesh) {
 	file.write((char*)&treeMesh.nUnk1, 4);
 	file.write((char*)&treeMesh.nUnk2, 4);
 	file.write((char*)&treeMesh.nSurfaceId, 4);
-	file.write((char*)&treeMesh.nUnk3, 4);
+	file.write((char*)&treeMesh.nIdInSomeMemoryArray, 4);
 	file.write((char*)treeMesh.fUnk, sizeof(treeMesh.fUnk));
 	file.write((char*)&treeMesh.nSurfaceId2, 4);
 	file.write((char*)&treeMesh.nSurfaceId3, 4);
 	file.write((char*)&treeMesh.nSurfaceId4, 4);
-	file.write((char*)&treeMesh.nUnk4, 4);
-	file.write((char*)&treeMesh.nUnk5, 4);
+	file.write((char*)&treeMesh.nIdInUnkArray1, 4);
+	file.write((char*)&treeMesh.nIdInUnkArray2, 4);
 	file.write((char*)&treeMesh.nMaterialId, 4);
 }
 
@@ -742,13 +742,22 @@ void WriteW32(const std::string& fileName, bool isFO2) {
 	uint32_t unk1Count = aUnknownArray1.size();
 	file.write((char*)&unk1Count, 4);
 	for (auto& data : aUnknownArray1) {
+		if (nExportMapVersion < 0x20000 && nImportMapVersion != nExportMapVersion) {
+			auto tmp = (uint8_t*)&data;
+			tmp[3] = 0xFD; // FO2 has 0x02 and FO1 has 0xFD i believe?
+		}
 		file.write((char*)&data, 4);
 	}
+
 	uint32_t unk2Count = aUnknownArray2.size();
 	file.write((char*)&unk2Count, 4);
 	for (auto& data : aUnknownArray2) {
 		file.write((char*)data.vPos, sizeof(data.vPos));
 		file.write((char*)data.fValues, sizeof(data.fValues));
+		if (nExportMapVersion < 0x20000 && nImportMapVersion != nExportMapVersion) {
+			auto tmp = (uint8_t*)&data.nValues[1];
+			tmp[3] = 0xFD; // FO2 has 0x02 and FO1 has 0xFD i believe?
+		}
 		file.write((char*)data.nValues, sizeof(data.nValues));
 	}
 
@@ -996,15 +1005,15 @@ void WriteW32ToText() {
 		WriteFile("nUnknown1: " + std::to_string(treeMesh.nUnk1));
 		WriteFile("nUnknown2: " + std::to_string(treeMesh.nUnk2));
 		WriteFile("nSurfaceId: " + std::to_string(treeMesh.nSurfaceId));
-		WriteFile("nUnknown3: " + std::to_string(treeMesh.nUnk3));
+		WriteFile("nIdInSomeMemoryArray: " + std::to_string(treeMesh.nIdInSomeMemoryArray));
 		for (int j = 0; j < 19; j++) {
 			WriteFile("fUnk[" + std::to_string(j) + "]: " + std::to_string(treeMesh.fUnk[j]));
 		}
 		WriteFile("nSurfaceId2: " + std::to_string(treeMesh.nSurfaceId2));
 		WriteFile("nSurfaceId3: " + std::to_string(treeMesh.nSurfaceId3));
 		WriteFile("nSurfaceId4: " + std::to_string(treeMesh.nSurfaceId4));
-		WriteFile("nUnknown4: " + std::to_string(treeMesh.nUnk4));
-		WriteFile("nUnknown5: " + std::to_string(treeMesh.nUnk5));
+		WriteFile("nIdInUnknownArray1: " + std::to_string(treeMesh.nIdInUnknownArray1));
+		WriteFile("nIdInUnknownArray2: " + std::to_string(treeMesh.nIdInUnkArray2));
 		WriteFile("nMaterialId: " + std::to_string(treeMesh.nMaterialId));
 		WriteFile("");
 	}
