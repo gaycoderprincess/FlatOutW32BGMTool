@@ -87,7 +87,7 @@ struct tVegVertexBuffer {
 };
 struct tMaterial {
 	uint32_t identifier; // MATC
-	std::string name;
+	std::string sName;
 	int nAlpha;
 	int v92;
 	int nNumTextures;
@@ -101,7 +101,7 @@ struct tMaterial {
 	int v100[4];
 	int v101[4];
 	int v102;
-	std::string textureNames[3];
+	std::string sTextureNames[3];
 };
 struct tSurface {
 	int v37[7];
@@ -139,8 +139,8 @@ struct tTreeMesh {
 };
 struct tModel {
 	uint32_t identifier; // BMOD
-	int unk;
-	std::string name;
+	int nUnk;
+	std::string sName;
 	float vCenter[3];
 	float vRadius[3];
 	float fRadius;
@@ -148,15 +148,15 @@ struct tModel {
 };
 struct tObject {
 	uint32_t identifier;
-	std::string name1;
-	std::string name2;
+	std::string sName1;
+	std::string sName2;
 	uint32_t nFlags;
 	float mMatrix[4*4];
 };
 struct tCompactMesh {
 	uint32_t identifier;
-	std::string name1;
-	std::string name2;
+	std::string sName1;
+	std::string sName2;
 	uint32_t nFlags;
 	int nGroup;
 	float mMatrix[4*4];
@@ -171,7 +171,8 @@ struct tBoundingBoxMeshAssoc {
 	std::string sName;
 	int nIds[2];
 };
-int nSomeMapValue; // always 1 in FO2, doesn't exist in FO1
+int nMapVersion;
+int nSomeMapValue = 1; // always 1 in FO2, doesn't exist in FO1
 std::vector<tVertexBuffer> aVertexBuffers;
 std::vector<tIndexBuffer> aIndexBuffers;
 std::vector<tVegVertexBuffer> aVegVertexBuffers;
@@ -198,7 +199,7 @@ bool ParseW32Materials(std::ifstream& file) {
 		ReadFromFile(file, &material.identifier, 4);
 		if (material.identifier != 0x4354414D) return false; // "MATC"
 
-		material.name = ReadStringFromFile(file);
+		material.sName = ReadStringFromFile(file);
 		ReadFromFile(file, &material.nAlpha, 4);
 		ReadFromFile(file, &material.v92, 4);
 		ReadFromFile(file, &material.nNumTextures, 4);
@@ -212,9 +213,9 @@ bool ParseW32Materials(std::ifstream& file) {
 		ReadFromFile(file, material.v100, 16);
 		ReadFromFile(file, material.v101, 16);
 		ReadFromFile(file, &material.v102, 4);
-		material.textureNames[0] = ReadStringFromFile(file);
-		material.textureNames[1] = ReadStringFromFile(file);
-		material.textureNames[2] = ReadStringFromFile(file);
+		material.sTextureNames[0] = ReadStringFromFile(file);
+		material.sTextureNames[1] = ReadStringFromFile(file);
+		material.sTextureNames[2] = ReadStringFromFile(file);
 		aMaterials.push_back(material);
 	}
 	return true;
@@ -271,7 +272,7 @@ bool ParseW32Streams(std::ifstream& file) {
 			aVegVertexBuffers.push_back(buf);
 		}
 		else {
-			WriteFile("Unknown type " + std::to_string(dataType));
+			WriteConsole("Unknown stream type " + std::to_string(dataType));
 			return false;
 		}
 	}
@@ -356,8 +357,8 @@ bool ParseW32Models(std::ifstream& file) {
 	for (int i = 0; i < modelCount; i++) {
 		tModel model;
 		ReadFromFile(file, &model.identifier, 4); // BMOD
-		ReadFromFile(file, &model.unk, 4);
-		model.name = ReadStringFromFile(file);
+		ReadFromFile(file, &model.nUnk, 4);
+		model.sName = ReadStringFromFile(file);
 		ReadFromFile(file, model.vCenter, sizeof(model.vCenter));
 		ReadFromFile(file, model.vRadius, sizeof(model.vRadius));
 		ReadFromFile(file, &model.fRadius, 4);
@@ -380,8 +381,8 @@ bool ParseW32Objects(std::ifstream& file) {
 	for (int i = 0; i < objectCount; i++) {
 		tObject object;
 		ReadFromFile(file, &object.identifier, 4);
-		object.name1 = ReadStringFromFile(file);
-		object.name2 = ReadStringFromFile(file);
+		object.sName1 = ReadStringFromFile(file);
+		object.sName2 = ReadStringFromFile(file);
 		ReadFromFile(file, &object.nFlags, 4);
 		ReadFromFile(file, object.mMatrix, sizeof(object.mMatrix));
 		aObjects.push_back(object);
@@ -397,8 +398,8 @@ bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 	for (int i = 0; i < meshCount; i++) {
 		tCompactMesh compactMesh;
 		ReadFromFile(file, &compactMesh.identifier, 4);
-		compactMesh.name1 = ReadStringFromFile(file);
-		compactMesh.name2 = ReadStringFromFile(file);
+		compactMesh.sName1 = ReadStringFromFile(file);
+		compactMesh.sName2 = ReadStringFromFile(file);
 		ReadFromFile(file, &compactMesh.nFlags, 4);
 		ReadFromFile(file, &compactMesh.nGroup, 4);
 		ReadFromFile(file, &compactMesh.mMatrix, sizeof(compactMesh.mMatrix));
@@ -458,24 +459,103 @@ bool ParseW32BoundingBoxMeshAssoc(std::ifstream& file) {
 	return true;
 }
 
+void WriteMaterialToFile(std::ofstream& file, tMaterial& material) {
+	file.write((char*)&material.identifier, 4);
+	file.write(material.sName.c_str(), material.sName.length() + 1);
+	file.write((char*)&material.nAlpha, 4);
+	file.write((char*)&material.v92, 4);
+	file.write((char*)&material.nNumTextures, 4);
+	file.write((char*)&material.v73, 4);
+	file.write((char*)&material.v75, 4);
+	file.write((char*)&material.v74, 4);
+	file.write((char*)&material.v108, sizeof(material.v108));
+	file.write((char*)&material.v109, sizeof(material.v109));
+	file.write((char*)&material.v98, sizeof(material.v98));
+	file.write((char*)&material.v99, sizeof(material.v99));
+	file.write((char*)&material.v100, sizeof(material.v100));
+	file.write((char*)&material.v101, sizeof(material.v101));
+	file.write((char*)&material.v102, 4);
+	for (int i = 0; i < 3; i++) {
+		file.write(material.sTextureNames[i].c_str(), material.sTextureNames[i].length() + 1);
+	}
+}
+
+void WriteVertexBufferToFile(std::ofstream& file, tVertexBuffer& buf) {
+	int type = 1;
+	file.write((char*)&type, 4);
+	file.write((char*)&buf.field_0, 4);
+	file.write((char*)&buf.vertexCount, 4);
+	file.write((char*)&buf.vertexSize, 4);
+	file.write((char*)&buf.flags, 4);
+	file.write((char*)&buf.data, buf.vertexCount * buf.vertexSize);
+}
+
+void WriteIndexBufferToFile(std::ofstream& file, tIndexBuffer& buf) {
+	int type = 2;
+	file.write((char*)&type, 4);
+	file.write((char*)&buf.field_0, 4);
+	file.write((char*)&buf.indexCount, 4);
+	file.write((char*)&buf.data, buf.indexCount * 2);
+}
+
+void WriteVegVertexBufferToFile(std::ofstream& file, tVegVertexBuffer& buf) {
+	int type = 3;
+	file.write((char*)&type, 4);
+	file.write((char*)&buf.field_0, 4);
+	file.write((char*)&buf.vertexCount, 4);
+	file.write((char*)&buf.vertexSize, 4);
+	file.write((char*)&buf.data, buf.vertexCount * buf.vertexSize);
+}
+
+void WriteW32(const std::string& fileName, bool isFO2) {
+	std::ofstream file(fileName + "_out.w32", std::ios::out | std::ios::binary );
+	if (!file.is_open()) return;
+
+	uint32_t mapVersion = isFO2 ? 0x20001 : 0x10005;
+	file.write((char*)&mapVersion, 4);
+	if (isFO2) file.write((char*)&nSomeMapValue, 4);
+
+	uint32_t materialCount = aMaterials.size();
+	file.write((char*)&materialCount, 4);
+	for (auto& material : aMaterials) {
+		WriteMaterialToFile(file, material);
+	}
+
+	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
+	file.write((char*)&streamCount, 4);
+	for (int i = 0; i < streamCount; i++) {
+		for (auto& buf : aVertexBuffers) {
+			if (buf.id == i) {
+				WriteVertexBufferToFile(file, buf);
+				continue;
+			}
+		}
+		for (auto& buf : aVegVertexBuffers) {
+			if (buf.id == i) {
+				WriteVegVertexBufferToFile(file, buf);
+				continue;
+			}
+		}
+		for (auto& buf : aIndexBuffers) {
+			if (buf.id == i) {
+				WriteIndexBufferToFile(file, buf);
+				continue;
+			}
+		}
+	}
+}
+
 bool ParseW32(const std::string& fileName) {
 	std::ifstream fin(fileName, std::ios::in | std::ios::binary );
 	if (!fin.is_open()) return false;
 
-	uint32_t mapVersion;
-	ReadFromFile(fin, &mapVersion, 4);
-
-	WriteFile(std::format("Map Version: 0x{:X} {}", mapVersion, GetMapVersion(mapVersion)));
-
-	if (mapVersion > 0x20000) {
-		ReadFromFile(fin, &nSomeMapValue, 4);
-		WriteFile("field 4: " + std::to_string(nSomeMapValue)); // always seems to be 1?
-	}
+	ReadFromFile(fin, &nMapVersion, 4);
+	if (nMapVersion > 0x20000) ReadFromFile(fin, &nSomeMapValue, 4);
 
 	if (!ParseW32Materials(fin)) return false;
 	if (!ParseW32Streams(fin)) return false;
-	if (!ParseW32Surfaces(fin, mapVersion)) return false;
-	if (!ParseW32StaticBatches(fin, mapVersion)) return false;
+	if (!ParseW32Surfaces(fin, nMapVersion)) return false;
+	if (!ParseW32StaticBatches(fin, nMapVersion)) return false;
 
 	{
 		uint32_t someCount;
@@ -494,14 +574,14 @@ bool ParseW32(const std::string& fileName) {
 			tUnknownStructure unkStruct;
 			ReadFromFile(fin, unkStruct.vPos, sizeof(unkStruct.vPos));
 			ReadFromFile(fin, unkStruct.fValues, sizeof(unkStruct.fValues));
-			ReadFromFile(fin, unkStruct.nValues, sizeof(unkStruct.nValues)); 
+			ReadFromFile(fin, unkStruct.nValues, sizeof(unkStruct.nValues));
 			aUnknownArray2.push_back(unkStruct);
 		}
 	}
 
 	if (!ParseW32TreeMeshes(fin)) return false;
 
-	if (mapVersion >= 0x10004) {
+	if (nMapVersion >= 0x10004) {
 		for (int i = 0; i < 16; i++) {
 			float value;
 			ReadFromFile(fin, &value, sizeof(value));
@@ -512,15 +592,34 @@ bool ParseW32(const std::string& fileName) {
 	if (!ParseW32Models(fin)) return false;
 	if (!ParseW32Objects(fin)) return false;
 
-	if (mapVersion >= 0x20000) {
+	if (nMapVersion >= 0x20000) {
 		if (!ParseW32BoundingBoxes(fin)) return false;
 		if (!ParseW32BoundingBoxMeshAssoc(fin)) return false;
-		if (!ParseW32CompactMeshes(fin, mapVersion)) return false;
+		if (!ParseW32CompactMeshes(fin, nMapVersion)) return false;
 	}
 	else {
-		if (!ParseW32CompactMeshes(fin, mapVersion)) return false;
+		if (!ParseW32CompactMeshes(fin, nMapVersion)) return false;
 	}
 	return true;
+}
+
+void WriteW32ToText() {
+	WriteFile(std::format("nMapVersion: 0x{:X} {}", nMapVersion, GetMapVersion(nMapVersion)));
+	if (nMapVersion > 0x20000) {
+		WriteFile("nSomeMapValue: " + std::to_string(nSomeMapValue));
+	}
+
+	WriteFile("Materials begin");
+	WriteFile("");
+	for (auto& material : aMaterials) {
+		WriteFile("Name: " + material.sName);
+		WriteFile("Texture 1: " + material.sTextureNames[0]);
+		WriteFile("Texture 2: " + material.sTextureNames[1]);
+		WriteFile("Texture 3: " + material.sTextureNames[2]);
+		WriteFile("");
+	}
+	WriteFile("Materials end");
+	WriteFile("");
 }
 
 int main(int argc, char *argv[]) {
@@ -531,5 +630,9 @@ int main(int argc, char *argv[]) {
 	if (!ParseW32(argv[1])) {
 		WriteConsole("Failed to load " + (std::string)argv[1] + "!");
 	}
+	else {
+		WriteW32(argv[1], false);
+	}
+	WriteW32ToText();
 	return 0;
 }
