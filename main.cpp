@@ -93,7 +93,7 @@ struct tVegVertexBuffer {
 	float* data;
 };
 struct tMaterial {
-	uint32_t identifier;
+	uint32_t identifier; // MATC
 	std::string name;
 	int nAlpha;
 	int v92;
@@ -110,10 +110,90 @@ struct tMaterial {
 	int v102;
 	std::string textureNames[3];
 };
+struct tSurface {
+	int v37[7];
+	float vAbsoluteCenter[3];
+	float vRelativeCenter[3];
+	int nNumStreamsUsed;
+	uint32_t nStreamId[2];
+	uint32_t nStreamOffset[2];
+};
+struct tStaticBatch {
+	uint32_t nCenterId1;
+	uint32_t nCenterId2;
+	uint32_t nSurfaceId;
+	uint32_t nUnk;
+	float vAbsoluteCenter[3];
+	float vRelativeCenter[3];
+};
+struct tUnknownStructure {
+	float vPos[3];
+	float fValues[2];
+	int nValues[2];
+};
+struct tTreeMesh {
+	int nUnk1;
+	int nUnk2;
+	int nSurfaceId;
+	int nUnk3;
+	float fUnk[19];
+	int nSurfaceId2;
+	int nSurfaceId3;
+	int nSurfaceId4;
+	int nUnk4;
+	int nUnk5;
+	int nMaterialId;
+};
+struct tModel {
+	uint32_t identifier; // BMOD
+	int unk;
+	std::string name;
+	float vCenter[3];
+	float vRadius[3];
+	float fRadius;
+	std::vector<int> aSurfaces;
+};
+struct tObject {
+	uint32_t identifier;
+	std::string name1;
+	std::string name2;
+	uint32_t nFlags;
+	float mMatrix[4*4];
+};
+struct tCompactMesh {
+	uint32_t id;
+	std::string name1;
+	std::string name2;
+	uint32_t nFlags;
+	int nGroup;
+	float mMatrix[4*4];
+	std::vector<int> aUnkArray;
+};
+struct tBoundingBox {
+	std::vector<int> aModels;
+	float vCenter[3];
+	float vRadius[3];
+};
+struct tBoundingBoxMeshAssoc {
+	std::string sName;
+	int nIds[2];
+};
 std::vector<tVertexBuffer> aVertexBuffers;
 std::vector<tIndexBuffer> aIndexBuffers;
 std::vector<tVegVertexBuffer> aVegVertexBuffers;
 std::vector<tMaterial> aMaterials;
+std::vector<tSurface> aSurfaces;
+std::vector<tStaticBatch> aStaticBatches;
+std::vector<int> aUnknownArray1;
+std::vector<tUnknownStructure> aUnknownArray2;
+std::vector<tTreeMesh> aTreeMeshes;
+std::vector<float> aUnknownArray3;
+std::vector<tModel> aModels;
+std::vector<tObject> aObjects;
+std::vector<tCompactMesh> aCompactMeshes;
+std::vector<tBoundingBox> aBoundingBoxes;
+std::vector<tBoundingBoxMeshAssoc> aBoundingBoxMeshAssoc;
+uint32_t nMeshGroupCount;
 
 bool ParseW32Materials(std::ifstream& file) {
 	int numMaterials;
@@ -371,9 +451,9 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 			WriteFile("nPolyNumIndex: " + std::to_string(v37[6]));
 		}
 
+		float vAbsoluteCenter[3];
+		float vRelativeCenter[3];
 		if (mapVersion < 0x20000) {
-			float vAbsoluteCenter[3];
-			float vRelativeCenter[3];
 			ReadFromFile(file, vAbsoluteCenter, 12);
 			ReadFromFile(file, vRelativeCenter, 12);
 			if (bDumpSurfaceData) {
@@ -408,14 +488,23 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 		if (bDumpSurfaceData) {
 			WriteFile(""); // newline
 		}
+
+		tSurface surface;
+		surface.nNumStreamsUsed = nNumStreamsUsed;
+		memcpy(surface.v37, v37, sizeof(v37));
+		memcpy(surface.nStreamId, nStreamId, sizeof(nStreamId));
+		memcpy(surface.nStreamOffset, nStreamOffset, sizeof(nStreamOffset));
+		memcpy(surface.vAbsoluteCenter, vAbsoluteCenter, sizeof(vAbsoluteCenter));
+		memcpy(surface.vRelativeCenter, vRelativeCenter, sizeof(vRelativeCenter));
+		aSurfaces.push_back(surface);
 	}
 	return true;
 }
 
-bool ParseW32SurfaceCenters(std::ifstream& file, int mapVersion) {
+bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 	uint32_t numStaticBatches;
 	ReadFromFile(file, &numStaticBatches, 4);
-	WriteFile("Surface center count: " + std::to_string(numStaticBatches));
+	WriteFile("StaticBatch count: " + std::to_string(numStaticBatches));
 
 	for (int i = 0; i < numStaticBatches; i++) {
 		uint32_t nCenterId1, nCenterId2, nSurfaceId;
@@ -429,9 +518,11 @@ bool ParseW32SurfaceCenters(std::ifstream& file, int mapVersion) {
 			WriteFile("nSurfaceId: " + std::to_string(nSurfaceId));
 		}
 
+		float vAbsoluteCenter[3];
+		float vRelativeCenter[3];
+		uint32_t nUnk;
+
 		if (mapVersion >= 0x20000) {
-			float vAbsoluteCenter[3];
-			float vRelativeCenter[3];
 			ReadFromFile(file, vAbsoluteCenter, 12);
 			ReadFromFile(file, vRelativeCenter, 12);
 			if (bDumpSurfaceCenterData) {
@@ -444,7 +535,6 @@ bool ParseW32SurfaceCenters(std::ifstream& file, int mapVersion) {
 			}
 		}
 		else {
-			uint32_t nUnk;
 			ReadFromFile(file, &nUnk, 4);
 			if (bDumpSurfaceCenterData) {
 				WriteFile("nUnknown1: " + std::to_string(nUnk)); // always 0?
@@ -454,6 +544,15 @@ bool ParseW32SurfaceCenters(std::ifstream& file, int mapVersion) {
 		if (bDumpSurfaceCenterData) {
 			WriteFile(""); // newline
 		}
+
+		tStaticBatch staticBatch;
+		staticBatch.nCenterId1 = nCenterId1;
+		staticBatch.nCenterId2 = nCenterId2;
+		staticBatch.nSurfaceId = nSurfaceId;
+		staticBatch.nUnk = nUnk;
+		memcpy(staticBatch.vAbsoluteCenter, vAbsoluteCenter, sizeof(vAbsoluteCenter));
+		memcpy(staticBatch.vRelativeCenter, vRelativeCenter, sizeof(vRelativeCenter));
+		aStaticBatches.push_back(staticBatch);
 	}
 	WriteFile("");
 	return true;
@@ -502,6 +601,20 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 			WriteFile("nMaterialId: " + std::to_string(nMaterialId));
 			WriteFile(""); // newline
 		}
+
+		tTreeMesh treeMesh;
+		treeMesh.nUnk1 = nUnk1;
+		treeMesh.nUnk2 = nUnk2;
+		treeMesh.nSurfaceId = nSurfaceId;
+		treeMesh.nUnk3 = nUnk3;
+		memcpy(treeMesh.fUnk, fUnk, sizeof(fUnk));
+		treeMesh.nSurfaceId2 = nSurfaceId2;
+		treeMesh.nSurfaceId3 = nSurfaceId3;
+		treeMesh.nSurfaceId4 = nSurfaceId4;
+		treeMesh.nUnk4 = nUnk4;
+		treeMesh.nUnk5 = nUnk5;
+		treeMesh.nMaterialId = nMaterialId;
+		aTreeMeshes.push_back(treeMesh);
 	}
 	WriteFile(""); // newline
 	return true;
@@ -541,13 +654,22 @@ bool ParseW32Models(std::ifstream& file) {
 		if (bDumpModelData) {
 			WriteFile("nNumSurfaces: " + std::to_string(numSurfaces));
 		}
+		struct tModel model;
+		model.identifier = id;
+		model.unk = unk;
+		model.name = name;
+		memcpy(model.vCenter, vCenter, sizeof(vCenter));
+		memcpy(model.vRadius, vRadius, sizeof(vRadius));
+		model.fRadius = fRadius;
 		for (int j = 0; j < numSurfaces; j++) {
 			int surface;
 			ReadFromFile(file, &surface, sizeof(surface));
 			if (bDumpModelData) {
 				WriteFile(std::to_string(surface));
 			}
+			model.aSurfaces.push_back(surface);
 		}
+		aModels.push_back(model);
 		if (bDumpModelData) {
 			WriteFile(""); // newline
 		}
@@ -579,18 +701,25 @@ bool ParseW32Objects(std::ifstream& file) {
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[12], mMatrix[13], mMatrix[14], mMatrix[15]));
 			WriteFile(""); // newline
 		}
+
+		tObject object;
+		object.identifier = id;
+		object.name1 = name1;
+		object.name2 = name2;
+		object.nFlags = nFlags;
+		memcpy(object.mMatrix, mMatrix, sizeof(mMatrix));
+		aObjects.push_back(object);
 	}
 	WriteFile(""); // newline
 	return true;
 }
 
-bool ParseW32MeshObjects(std::ifstream& file, uint32_t mapVersion) {
+bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 	uint32_t meshCount;
-	uint32_t meshGroupCount;
 	ReadFromFile(file, &meshCount, 4);
-	ReadFromFile(file, &meshGroupCount, 4);
+	ReadFromFile(file, &nMeshGroupCount, 4);
 	WriteFile("CompactMesh count: " + std::to_string(meshCount));
-	WriteFile("CompactMesh group count: " + std::to_string(meshGroupCount));
+	WriteFile("CompactMesh group count: " + std::to_string(nMeshGroupCount));
 	for (int i = 0; i < meshCount; i++) {
 		uint32_t id;
 		ReadFromFile(file, &id, sizeof(id));
@@ -613,13 +742,20 @@ bool ParseW32MeshObjects(std::ifstream& file, uint32_t mapVersion) {
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[8], mMatrix[9], mMatrix[10], mMatrix[11]));
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[12], mMatrix[13], mMatrix[14], mMatrix[15]));
 		}
+
+		tCompactMesh compactMesh;
+		compactMesh.id = id;
+		compactMesh.name1 = name;
+		compactMesh.name2 = name2;
+		compactMesh.nFlags = nFlags;
+		compactMesh.nGroup = nGroup;
 		if (mapVersion >= 0x20000) {
-			uint32_t nUnk;
-			int nBBoxIndex;
-			ReadFromFile(file, &nUnk, 4);
+			uint32_t nUnkCount, nBBoxIndex;
+			ReadFromFile(file, &nUnkCount, 4);
 			ReadFromFile(file, &nBBoxIndex, 4);
+			compactMesh.aUnkArray.push_back(nBBoxIndex);
 			if (bDumpMeshObjectData) {
-				WriteFile("nUnknown1: " + std::to_string(nUnk));
+				WriteFile("nUnknown1: " + std::to_string(nUnkCount));
 				WriteFile("nBBoxIndex: " + std::to_string(nBBoxIndex));
 			}
 		}
@@ -634,12 +770,16 @@ bool ParseW32MeshObjects(std::ifstream& file, uint32_t mapVersion) {
 					if (bDumpMeshObjectData) {
 						WriteFile(std::to_string(nUnkValue));
 					}
+					compactMesh.aUnkArray.push_back(nUnkValue);
 				}
 			}
 		}
 		if (bDumpMeshObjectData) {
 			WriteFile(""); // newline
 		}
+
+		memcpy(compactMesh.mMatrix, mMatrix, sizeof(mMatrix));
+		aCompactMeshes.push_back(compactMesh);
 	}
 	return true;
 }
@@ -649,6 +789,8 @@ bool ParseW32BoundingBoxes(std::ifstream& file) {
 	ReadFromFile(file, &boundingBoxCount, 4);
 	WriteFile("Bounding box count: " + std::to_string(boundingBoxCount));
 	for (int i = 0; i < boundingBoxCount; i++) {
+		tBoundingBox boundingBox;
+
 		uint32_t modelCount;
 		ReadFromFile(file, &modelCount, 4);
 		WriteFile("Model count: " + std::to_string(modelCount));
@@ -656,6 +798,7 @@ bool ParseW32BoundingBoxes(std::ifstream& file) {
 			uint32_t modelId;
 			ReadFromFile(file, &modelId, 4);
 			WriteFile(std::to_string(modelId));
+			boundingBox.aModels.push_back(modelId);
 		}
 
 		float vCenter[3];
@@ -669,6 +812,10 @@ bool ParseW32BoundingBoxes(std::ifstream& file) {
 		WriteFile("vRadius.y: " + std::to_string(vRadius[1]));
 		WriteFile("vRadius.z: " + std::to_string(vRadius[2]));
 		WriteFile(""); // newline
+
+		memcpy(boundingBox.vCenter, vCenter, sizeof(vCenter));
+		memcpy(boundingBox.vRadius, vRadius, sizeof(vRadius));
+		aBoundingBoxes.push_back(boundingBox);
 	}
 	WriteFile(""); // newline
 	return true;
@@ -687,6 +834,12 @@ bool ParseW32BoundingBoxMeshAssoc(std::ifstream& file) {
 		WriteFile("nIds[0]: " + std::to_string(nIds[0]));
 		WriteFile("nIds[1]: " + std::to_string(nIds[1]));
 		WriteFile(""); // newline
+
+		tBoundingBoxMeshAssoc assoc;
+		assoc.sName = name;
+		assoc.nIds[0] = nIds[0];
+		assoc.nIds[1] = nIds[1];
+		aBoundingBoxMeshAssoc.push_back(assoc);
 	}
 	WriteFile(""); // newline
 	return true;
@@ -714,7 +867,7 @@ bool ParseW32(const std::string& fileName) {
 	if (!ParseW32Materials(fin)) return false;
 	if (!ParseW32Streams(fin)) return false;
 	if (!ParseW32Surfaces(fin, mapVersion)) return false;
-	if (!ParseW32SurfaceCenters(fin, mapVersion)) return false;
+	if (!ParseW32StaticBatches(fin, mapVersion)) return false;
 
 	{
 		uint32_t someCount;
@@ -724,6 +877,7 @@ bool ParseW32(const std::string& fileName) {
 			int someValue;
 			ReadFromFile(fin, &someValue, 4);
 			if (bDumpUnknownIntArrayData) WriteFile(std::format("0x{:X}", someValue));
+			aUnknownArray1.push_back(someValue);
 		}
 		WriteFile(""); // newline
 	}
@@ -749,6 +903,12 @@ bool ParseW32(const std::string& fileName) {
 				WriteFile(std::format("nUnknown[1]: 0x{:X}", nValues[1]));
 				WriteFile(""); // newline
 			}
+
+			tUnknownStructure unkStruct;
+			memcpy(unkStruct.vPos, vPos, sizeof(vPos));
+			memcpy(unkStruct.fValues, fValues, sizeof(fValues));
+			memcpy(unkStruct.nValues, nValues, sizeof(nValues));
+			aUnknownArray2.push_back(unkStruct);
 		}
 		WriteFile(""); // newline
 	}
@@ -761,6 +921,7 @@ bool ParseW32(const std::string& fileName) {
 			float value;
 			ReadFromFile(fin, &value, sizeof(value));
 			WriteFile(std::to_string(value));
+			aUnknownArray3.push_back(value);
 		}
 		WriteFile(""); // newline
 	}
@@ -771,10 +932,10 @@ bool ParseW32(const std::string& fileName) {
 	if (mapVersion >= 0x20000) {
 		if (!ParseW32BoundingBoxes(fin)) return false;
 		if (!ParseW32BoundingBoxMeshAssoc(fin)) return false;
-		if (!ParseW32MeshObjects(fin, mapVersion)) return false;
+		if (!ParseW32CompactMeshes(fin, mapVersion)) return false;
 	}
 	else {
-		if (!ParseW32MeshObjects(fin, mapVersion)) return false;
+		if (!ParseW32CompactMeshes(fin, mapVersion)) return false;
 	}
 
 
