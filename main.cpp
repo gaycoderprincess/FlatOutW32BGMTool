@@ -47,6 +47,7 @@ void ReadFromFile(std::ifstream& file, void* out, size_t numBytes) {
 
 // vertex buffer data:
 // 1 2 3 always coords
+// 0x202 flag seems to be the terrain
 // 0x152 -> 4 5 6 are normals, 7 unknown, 8 and 9 are UV coords
 // 0x212 -> 4 5 6 are normals, 7 8 9 10 unknown
 
@@ -65,6 +66,7 @@ void ReadFromFile(std::ifstream& file, void* out, size_t numBytes) {
 
 struct tVertexBuffer {
 	int id;
+	int field_0;
 	int vertexCount;
 	int vertexSize;
 	int flags;
@@ -72,11 +74,13 @@ struct tVertexBuffer {
 };
 struct tIndexBuffer {
 	int id;
+	int field_0;
 	int indexCount;
 	uint16_t* data;
 };
 struct tVegVertexBuffer {
 	int id;
+	int field_0;
 	int vertexCount;
 	int vertexSize;
 	float* data;
@@ -150,7 +154,7 @@ struct tObject {
 	float mMatrix[4*4];
 };
 struct tCompactMesh {
-	uint32_t id;
+	uint32_t identifier;
 	std::string name1;
 	std::string name2;
 	uint32_t nFlags;
@@ -186,131 +190,82 @@ std::vector<tBoundingBoxMeshAssoc> aBoundingBoxMeshAssoc;
 uint32_t nMeshGroupCount;
 
 bool ParseW32Materials(std::ifstream& file) {
-	int numMaterials;
+	uint32_t numMaterials;
 	ReadFromFile(file, &numMaterials, 4);
+	aMaterials.reserve(numMaterials);
 	for (int i = 0; i < numMaterials; i++) {
-		uint32_t identifier;
-		ReadFromFile(file, &identifier, 4);
-		if (identifier != 0x4354414D) return false; // "MATC"
+		tMaterial material;
+		ReadFromFile(file, &material.identifier, 4);
+		if (material.identifier != 0x4354414D) return false; // "MATC"
 
-		auto textureName = ReadStringFromFile(file);
-		int alpha;
-		int v92;
-		int nNumTextures;
-		int v73;
-		int v75;
-		int v74;
-		ReadFromFile(file, &alpha, 4);
-		ReadFromFile(file, &v92, 4);
-		ReadFromFile(file, &nNumTextures, 4);
-		ReadFromFile(file, &v73, 4);
-		ReadFromFile(file, &v75, 4);
-		ReadFromFile(file, &v74, 4);
-
-		int v108[3];
-		int v109[3];
-		int v98[4];
-		int v99[4];
-		int v100[4];
-		int v101[4];
-		int v102;
-		ReadFromFile(file, v108, 12);
-		ReadFromFile(file, v109, 12);
-		ReadFromFile(file, v98, 16);
-		ReadFromFile(file, v99, 16);
-		ReadFromFile(file, v100, 16);
-		ReadFromFile(file, v101, 16);
-		ReadFromFile(file, &v102, 4);
-
-		auto textureName2 = ReadStringFromFile(file);
-		auto textureName3 = ReadStringFromFile(file);
-		auto textureName4 = ReadStringFromFile(file);
-
-		tMaterial mat;
-		mat.identifier = 0x4354414D;
-		mat.nAlpha = alpha;
-		mat.v92 = v92;
-		mat.nNumTextures = nNumTextures;
-		mat.v73 = v73;
-		mat.v75 = v75;
-		mat.v74 = v74;
-		memcpy(mat.v108, v108, sizeof(v108));
-		memcpy(mat.v109, v109, sizeof(v109));
-		memcpy(mat.v98, v98, sizeof(v98));
-		memcpy(mat.v99, v99, sizeof(v99));
-		memcpy(mat.v100, v100, sizeof(v100));
-		memcpy(mat.v101, v101, sizeof(v101));
-		mat.v102 = v102;
-		mat.name = textureName;
-		mat.textureNames[0] = textureName2;
-		mat.textureNames[1] = textureName3;
-		mat.textureNames[2] = textureName4;
-		aMaterials.push_back(mat);
+		material.name = ReadStringFromFile(file);
+		ReadFromFile(file, &material.nAlpha, 4);
+		ReadFromFile(file, &material.v92, 4);
+		ReadFromFile(file, &material.nNumTextures, 4);
+		ReadFromFile(file, &material.v73, 4);
+		ReadFromFile(file, &material.v75, 4);
+		ReadFromFile(file, &material.v74, 4);
+		ReadFromFile(file, material.v108, 12);
+		ReadFromFile(file, material.v109, 12);
+		ReadFromFile(file, material.v98, 16);
+		ReadFromFile(file, material.v99, 16);
+		ReadFromFile(file, material.v100, 16);
+		ReadFromFile(file, material.v101, 16);
+		ReadFromFile(file, &material.v102, 4);
+		material.textureNames[0] = ReadStringFromFile(file);
+		material.textureNames[1] = ReadStringFromFile(file);
+		material.textureNames[2] = ReadStringFromFile(file);
+		aMaterials.push_back(material);
 	}
 	return true;
 }
 
 bool ParseW32Streams(std::ifstream& file) {
-	int numStreams;
+	uint32_t numStreams;
 	ReadFromFile(file, &numStreams, 4);
 	for (int i = 0; i < numStreams; i++) {
 		int dataType;
 		ReadFromFile(file, &dataType, 4);
 		if (dataType == 1) {
-			// 0x202 flag seems to be the terrain
+			tVertexBuffer buf;
+			ReadFromFile(file, &buf.field_0, 4);
+			ReadFromFile(file, &buf.vertexCount, 4);
+			ReadFromFile(file, &buf.vertexSize, 4);
+			ReadFromFile(file, &buf.flags, 4);
 
-			int field_0;
-			int vertexCount;
-			int vertexSize;
-			int flags;
-			ReadFromFile(file, &field_0, 4);
-			ReadFromFile(file, &vertexCount, 4);
-			ReadFromFile(file, &vertexSize, 4);
-			ReadFromFile(file, &flags, 4);
-
-			auto dataSize = vertexCount * (vertexSize / sizeof(float));
+			auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
 			auto vertexData = new float[dataSize];
 			ReadFromFile(file, vertexData, dataSize * sizeof(float));
 
-			tVertexBuffer buf;
-			buf.vertexCount = vertexCount;
-			buf.vertexSize = vertexSize;
-			buf.flags = flags;
 			buf.id = i;
 			buf.data = vertexData;
 			aVertexBuffers.push_back(buf);
 		}
 		else if (dataType == 2) {
-			int field_0;
-			int valueCount;
-			ReadFromFile(file, &field_0, 4);
-			ReadFromFile(file, &valueCount, 4);
+			tIndexBuffer buf;
 
-			auto dataSize = valueCount;
+			ReadFromFile(file, &buf.field_0, 4);
+			ReadFromFile(file, &buf.indexCount, 4);
+
+			auto dataSize = buf.indexCount;
 			auto indexData = new uint16_t[dataSize];
 			ReadFromFile(file, indexData, dataSize * sizeof(uint16_t));
 
-			tIndexBuffer buf;
-			buf.indexCount = valueCount;
 			buf.id = i;
 			buf.data = indexData;
 			aIndexBuffers.push_back(buf);
 		}
 		else if (dataType == 3) {
-			int field_0;
-			int valueCount;
-			int valueSize;
-			ReadFromFile(file, &field_0, 4);
-			ReadFromFile(file, &valueCount, 4);
-			ReadFromFile(file, &valueSize, 4);
+			tVegVertexBuffer buf;
 
-			auto dataSize = valueCount * (valueSize / sizeof(float));
+			ReadFromFile(file, &buf.field_0, 4);
+			ReadFromFile(file, &buf.vertexCount, 4);
+			ReadFromFile(file, &buf.vertexSize, 4);
+
+			auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
 			auto data = new float[dataSize];
 			ReadFromFile(file, data, dataSize * sizeof(float));
 
-			tVegVertexBuffer buf;
-			buf.vertexCount = valueCount;
-			buf.vertexSize = valueSize;
 			buf.id = i;
 			buf.data = data;
 			aVegVertexBuffers.push_back(buf);
@@ -326,36 +281,24 @@ bool ParseW32Streams(std::ifstream& file) {
 bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 	uint32_t nSurfaceCount;
 	ReadFromFile(file, &nSurfaceCount, 4);
+	aSurfaces.reserve(nSurfaceCount);
 	for (int i = 0; i < nSurfaceCount; i++) {
-		int v37[7];
-		ReadFromFile(file, v37, 28);
-
-		float vAbsoluteCenter[3];
-		float vRelativeCenter[3];
-		if (mapVersion < 0x20000) {
-			ReadFromFile(file, vAbsoluteCenter, 12);
-			ReadFromFile(file, vRelativeCenter, 12);
-		}
-
-		uint32_t nStreamId[2];
-		uint32_t nStreamOffset[2];
-
-		int nNumStreamsUsed;
-		ReadFromFile(file, &nNumStreamsUsed, 4);
-		if (nNumStreamsUsed > 2) return false;
-
-		for (int j = 0; j < nNumStreamsUsed; j++) {
-			ReadFromFile(file, &nStreamId[j], 4);
-			ReadFromFile(file, &nStreamOffset[j], 4);
-		}
-
 		tSurface surface;
-		surface.nNumStreamsUsed = nNumStreamsUsed;
-		memcpy(surface.v37, v37, sizeof(v37));
-		memcpy(surface.nStreamId, nStreamId, sizeof(nStreamId));
-		memcpy(surface.nStreamOffset, nStreamOffset, sizeof(nStreamOffset));
-		memcpy(surface.vAbsoluteCenter, vAbsoluteCenter, sizeof(vAbsoluteCenter));
-		memcpy(surface.vRelativeCenter, vRelativeCenter, sizeof(vRelativeCenter));
+		ReadFromFile(file, surface.v37, 28);
+
+		if (mapVersion < 0x20000) {
+			ReadFromFile(file, surface.vAbsoluteCenter, 12);
+			ReadFromFile(file, surface.vRelativeCenter, 12);
+		}
+
+		ReadFromFile(file, &surface.nNumStreamsUsed, 4);
+		if (surface.nNumStreamsUsed > 2) return false;
+
+		for (int j = 0; j < surface.nNumStreamsUsed; j++) {
+			ReadFromFile(file, &surface.nStreamId[j], 4);
+			ReadFromFile(file, &surface.nStreamOffset[j], 4);
+		}
+
 		aSurfaces.push_back(surface);
 	}
 	return true;
@@ -364,31 +307,21 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 	uint32_t numStaticBatches;
 	ReadFromFile(file, &numStaticBatches, 4);
+	aStaticBatches.reserve(numStaticBatches);
 	for (int i = 0; i < numStaticBatches; i++) {
-		uint32_t nCenterId1, nCenterId2, nSurfaceId;
-		ReadFromFile(file, &nCenterId1, 4);
-		ReadFromFile(file, &nCenterId2, 4);
-		ReadFromFile(file, &nSurfaceId, 4);
-
-		float vAbsoluteCenter[3];
-		float vRelativeCenter[3];
-		uint32_t nUnk;
+		tStaticBatch staticBatch;
+		ReadFromFile(file, &staticBatch.nCenterId1, 4);
+		ReadFromFile(file, &staticBatch.nCenterId2, 4);
+		ReadFromFile(file, &staticBatch.nSurfaceId, 4);
 
 		if (mapVersion >= 0x20000) {
-			ReadFromFile(file, vAbsoluteCenter, 12);
-			ReadFromFile(file, vRelativeCenter, 12);
+			ReadFromFile(file, staticBatch.vAbsoluteCenter, 12);
+			ReadFromFile(file, staticBatch.vRelativeCenter, 12);
 		}
 		else {
-			ReadFromFile(file, &nUnk, 4);
+			ReadFromFile(file, &staticBatch.nUnk, 4);
 		}
 
-		tStaticBatch staticBatch;
-		staticBatch.nCenterId1 = nCenterId1;
-		staticBatch.nCenterId2 = nCenterId2;
-		staticBatch.nSurfaceId = nSurfaceId;
-		staticBatch.nUnk = nUnk;
-		memcpy(staticBatch.vAbsoluteCenter, vAbsoluteCenter, sizeof(vAbsoluteCenter));
-		memcpy(staticBatch.vRelativeCenter, vRelativeCenter, sizeof(vRelativeCenter));
 		aStaticBatches.push_back(staticBatch);
 	}
 	return true;
@@ -397,42 +330,20 @@ bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 bool ParseW32TreeMeshes(std::ifstream& file) {
 	uint32_t treeMeshCount;
 	ReadFromFile(file, &treeMeshCount, 4);
+	aTreeMeshes.reserve(treeMeshCount);
 	for (int i = 0; i < treeMeshCount; i++) {
-		int nUnk1;
-		int nUnk2;
-		int nSurfaceId;
-		int nUnk3;
-		float fUnk[19];
-		int nSurfaceId2;
-		int nSurfaceId3;
-		int nSurfaceId4;
-		int nUnk4;
-		int nUnk5;
-		int nMaterialId;
-		ReadFromFile(file, &nUnk1, sizeof(nUnk1));
-		ReadFromFile(file, &nUnk2, sizeof(nUnk2));
-		ReadFromFile(file, &nSurfaceId, sizeof(nSurfaceId));
-		ReadFromFile(file, &nUnk3, sizeof(nUnk3));
-		ReadFromFile(file, fUnk, sizeof(fUnk));
-		ReadFromFile(file, &nSurfaceId2, sizeof(nSurfaceId2));
-		ReadFromFile(file, &nSurfaceId3, sizeof(nSurfaceId3));
-		ReadFromFile(file, &nSurfaceId4, sizeof(nSurfaceId4));
-		ReadFromFile(file, &nUnk4, sizeof(nUnk4));
-		ReadFromFile(file, &nUnk5, sizeof(nUnk5));
-		ReadFromFile(file, &nMaterialId, sizeof(nMaterialId));
-
 		tTreeMesh treeMesh;
-		treeMesh.nUnk1 = nUnk1;
-		treeMesh.nUnk2 = nUnk2;
-		treeMesh.nSurfaceId = nSurfaceId;
-		treeMesh.nUnk3 = nUnk3;
-		memcpy(treeMesh.fUnk, fUnk, sizeof(fUnk));
-		treeMesh.nSurfaceId2 = nSurfaceId2;
-		treeMesh.nSurfaceId3 = nSurfaceId3;
-		treeMesh.nSurfaceId4 = nSurfaceId4;
-		treeMesh.nUnk4 = nUnk4;
-		treeMesh.nUnk5 = nUnk5;
-		treeMesh.nMaterialId = nMaterialId;
+		ReadFromFile(file, &treeMesh.nUnk1, 4);
+		ReadFromFile(file, &treeMesh.nUnk2, 4);
+		ReadFromFile(file, &treeMesh.nSurfaceId, 4);
+		ReadFromFile(file, &treeMesh.nUnk3, 4);
+		ReadFromFile(file, treeMesh.fUnk, sizeof(treeMesh.fUnk));
+		ReadFromFile(file, &treeMesh.nSurfaceId2, 4);
+		ReadFromFile(file, &treeMesh.nSurfaceId3, 4);
+		ReadFromFile(file, &treeMesh.nSurfaceId4, 4);
+		ReadFromFile(file, &treeMesh.nUnk4, 4);
+		ReadFromFile(file, &treeMesh.nUnk5, 4);
+		ReadFromFile(file, &treeMesh.nMaterialId, 4);
 		aTreeMeshes.push_back(treeMesh);
 	}
 	return true;
@@ -441,28 +352,17 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 bool ParseW32Models(std::ifstream& file) {
 	uint32_t modelCount;
 	ReadFromFile(file, &modelCount, 4);
+	aModels.reserve(modelCount);
 	for (int i = 0; i < modelCount; i++) {
-		int id;
-		ReadFromFile(file, &id, sizeof(id)); // BMOD
-		int unk;
-		ReadFromFile(file, &unk, sizeof(unk));
-		auto name = ReadStringFromFile(file);
-		float vCenter[3];
-		float vRadius[3];
-		float fRadius;
-		ReadFromFile(file, vCenter, sizeof(vCenter));
-		ReadFromFile(file, vRadius, sizeof(vRadius));
-		ReadFromFile(file, &fRadius, sizeof(fRadius));
-		int numSurfaces;
-		ReadFromFile(file, &numSurfaces, sizeof(numSurfaces));
-
 		tModel model;
-		model.identifier = id;
-		model.unk = unk;
-		model.name = name;
-		memcpy(model.vCenter, vCenter, sizeof(vCenter));
-		memcpy(model.vRadius, vRadius, sizeof(vRadius));
-		model.fRadius = fRadius;
+		ReadFromFile(file, &model.identifier, 4); // BMOD
+		ReadFromFile(file, &model.unk, 4);
+		model.name = ReadStringFromFile(file);
+		ReadFromFile(file, model.vCenter, sizeof(model.vCenter));
+		ReadFromFile(file, model.vRadius, sizeof(model.vRadius));
+		ReadFromFile(file, &model.fRadius, 4);
+		uint32_t numSurfaces;
+		ReadFromFile(file, &numSurfaces, sizeof(numSurfaces));
 		for (int j = 0; j < numSurfaces; j++) {
 			int surface;
 			ReadFromFile(file, &surface, sizeof(surface));
@@ -476,22 +376,14 @@ bool ParseW32Models(std::ifstream& file) {
 bool ParseW32Objects(std::ifstream& file) {
 	uint32_t objectCount;
 	ReadFromFile(file, &objectCount, 4);
+	aObjects.reserve(objectCount);
 	for (int i = 0; i < objectCount; i++) {
-		uint32_t id;
-		ReadFromFile(file, &id, sizeof(id));
-		auto name1 = ReadStringFromFile(file);
-		auto name2 = ReadStringFromFile(file);
-		int nFlags;
-		ReadFromFile(file, &nFlags, sizeof(nFlags));
-		float mMatrix[4*4];
-		ReadFromFile(file, &mMatrix, sizeof(mMatrix));
-
 		tObject object;
-		object.identifier = id;
-		object.name1 = name1;
-		object.name2 = name2;
-		object.nFlags = nFlags;
-		memcpy(object.mMatrix, mMatrix, sizeof(mMatrix));
+		ReadFromFile(file, &object.identifier, 4);
+		object.name1 = ReadStringFromFile(file);
+		object.name2 = ReadStringFromFile(file);
+		ReadFromFile(file, &object.nFlags, 4);
+		ReadFromFile(file, object.mMatrix, sizeof(object.mMatrix));
 		aObjects.push_back(object);
 	}
 	return true;
@@ -501,24 +393,16 @@ bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 	uint32_t meshCount;
 	ReadFromFile(file, &meshCount, 4);
 	ReadFromFile(file, &nMeshGroupCount, 4);
+	aCompactMeshes.reserve(meshCount);
 	for (int i = 0; i < meshCount; i++) {
-		uint32_t id;
-		ReadFromFile(file, &id, sizeof(id));
-		auto name = ReadStringFromFile(file);
-		auto name2 = ReadStringFromFile(file);
-		uint32_t nFlags;
-		int nGroup;
-		ReadFromFile(file, &nFlags, 4);
-		ReadFromFile(file, &nGroup, 4);
-		float mMatrix[4*4];
-		ReadFromFile(file, &mMatrix, sizeof(mMatrix));
-
 		tCompactMesh compactMesh;
-		compactMesh.id = id;
-		compactMesh.name1 = name;
-		compactMesh.name2 = name2;
-		compactMesh.nFlags = nFlags;
-		compactMesh.nGroup = nGroup;
+		ReadFromFile(file, &compactMesh.identifier, 4);
+		compactMesh.name1 = ReadStringFromFile(file);
+		compactMesh.name2 = ReadStringFromFile(file);
+		ReadFromFile(file, &compactMesh.nFlags, 4);
+		ReadFromFile(file, &compactMesh.nGroup, 4);
+		ReadFromFile(file, &compactMesh.mMatrix, sizeof(compactMesh.mMatrix));
+
 		if (mapVersion >= 0x20000) {
 			uint32_t nUnkCount, nBBoxIndex;
 			ReadFromFile(file, &nUnkCount, 4);
@@ -528,9 +412,12 @@ bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 		else {
 			uint32_t nUnkCount;
 			ReadFromFile(file, &nUnkCount, 4);
+			for (int j = 0; j < nUnkCount; j++) {
+				uint32_t nUnkValue;
+				ReadFromFile(file, &nUnkValue, 4);
+				compactMesh.aUnkArray.push_back(nUnkValue);
+			}
 		}
-
-		memcpy(compactMesh.mMatrix, mMatrix, sizeof(mMatrix));
 		aCompactMeshes.push_back(compactMesh);
 	}
 	return true;
@@ -539,6 +426,7 @@ bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 bool ParseW32BoundingBoxes(std::ifstream& file) {
 	uint32_t boundingBoxCount;
 	ReadFromFile(file, &boundingBoxCount, 4);
+	aBoundingBoxes.reserve(boundingBoxCount);
 	for (int i = 0; i < boundingBoxCount; i++) {
 		tBoundingBox boundingBox;
 
@@ -550,13 +438,8 @@ bool ParseW32BoundingBoxes(std::ifstream& file) {
 			boundingBox.aModels.push_back(modelId);
 		}
 
-		float vCenter[3];
-		float vRadius[3];
-		ReadFromFile(file, vCenter, sizeof(vCenter));
-		ReadFromFile(file, vRadius, sizeof(vRadius));
-
-		memcpy(boundingBox.vCenter, vCenter, sizeof(vCenter));
-		memcpy(boundingBox.vRadius, vRadius, sizeof(vRadius));
+		ReadFromFile(file, boundingBox.vCenter, sizeof(boundingBox.vCenter));
+		ReadFromFile(file, boundingBox.vRadius, sizeof(boundingBox.vRadius));
 		aBoundingBoxes.push_back(boundingBox);
 	}
 	return true;
@@ -565,16 +448,11 @@ bool ParseW32BoundingBoxes(std::ifstream& file) {
 bool ParseW32BoundingBoxMeshAssoc(std::ifstream& file) {
 	uint32_t assocCount;
 	ReadFromFile(file, &assocCount, 4);
+	aBoundingBoxMeshAssoc.reserve(assocCount);
 	for (int i = 0; i < assocCount; i++) {
-		auto name = ReadStringFromFile(file);
-
-		int nIds[2];
-		ReadFromFile(file, nIds, sizeof(nIds));
-
 		tBoundingBoxMeshAssoc assoc;
-		assoc.sName = name;
-		assoc.nIds[0] = nIds[0];
-		assoc.nIds[1] = nIds[1];
+		assoc.sName = ReadStringFromFile(file);
+		ReadFromFile(file, assoc.nIds, sizeof(assoc.nIds));
 		aBoundingBoxMeshAssoc.push_back(assoc);
 	}
 	return true;
@@ -613,17 +491,10 @@ bool ParseW32(const std::string& fileName) {
 		uint32_t someCount;
 		ReadFromFile(fin, &someCount, 4);
 		for (int i = 0; i < someCount; i++) {
-			float vPos[3];
-			float fValues[2];
-			int nValues[2];
-			ReadFromFile(fin, vPos, sizeof(vPos));
-			ReadFromFile(fin, fValues, sizeof(fValues));
-			ReadFromFile(fin, nValues, sizeof(nValues));
-
 			tUnknownStructure unkStruct;
-			memcpy(unkStruct.vPos, vPos, sizeof(vPos));
-			memcpy(unkStruct.fValues, fValues, sizeof(fValues));
-			memcpy(unkStruct.nValues, nValues, sizeof(nValues));
+			ReadFromFile(fin, unkStruct.vPos, sizeof(unkStruct.vPos));
+			ReadFromFile(fin, unkStruct.fValues, sizeof(unkStruct.fValues));
+			ReadFromFile(fin, unkStruct.nValues, sizeof(unkStruct.nValues)); 
 			aUnknownArray2.push_back(unkStruct);
 		}
 	}
