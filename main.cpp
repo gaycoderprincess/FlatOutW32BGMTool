@@ -31,7 +31,7 @@ bool bDumpMaterialData = true;
 bool bDumpStreams = true;
 
 // export options
-bool bDisableProps = true;
+bool bDisableProps = false;
 bool bConvertToFO1 = true;
 
 std::string sFileName;
@@ -197,7 +197,9 @@ struct tCompactMesh {
 	uint32_t nFlags;
 	int nGroup;
 	float mMatrix[4*4];
-	std::vector<int> aUnkArray;
+	uint32_t nUnk1;
+	uint32_t nBBoxAssocId;
+	std::vector<int> aLODMeshIds;
 };
 struct tBoundingBox {
 	std::vector<int> aModels;
@@ -236,6 +238,8 @@ tVertexBuffer* FindVertexBuffer(int id) {
 }
 
 bool ParseW32Materials(std::ifstream& file) {
+	WriteConsole("Parsing materials...");
+
 	uint32_t numMaterials;
 	ReadFromFile(file, &numMaterials, 4);
 	aMaterials.reserve(numMaterials);
@@ -267,6 +271,8 @@ bool ParseW32Materials(std::ifstream& file) {
 }
 
 bool ParseW32Streams(std::ifstream& file) {
+	WriteConsole("Parsing streams...");
+
 	uint32_t numStreams;
 	ReadFromFile(file, &numStreams, 4);
 	for (int i = 0; i < numStreams; i++) {
@@ -325,6 +331,8 @@ bool ParseW32Streams(std::ifstream& file) {
 }
 
 bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
+	WriteConsole("Parsing surfaces...");
+
 	uint32_t nSurfaceCount;
 	ReadFromFile(file, &nSurfaceCount, 4);
 	aSurfaces.reserve(nSurfaceCount);
@@ -357,6 +365,8 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 }
 
 bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
+	WriteConsole("Parsing static batches...");
+
 	uint32_t numStaticBatches;
 	ReadFromFile(file, &numStaticBatches, 4);
 	aStaticBatches.reserve(numStaticBatches);
@@ -391,6 +401,8 @@ bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 }
 
 bool ParseW32TreeMeshes(std::ifstream& file) {
+	WriteConsole("Parsing tree meshes...");
+
 	uint32_t treeMeshCount;
 	ReadFromFile(file, &treeMeshCount, 4);
 	aTreeMeshes.reserve(treeMeshCount);
@@ -415,10 +427,10 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 		if (treeMesh.nSurfaceId3 >= 0 && treeMesh.nSurfaceId3 >= aSurfaces.size()) return false;
 		if (treeMesh.nSurfaceId4 >= 0 && treeMesh.nSurfaceId4 >= aSurfaces.size()) return false;
 		if (treeMesh.nSurfaceId5 >= 0 && treeMesh.nSurfaceId5 >= aSurfaces.size()) return false;
-		if (treeMesh.nSurfaceId2 >= 0) { aSurfaces[treeMesh.nSurfaceId2].RegisterReference(SURFACE_REFERENCE_TREEMESH_2); }
-		if (treeMesh.nSurfaceId3 >= 0) { aSurfaces[treeMesh.nSurfaceId3].RegisterReference(SURFACE_REFERENCE_TREEMESH_3); }
-		if (treeMesh.nSurfaceId4 >= 0) { aSurfaces[treeMesh.nSurfaceId4].RegisterReference(SURFACE_REFERENCE_TREEMESH_4); }
-		if (treeMesh.nSurfaceId5 >= 0) { aSurfaces[treeMesh.nSurfaceId5].RegisterReference(SURFACE_REFERENCE_TREEMESH_5); }
+		if (treeMesh.nSurfaceId2 >= 0) aSurfaces[treeMesh.nSurfaceId2].RegisterReference(SURFACE_REFERENCE_TREEMESH_2);
+		if (treeMesh.nSurfaceId3 >= 0) aSurfaces[treeMesh.nSurfaceId3].RegisterReference(SURFACE_REFERENCE_TREEMESH_3);
+		if (treeMesh.nSurfaceId4 >= 0) aSurfaces[treeMesh.nSurfaceId4].RegisterReference(SURFACE_REFERENCE_TREEMESH_4);
+		if (treeMesh.nSurfaceId5 >= 0) aSurfaces[treeMesh.nSurfaceId5].RegisterReference(SURFACE_REFERENCE_TREEMESH_5);
 
 		aTreeMeshes.push_back(treeMesh);
 	}
@@ -426,6 +438,8 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 }
 
 bool ParseW32Models(std::ifstream& file) {
+	WriteConsole("Parsing models...");
+
 	uint32_t modelCount;
 	ReadFromFile(file, &modelCount, 4);
 	aModels.reserve(modelCount);
@@ -455,6 +469,8 @@ bool ParseW32Models(std::ifstream& file) {
 }
 
 bool ParseW32Objects(std::ifstream& file) {
+	WriteConsole("Parsing objects...");
+
 	uint32_t objectCount;
 	ReadFromFile(file, &objectCount, 4);
 	aObjects.reserve(objectCount);
@@ -473,6 +489,8 @@ bool ParseW32Objects(std::ifstream& file) {
 }
 
 bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
+	WriteConsole("Parsing compact meshes...");
+
 	uint32_t compactMeshCount;
 	ReadFromFile(file, &nCompactMeshGroupCount, 4);
 	ReadFromFile(file, &compactMeshCount, 4);
@@ -489,18 +507,21 @@ bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 		ReadFromFile(file, &compactMesh.mMatrix, sizeof(compactMesh.mMatrix));
 
 		if (mapVersion >= 0x20000) {
-			uint32_t nUnkCount, nBBoxIndex;
-			ReadFromFile(file, &nUnkCount, 4);
-			ReadFromFile(file, &nBBoxIndex, 4);
-			compactMesh.aUnkArray.push_back(nBBoxIndex);
+			ReadFromFile(file, &compactMesh.nUnk1, 4);
+			ReadFromFile(file, &compactMesh.nBBoxAssocId, 4);
+
+			auto bboxAssoc = aBoundingBoxMeshAssoc[compactMesh.nBBoxAssocId];
+			auto bbox = aBoundingBoxes[bboxAssoc.nIds[0]];
+			compactMesh.aLODMeshIds = bbox.aModels;
 		}
 		else {
-			uint32_t nUnkCount;
-			ReadFromFile(file, &nUnkCount, 4);
-			for (int j = 0; j < nUnkCount; j++) {
-				uint32_t nUnkValue;
-				ReadFromFile(file, &nUnkValue, 4);
-				compactMesh.aUnkArray.push_back(nUnkValue);
+			uint32_t nLODCount;
+			ReadFromFile(file, &nLODCount, 4);
+			compactMesh.aLODMeshIds.reserve(nLODCount);
+			for (int j = 0; j < nLODCount; j++) {
+				uint32_t nMeshIndex;
+				ReadFromFile(file, &nMeshIndex, 4);
+				compactMesh.aLODMeshIds.push_back(nMeshIndex);
 			}
 		}
 		aCompactMeshes.push_back(compactMesh);
@@ -509,6 +530,8 @@ bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 }
 
 bool ParseW32BoundingBoxes(std::ifstream& file) {
+	WriteConsole("Parsing bounding boxes...");
+
 	uint32_t boundingBoxCount;
 	ReadFromFile(file, &boundingBoxCount, 4);
 	aBoundingBoxes.reserve(boundingBoxCount);
@@ -531,6 +554,8 @@ bool ParseW32BoundingBoxes(std::ifstream& file) {
 }
 
 bool ParseW32BoundingBoxMeshAssoc(std::ifstream& file) {
+	WriteConsole("Parsing bounding box mesh associations...");
+
 	uint32_t assocCount;
 	ReadFromFile(file, &assocCount, 4);
 	aBoundingBoxMeshAssoc.reserve(assocCount);
@@ -732,20 +757,22 @@ void WriteCompactMeshToFile(std::ofstream& file, const tCompactMesh& mesh) {
 	file.write((char*)&mesh.nFlags, 4);
 	file.write((char*)&mesh.nGroup, 4);
 	file.write((char*)mesh.mMatrix, sizeof(mesh.mMatrix));
-	int numUnk = mesh.aUnkArray.size();
-	file.write((char*)&numUnk, 4);
-	if (nExportMapVersion < 0x20000 && nImportMapVersion != nExportMapVersion) {
-		int tmp = 0;
-		file.write((char*)&tmp, 4);
+	if (nExportMapVersion >= 0x20000) {
+		file.write((char*)&mesh.nUnk1, 4);
+		file.write((char*)&mesh.nBBoxAssocId, 4);
 	}
 	else {
-		for (auto value : mesh.aUnkArray) {
-			file.write((char*)&value, 4);
+		int numLODs = mesh.aLODMeshIds.size();
+		file.write((char*)&numLODs, 4);
+		for (auto model : mesh.aLODMeshIds) {
+			file.write((char*)&model, 4);
 		}
 	}
 }
 
 void WriteW32(const std::string& fileName, bool isFO2) {
+	WriteConsole("Writing output w32 file...");
+
 	std::ofstream file(fileName + "_out.w32", std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 
@@ -794,27 +821,14 @@ void WriteW32(const std::string& fileName, bool isFO2) {
 	uint32_t unk1Count = aUnknownArray1.size();
 	file.write((char*)&unk1Count, 4);
 	for (auto& data : aUnknownArray1) {
-		//if (nExportMapVersion < 0x20000 && nImportMapVersion != nExportMapVersion) {
-		//	auto tmp = (uint8_t *) &data;
-		//	tmp[3] = 0xFD; // FO2 has 0x02 and FO1 has 0xFD i believe?
-		//}
 		file.write((char*)&data, 4);
 	}
-
-	// tree rendering related crash:
-	// +1A0 off of smth with vft 00662968
-	// written to by 004C1393 and 004C16AB
-	// 004C1393 is terrain, 004C16AB is plants
 
 	uint32_t unk2Count = aUnknownArray2.size();
 	file.write((char*)&unk2Count, 4);
 	for (auto& data : aUnknownArray2) {
 		file.write((char*)data.vPos, sizeof(data.vPos));
 		file.write((char*)data.fValues, sizeof(data.fValues));
-		//if (nExportMapVersion < 0x20000 && nImportMapVersion != nExportMapVersion) {
-		//	auto tmp = (uint8_t *) &data.nValues[1];
-		//	tmp[3] = 0xFD; // FO2 has 0x02 and FO1 has 0xFD i believe?
-		//}
 		file.write((char*)data.nValues, sizeof(data.nValues));
 	}
 
@@ -844,7 +858,7 @@ void WriteW32(const std::string& fileName, bool isFO2) {
 
 	if (bDisableProps) {
 		uint32_t tmpCount = 0;
-		if (nImportMapVersion >= 0x20000) {
+		if (nExportMapVersion >= 0x20000) {
 			file.write((char*)&tmpCount, 4); // bbox
 			file.write((char*)&tmpCount, 4); // bbox assoc
 		}
@@ -852,8 +866,7 @@ void WriteW32(const std::string& fileName, bool isFO2) {
 		file.write((char*)&tmpCount, 4); // compactmesh
 	}
 	else {
-
-		if (nImportMapVersion >= 0x20000) {
+		if (nExportMapVersion >= 0x20000) {
 			uint32_t boundingBoxCount = aBoundingBoxes.size();
 			file.write((char*)&boundingBoxCount, 4);
 			for (auto& bbox : aBoundingBoxes) {
@@ -890,6 +903,7 @@ bool ParseW32(const std::string& fileName) {
 	if (!ParseW32Surfaces(fin, nImportMapVersion)) return false;
 	if (!ParseW32StaticBatches(fin, nImportMapVersion)) return false;
 
+	WriteConsole("Parsing tree-related data...");
 	{
 		uint32_t someCount;
 		ReadFromFile(fin, &someCount, 4);
@@ -914,6 +928,7 @@ bool ParseW32(const std::string& fileName) {
 
 	if (!ParseW32TreeMeshes(fin)) return false;
 
+	WriteConsole("Parsing unknown data...");
 	if (nImportMapVersion >= 0x10004) {
 		for (int i = 0; i < 16; i++) {
 			float value;
@@ -931,10 +946,14 @@ bool ParseW32(const std::string& fileName) {
 	}
 
 	if (!ParseW32CompactMeshes(fin, nImportMapVersion)) return false;
+
+	WriteConsole("Parsing finished");
 	return true;
 }
 
 void WriteW32ToText() {
+	WriteConsole("Writing text file...");
+
 	WriteFile(std::format("nMapVersion: 0x{:X} {}", nImportMapVersion, GetMapVersion(nImportMapVersion)));
 	if (nImportMapVersion > 0x20000) {
 		WriteFile("nSomeMapValue: " + std::to_string(nSomeMapValue));
@@ -1244,9 +1263,14 @@ void WriteW32ToText() {
 		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[4], mesh.mMatrix[5], mesh.mMatrix[6], mesh.mMatrix[7]));
 		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[8], mesh.mMatrix[9], mesh.mMatrix[10], mesh.mMatrix[11]));
 		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[12], mesh.mMatrix[13], mesh.mMatrix[14], mesh.mMatrix[15]));
-		WriteFile("nUnknownCount: " + std::to_string(mesh.aUnkArray.size()));
-		for (auto unkValue : mesh.aUnkArray) {
-			WriteFile(std::to_string(unkValue));
+		if (nImportMapVersion >= 0x20000) {
+			WriteFile("nUnk1: " + std::to_string(mesh.nUnk1));
+			WriteFile("nBBoxAssocId: " + std::to_string(mesh.nBBoxAssocId));
+		}
+		WriteFile("nNumLODs: " + std::to_string(mesh.aLODMeshIds.size()));
+		for (auto unkValue : mesh.aLODMeshIds) {
+			auto model = aModels[unkValue];
+			WriteFile(std::to_string(unkValue) + " - " + model.sName);
 		}
 		WriteFile("");
 	}
