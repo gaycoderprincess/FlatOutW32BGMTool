@@ -69,8 +69,13 @@ struct tVertexBuffer {
 	int field_0;
 	int vertexCount;
 	int vertexSize;
-	int flags;
+	uint32_t flags;
 	float* data;
+
+	bool _bFixedUpForFO1 = false;
+	uint32_t _flagsBeforeFO1 = 0;
+	uint32_t _vertexSizeBeforeFO1 = 0;
+	std::vector<float> aDataAfterFO1;
 };
 struct tIndexBuffer {
 	int id;
@@ -189,7 +194,7 @@ std::vector<tObject> aObjects;
 std::vector<tCompactMesh> aCompactMeshes;
 std::vector<tBoundingBox> aBoundingBoxes;
 std::vector<tBoundingBoxMeshAssoc> aBoundingBoxMeshAssoc;
-uint32_t nUnkMeshCount;
+uint32_t nCompactMeshGroupCount;
 
 bool ParseW32Materials(std::ifstream& file) {
 	uint32_t numMaterials;
@@ -315,6 +320,7 @@ bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 		ReadFromFile(file, &staticBatch.nCenterId1, 4);
 		ReadFromFile(file, &staticBatch.nCenterId2, 4);
 		ReadFromFile(file, &staticBatch.nSurfaceId, 4);
+		if (staticBatch.nSurfaceId >= aSurfaces.size()) return false;
 
 		if (mapVersion >= 0x20000) {
 			ReadFromFile(file, staticBatch.vAbsoluteCenter, 12);
@@ -326,6 +332,10 @@ bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 		}
 		else {
 			ReadFromFile(file, &staticBatch.nUnk, 4); // always 0?
+
+			// forwards compatibility
+			memcpy(staticBatch.vAbsoluteCenter, aSurfaces[staticBatch.nSurfaceId].vAbsoluteCenter, 12);
+			memcpy(staticBatch.vRelativeCenter, aSurfaces[staticBatch.nSurfaceId].vRelativeCenter, 12);
 		}
 
 		aStaticBatches.push_back(staticBatch);
@@ -401,7 +411,7 @@ bool ParseW32Objects(std::ifstream& file) {
 
 bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 	uint32_t compactMeshCount;
-	ReadFromFile(file, &nUnkMeshCount, 4);
+	ReadFromFile(file, &nCompactMeshGroupCount, 4);
 	ReadFromFile(file, &compactMeshCount, 4);
 	aCompactMeshes.reserve(compactMeshCount);
 	for (int i = 0; i < compactMeshCount; i++) {
@@ -491,14 +501,51 @@ void WriteMaterialToFile(std::ofstream& file, const tMaterial& material) {
 	}
 }
 
-void WriteVertexBufferToFile(std::ofstream& file, const tVertexBuffer& buf) {
+void WriteVertexBufferToFile(std::ofstream& file, tVertexBuffer& buf) {
+	bool bRemoveNormals = false;
+	if (nExportMapVersion < 0x20000 && (buf.flags & 0x10) != 0) {
+		buf._flagsBeforeFO1 = buf.flags;
+		buf._vertexSizeBeforeFO1 = buf.vertexSize;
+		buf._bFixedUpForFO1 = true;
+
+		buf.flags -= 0x10;
+		buf.vertexSize -= 0xC;
+		bRemoveNormals = true;
+	}
+
 	int type = 1;
 	file.write((char*)&type, 4);
 	file.write((char*)&buf.field_0, 4);
 	file.write((char*)&buf.vertexCount, 4);
 	file.write((char*)&buf.vertexSize, 4);
 	file.write((char*)&buf.flags, 4);
-	file.write((char*)buf.data, buf.vertexCount * buf.vertexSize);
+	if (bRemoveNormals) {
+		int numWritten = 0;
+
+		auto dataSize = buf.vertexCount * (buf._vertexSizeBeforeFO1 / sizeof(float));
+		size_t j = 0;
+		while (j < dataSize) {
+			for (int k = 0; k < buf._vertexSizeBeforeFO1 / sizeof(float); k++) {
+				if (k == 3 || k == 4 || k == 5) {
+					j++;
+					continue;
+				}
+				file.write((char*)&buf.data[j], 4);
+				buf.aDataAfterFO1.push_back(buf.data[j]);
+				j++;
+				numWritten++;
+			}
+		}
+
+		if (numWritten != buf.vertexCount * (buf.vertexSize / 4)) {
+			WriteConsole("Write mismatch!");
+			WriteConsole(std::to_string(buf.vertexCount * (buf.vertexSize / 4)));
+			WriteConsole(std::to_string(numWritten));
+		}
+	}
+	else {
+		file.write((char*)buf.data, buf.vertexCount * buf.vertexSize);
+	}
 }
 
 void WriteIndexBufferToFile(std::ofstream& file, const tIndexBuffer& buf) {
@@ -604,8 +651,14 @@ void WriteCompactMeshToFile(std::ofstream& file, const tCompactMesh& mesh) {
 	file.write((char*)mesh.mMatrix, sizeof(mesh.mMatrix));
 	int numUnk = mesh.aUnkArray.size();
 	file.write((char*)&numUnk, 4);
-	for (auto value : mesh.aUnkArray) {
-		file.write((char*)&value, 4);
+	if (nExportMapVersion < 0x20000 && nImportMapVersion != nExportMapVersion) {
+		int tmp = 0;
+		file.write((char*)&tmp, 4);
+	}
+	else {
+		for (auto value : mesh.aUnkArray) {
+			file.write((char*)&value, 4);
+		}
 	}
 }
 
@@ -708,7 +761,7 @@ void WriteW32(const std::string& fileName, bool isFO2) {
 	}
 
 	uint32_t compactMeshCount = aCompactMeshes.size();
-	file.write((char*)&nUnkMeshCount, 4);
+	file.write((char*)&nCompactMeshGroupCount, 4);
 	file.write((char*)&compactMeshCount, 4);
 	for (auto& mesh : aCompactMeshes) {
 		WriteCompactMeshToFile(file, mesh);
@@ -779,6 +832,7 @@ void WriteW32ToText() {
 		WriteFile("nSomeMapValue: " + std::to_string(nSomeMapValue));
 	}
 
+	WriteFile("");
 	WriteFile("Materials begin");
 	WriteFile("Count: " + std::to_string(aMaterials.size()));
 	WriteFile("");
@@ -800,6 +854,39 @@ void WriteW32ToText() {
 		for (auto& buf : aVertexBuffers) {
 			if (buf.id == i) {
 				WriteFile("Vertex buffer");
+				WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
+				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
+				WriteFile(std::format("nFlags: 0x{:X}", buf.flags));
+				if (buf._bFixedUpForFO1 && (buf._flagsBeforeFO1 & 0x10) != 0) {
+					WriteFile(std::format("nFlagsBeforeFO1: 0x{:X}", buf._flagsBeforeFO1));
+					WriteFile(std::format("nVertexSizeBeforeFO1: {}", buf._vertexSizeBeforeFO1));
+					auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
+
+					int nValueAsInt = -1;
+					if ((buf.flags & 0x40) != 0) {
+						nValueAsInt = 3;
+						if ((buf.flags & 0x10) != 0) {
+							nValueAsInt = 6;
+						}
+					}
+
+					size_t j = 0;
+					while (j < dataSize) {
+
+						std::string out;
+						for (int k = 0; k < buf.vertexSize / sizeof(float); k++) {
+							if (k == nValueAsInt) {
+								out += std::format("0x{:X}", *(uint32_t*)&buf.aDataAfterFO1[j]);
+							}
+							else {
+								out += std::to_string(buf.aDataAfterFO1[j]);
+							}
+							out += " ";
+							j++;
+						}
+						WriteFile(out);
+					}
+				}
 			}
 		}
 		for (auto& buf : aVegVertexBuffers) {
@@ -815,6 +902,203 @@ void WriteW32ToText() {
 		WriteFile("");
 	}
 	WriteFile("Streams end");
+	WriteFile("");
+
+	WriteFile("Surfaces begin");
+	WriteFile("Count: " + std::to_string(aSurfaces.size()));
+	WriteFile("");
+	for (auto& surface : aSurfaces) {
+		WriteFile("nIsVegetation: " + std::to_string(surface.v37[0]));
+		WriteFile("nMaterialId: " + std::to_string(surface.v37[1]));
+		WriteFile("nVertNum: " + std::to_string(surface.v37[2]));
+		WriteFile(std::format("nFormat: 0x{:X}", surface.v37[3]));
+		WriteFile("nPolyNum: " + std::to_string(surface.v37[4]));
+		WriteFile("nPolyMode: " + std::to_string(surface.v37[5])); // 4-triindx or 5-tristrip
+		WriteFile("nPolyNumIndex: " + std::to_string(surface.v37[6]));
+		WriteFile("vAbsoluteCenter.x: " + std::to_string(surface.vAbsoluteCenter[0]));
+		WriteFile("vAbsoluteCenter.y: " + std::to_string(surface.vAbsoluteCenter[1]));
+		WriteFile("vAbsoluteCenter.z: " + std::to_string(surface.vAbsoluteCenter[2]));
+		WriteFile("vRelativeCenter.x: " + std::to_string(surface.vRelativeCenter[0]));
+		WriteFile("vRelativeCenter.y: " + std::to_string(surface.vRelativeCenter[1]));
+		WriteFile("vRelativeCenter.z: " + std::to_string(surface.vRelativeCenter[2]));
+		WriteFile("nNumStreamsUsed: " + std::to_string(surface.nNumStreamsUsed));
+		for (int j = 0; j < surface.nNumStreamsUsed; j++) {
+			WriteFile("nStreamId: " + std::to_string(surface.nStreamId[j]));
+			WriteFile(std::format("nStreamOffset: 0x{:X}", surface.nStreamOffset[j]));
+		}
+		WriteFile("");
+	}
+	WriteFile("Surfaces end");
+	WriteFile("");
+
+	WriteFile("Static Batches begin");
+	WriteFile("Count: " + std::to_string(aStaticBatches.size()));
+	WriteFile("");
+	for (auto& staticBatch : aStaticBatches) {
+		WriteFile("nCenterId1: " + std::to_string(staticBatch.nCenterId1));
+		WriteFile("nCenterId2: " + std::to_string(staticBatch.nCenterId2));
+		WriteFile("nSurfaceId: " + std::to_string(staticBatch.nSurfaceId));
+		WriteFile("nUnk: " + std::to_string(staticBatch.nUnk));
+		WriteFile("vAbsoluteCenter.x: " + std::to_string(staticBatch.vAbsoluteCenter[0]));
+		WriteFile("vAbsoluteCenter.y: " + std::to_string(staticBatch.vAbsoluteCenter[1]));
+		WriteFile("vAbsoluteCenter.z: " + std::to_string(staticBatch.vAbsoluteCenter[2]));
+		WriteFile("vRelativeCenter.x: " + std::to_string(staticBatch.vRelativeCenter[0]));
+		WriteFile("vRelativeCenter.y: " + std::to_string(staticBatch.vRelativeCenter[1]));
+		WriteFile("vRelativeCenter.z: " + std::to_string(staticBatch.vRelativeCenter[2]));
+		WriteFile("");
+	}
+	WriteFile("Static Batches end");
+	WriteFile("");
+
+	WriteFile("Unknown Array 1 begin");
+	WriteFile("Count: " + std::to_string(aUnknownArray1.size()));
+	WriteFile("");
+	for (auto& value : aUnknownArray1) {
+		WriteFile(std::format("0x{:X}", value));
+	}
+	WriteFile("");
+	WriteFile("Unknown Array 1 end");
+	WriteFile("");
+
+	WriteFile("Unknown Array 2 begin");
+	WriteFile("Count: " + std::to_string(aUnknownArray2.size()));
+	WriteFile("");
+	for (auto& value : aUnknownArray2) {
+		WriteFile("vPos.x: " + std::to_string(value.vPos[0]));
+		WriteFile("vPos.y: " + std::to_string(value.vPos[1]));
+		WriteFile("vPos.z: " + std::to_string(value.vPos[2]));
+		WriteFile("fUnknown[0]: " + std::to_string(value.fValues[0]));
+		WriteFile("fUnknown[1]: " + std::to_string(value.fValues[1]));
+		WriteFile(std::format("nUnknown[0]: 0x{:X}", value.nValues[0]));
+		WriteFile(std::format("nUnknown[1]: 0x{:X}", value.nValues[1]));
+		WriteFile("");
+	}
+	WriteFile("Unknown Array 2 end");
+	WriteFile("");
+
+	WriteFile("Tree Meshes begin");
+	WriteFile("Count: " + std::to_string(aTreeMeshes.size()));
+	WriteFile("");
+	for (auto& treeMesh : aTreeMeshes) {
+		WriteFile("nUnknown1: " + std::to_string(treeMesh.nUnk1));
+		WriteFile("nUnknown2: " + std::to_string(treeMesh.nUnk2));
+		WriteFile("nSurfaceId: " + std::to_string(treeMesh.nSurfaceId));
+		WriteFile("nUnknown3: " + std::to_string(treeMesh.nUnk3));
+		for (int j = 0; j < 19; j++) {
+			WriteFile("fUnk[" + std::to_string(j) + "]: " + std::to_string(treeMesh.fUnk[j]));
+		}
+		WriteFile("nSurfaceId2: " + std::to_string(treeMesh.nSurfaceId2));
+		WriteFile("nSurfaceId3: " + std::to_string(treeMesh.nSurfaceId3));
+		WriteFile("nSurfaceId4: " + std::to_string(treeMesh.nSurfaceId4));
+		WriteFile("nUnknown4: " + std::to_string(treeMesh.nUnk4));
+		WriteFile("nUnknown5: " + std::to_string(treeMesh.nUnk5));
+		WriteFile("nMaterialId: " + std::to_string(treeMesh.nMaterialId));
+		WriteFile("");
+	}
+	WriteFile("Tree Meshes end");
+	WriteFile("");
+
+	WriteFile("Unknown Array 3 begin");
+	WriteFile("Count: " + std::to_string(aUnknownArray3.size()));
+	WriteFile("");
+	for (auto& value : aUnknownArray3) {
+		WriteFile(std::to_string(value));
+	}
+	WriteFile("");
+	WriteFile("Unknown Array 3 end");
+	WriteFile("");
+
+	WriteFile("Models begin");
+	WriteFile("Count: " + std::to_string(aModels.size()));
+	WriteFile("");
+	for (auto& model : aModels) {
+		WriteFile("nUnknown1: " + std::to_string(model.nUnk));
+		WriteFile("sName: " + model.sName);
+		WriteFile("vCenter.x: " + std::to_string(model.vCenter[0]));
+		WriteFile("vCenter.y: " + std::to_string(model.vCenter[1]));
+		WriteFile("vCenter.z: " + std::to_string(model.vCenter[2]));
+		WriteFile("vRadius.x: " + std::to_string(model.vRadius[0]));
+		WriteFile("vRadius.y: " + std::to_string(model.vRadius[1]));
+		WriteFile("vRadius.z: " + std::to_string(model.vRadius[2]));
+		WriteFile("fRadius: " + std::to_string(model.fRadius)); // this is entirely skipped in the reader and instead calculated
+		WriteFile("nNumSurfaces: " + std::to_string(model.aSurfaces.size()));
+		for (auto& surface : model.aSurfaces) {
+			WriteFile(std::to_string(surface));
+		}
+		WriteFile("");
+	}
+	WriteFile("Models end");
+	WriteFile("");
+
+	WriteFile("Objects begin");
+	WriteFile("Count: " + std::to_string(aObjects.size()));
+	WriteFile("");
+	for (auto& object : aObjects) {
+		WriteFile("sName: " + object.sName1);
+		WriteFile("sUnknown: " + object.sName2);
+		WriteFile(std::format("nFlags: 0x{:X}", object.nFlags));
+		WriteFile("mMatrix: ");
+		WriteFile(std::format("{}, {}, {}, {}", object.mMatrix[0], object.mMatrix[1], object.mMatrix[2], object.mMatrix[3]));
+		WriteFile(std::format("{}, {}, {}, {}", object.mMatrix[4], object.mMatrix[5], object.mMatrix[6], object.mMatrix[7]));
+		WriteFile(std::format("{}, {}, {}, {}", object.mMatrix[8], object.mMatrix[9], object.mMatrix[10], object.mMatrix[11]));
+		WriteFile(std::format("{}, {}, {}, {}", object.mMatrix[12], object.mMatrix[13], object.mMatrix[14], object.mMatrix[15]));
+		WriteFile("");
+	}
+	WriteFile("Objects end");
+	WriteFile("");
+
+	WriteFile("Bounding Boxes begin");
+	WriteFile("Count: " + std::to_string(aBoundingBoxes.size()));
+	WriteFile("");
+	for (auto& bbox : aBoundingBoxes) {
+		WriteFile("Model count: " + std::to_string(bbox.aModels.size()));
+		for (auto& model : bbox.aModels) {
+			WriteFile(std::to_string(model));
+		}
+		WriteFile("vCenter.x: " + std::to_string(bbox.vCenter[0]));
+		WriteFile("vCenter.y: " + std::to_string(bbox.vCenter[1]));
+		WriteFile("vCenter.z: " + std::to_string(bbox.vCenter[2]));
+		WriteFile("vRadius.x: " + std::to_string(bbox.vRadius[0]));
+		WriteFile("vRadius.y: " + std::to_string(bbox.vRadius[1]));
+		WriteFile("vRadius.z: " + std::to_string(bbox.vRadius[2]));
+		WriteFile("");
+	}
+	WriteFile("Bounding Boxes end");
+	WriteFile("");
+
+	WriteFile("Bounding Box Mesh Associations begin");
+	WriteFile("Count: " + std::to_string(aBoundingBoxMeshAssoc.size()));
+	WriteFile("");
+	for (auto& assoc : aBoundingBoxMeshAssoc) {
+		WriteFile("sName: " + assoc.sName);
+		WriteFile("nIds[0]: " + std::to_string(assoc.nIds[0]));
+		WriteFile("nIds[1]: " + std::to_string(assoc.nIds[1]));
+		WriteFile("");
+	}
+	WriteFile("Bounding Box Mesh Associations end");
+	WriteFile("");
+
+	WriteFile("Compact Meshes begin");
+	WriteFile("Group Count: " + std::to_string(nCompactMeshGroupCount));
+	WriteFile("Count: " + std::to_string(aCompactMeshes.size()));
+	WriteFile("");
+	for (auto& mesh : aCompactMeshes) {
+		WriteFile("sObjectName: " + mesh.sName1);
+		WriteFile("sModelName: " + mesh.sName2);
+		WriteFile(std::format("nFlags: 0x{:X}", mesh.nFlags));
+		WriteFile("nGroup: " + std::to_string(mesh.nGroup));
+		WriteFile("mMatrix: ");
+		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[0], mesh.mMatrix[1], mesh.mMatrix[2], mesh.mMatrix[3]));
+		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[4], mesh.mMatrix[5], mesh.mMatrix[6], mesh.mMatrix[7]));
+		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[8], mesh.mMatrix[9], mesh.mMatrix[10], mesh.mMatrix[11]));
+		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[12], mesh.mMatrix[13], mesh.mMatrix[14], mesh.mMatrix[15]));
+		WriteFile("nUnknownCount: " + std::to_string(mesh.aUnkArray.size()));
+		for (auto unkValue : mesh.aUnkArray) {
+			WriteFile(std::to_string(unkValue));
+		}
+		WriteFile("");
+	}
+	WriteFile("Compact Meshes end");
 	WriteFile("");
 }
 
