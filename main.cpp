@@ -454,6 +454,8 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 		ReadFromFile(file, treeMesh.fUnk, sizeof(treeMesh.fUnk));
 
 		if (nImportMapVersion >= 0x20002) {
+			if (treeMesh.nSurfaceId2 >= 0 && treeMesh.nSurfaceId2 < aSurfaces.size()) aSurfaces[treeMesh.nSurfaceId2].RegisterReference(SURFACE_REFERENCE_TREEMESH_2);
+
 			ReadFromFile(file, treeMesh.foucData1, sizeof(treeMesh.foucData1));
 			ReadFromFile(file, treeMesh.foucData2, sizeof(treeMesh.foucData2));
 			ReadFromFile(file, treeMesh.foucData3, sizeof(treeMesh.foucData3));
@@ -475,6 +477,7 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 			//if (treeMesh.nSurfaceId1 >= 0 && treeMesh.nSurfaceId1 >= aSurfaces.size()) return false;
 			//if (treeMesh.nSurfaceId1 >= 0) aSurfaces[treeMesh.nSurfaceId1]._bUsedByAnything = true;
 
+			if (treeMesh.nSurfaceId2 >= 0 && treeMesh.nSurfaceId2 >= aSurfaces.size()) return false;
 			if (treeMesh.nSurfaceId2 >= 0 && treeMesh.nSurfaceId2 >= aSurfaces.size()) return false;
 			if (treeMesh.nSurfaceId3 >= 0 && treeMesh.nSurfaceId3 >= aSurfaces.size()) return false;
 			if (treeMesh.nSurfaceId4 >= 0 && treeMesh.nSurfaceId4 >= aSurfaces.size()) return false;
@@ -1231,7 +1234,7 @@ void WriteW32ToText() {
 			WriteFile("fUnk[" + std::to_string(j) + "]: " + std::to_string(treeMesh.fUnk[j]));
 		}
 		if (nImportMapVersion >= 0x20002) {
-			WriteFile("foucData1[0]: " + std::to_string(treeMesh.foucData1[0]));
+			WriteFile("nMaterialId: " + std::to_string(treeMesh.foucData1[0]));
 			WriteFile("foucData1[1]: " + std::to_string(treeMesh.foucData1[1]));
 			WriteFile("foucData1[2]: " + std::to_string(treeMesh.foucData1[2]));
 			WriteFile("foucData1[3]: " + std::to_string(treeMesh.foucData1[3]));
@@ -1240,7 +1243,6 @@ void WriteW32ToText() {
 			WriteFile("foucData1[6]: " + std::to_string(treeMesh.foucData1[6]));
 			WriteFile("foucData1[7]: " + std::to_string(treeMesh.foucData1[7]));
 			WriteFile("foucData1[8]: " + std::to_string(treeMesh.foucData1[8]));
-			WriteFile("foucData1[9]: " + std::to_string(treeMesh.foucData1[9]));
 			WriteFile("foucData2[0]: " + std::to_string(treeMesh.foucData2[0]));
 			WriteFile("foucData2[1]: " + std::to_string(treeMesh.foucData2[1]));
 			WriteFile("foucData2[2]: " + std::to_string(treeMesh.foucData2[2]));
@@ -1250,8 +1252,7 @@ void WriteW32ToText() {
 			WriteFile("foucData2[6]: " + std::to_string(treeMesh.foucData2[6]));
 			WriteFile("foucData2[7]: " + std::to_string(treeMesh.foucData2[7]));
 			WriteFile("foucData2[8]: " + std::to_string(treeMesh.foucData2[8]));
-			WriteFile("foucData2[9]: " + std::to_string(treeMesh.foucData2[9]));
-			WriteFile("foucData3[0]: " + std::to_string(treeMesh.foucData3[0]));
+			WriteFile("nMaterialId2: " + std::to_string(treeMesh.foucData3[0]));
 			WriteFile("foucData3[1]: " + std::to_string(treeMesh.foucData3[1]));
 			WriteFile("foucData3[2]: " + std::to_string(treeMesh.foucData3[2]));
 			WriteFile("foucData3[3]: " + std::to_string(treeMesh.foucData3[3]));
