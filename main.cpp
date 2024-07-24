@@ -1246,19 +1246,19 @@ void WriteW32ToText() {
 			WriteFile("foucData2[0]: " + std::to_string(treeMesh.foucData2[0]));
 			WriteFile("foucData2[1]: " + std::to_string(treeMesh.foucData2[1]));
 			WriteFile("foucData2[2]: " + std::to_string(treeMesh.foucData2[2]));
-			WriteFile("foucData2[3]: " + std::to_string(treeMesh.foucData2[3]));
-			WriteFile("foucData2[4]: " + std::to_string(treeMesh.foucData2[4]));
-			WriteFile("foucData2[5]: " + std::to_string(treeMesh.foucData2[5]));
-			WriteFile("foucData2[6]: " + std::to_string(treeMesh.foucData2[6]));
-			WriteFile("foucData2[7]: " + std::to_string(treeMesh.foucData2[7]));
-			WriteFile("foucData2[8]: " + std::to_string(treeMesh.foucData2[8]));
+			WriteFile("nSomeId1: " + std::to_string(treeMesh.foucData2[3]));
+			WriteFile(std::format("nSomeOffset1: 0x{:X}", treeMesh.foucData2[4]));
+			WriteFile("nSomeId2: " + std::to_string(treeMesh.foucData2[5]));
+			WriteFile(std::format("nSomeOffset2: 0x{:X}", treeMesh.foucData2[6]));
+			WriteFile("nSomeId3: " + std::to_string(treeMesh.foucData2[7]));
+			WriteFile(std::format("nSomeOffset3: 0x{:X}", treeMesh.foucData2[8]));
 			WriteFile("nMaterialId2: " + std::to_string(treeMesh.foucData3[0]));
 			WriteFile("foucData3[1]: " + std::to_string(treeMesh.foucData3[1]));
-			WriteFile("foucData3[2]: " + std::to_string(treeMesh.foucData3[2]));
-			WriteFile("foucData3[3]: " + std::to_string(treeMesh.foucData3[3]));
-			WriteFile("nSurfaceIdsFouc[0]: " + std::to_string(treeMesh.nSurfaceIdsFouc[0]));
-			WriteFile("nSurfaceIdsFouc[1]: " + std::to_string(treeMesh.nSurfaceIdsFouc[1]));
-			WriteFile("nSurfaceIdsFouc[2]: " + std::to_string(treeMesh.nSurfaceIdsFouc[2]));
+			WriteFile("nSomeId4: " + std::to_string(treeMesh.foucData3[2]));
+			WriteFile(std::format("nSomeOffset4: 0x{:X}", (uint32_t)treeMesh.foucData3[3]));
+			WriteFile("nSurfaceId3: " + std::to_string(treeMesh.nSurfaceIdsFouc[0]));
+			WriteFile("nSurfaceId4: " + std::to_string(treeMesh.nSurfaceIdsFouc[1]));
+			WriteFile("nSurfaceId5: " + std::to_string(treeMesh.nSurfaceIdsFouc[2]));
 		}
 		else {
 			WriteFile("nSurfaceId3: " + std::to_string(treeMesh.nSurfaceId3));
