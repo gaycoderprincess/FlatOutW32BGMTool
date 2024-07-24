@@ -144,9 +144,11 @@ struct tUnknownStructure {
 	uint32_t nValues[2];
 };
 struct tTreeMesh {
+	// first 3 values are unused and completely unread
 	int nUnk1;
 	int nUnk2;
-	int nSurfaceId1;
+	int nSurfaceId1Unused;
+
 	int nSurfaceId2;
 	float fUnk[19];
 	int nSurfaceId3;
@@ -380,7 +382,7 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 		tTreeMesh treeMesh;
 		ReadFromFile(file, &treeMesh.nUnk1, 4);
 		ReadFromFile(file, &treeMesh.nUnk2, 4);
-		ReadFromFile(file, &treeMesh.nSurfaceId1, 4);
+		ReadFromFile(file, &treeMesh.nSurfaceId1Unused, 4);
 		ReadFromFile(file, &treeMesh.nSurfaceId2, 4);
 		ReadFromFile(file, treeMesh.fUnk, sizeof(treeMesh.fUnk));
 		ReadFromFile(file, &treeMesh.nSurfaceId3, 4);
@@ -390,12 +392,13 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 		ReadFromFile(file, &treeMesh.nIdInUnkArray2, 4);
 		ReadFromFile(file, &treeMesh.nMaterialId, 4);
 
-		if (treeMesh.nSurfaceId1 >= 0 && treeMesh.nSurfaceId1 >= aSurfaces.size()) return false;
+		//if (treeMesh.nSurfaceId1 >= 0 && treeMesh.nSurfaceId1 >= aSurfaces.size()) return false;
+		//if (treeMesh.nSurfaceId1 >= 0) aSurfaces[treeMesh.nSurfaceId1]._bUsedByAnything = true;
+
 		if (treeMesh.nSurfaceId2 >= 0 && treeMesh.nSurfaceId2 >= aSurfaces.size()) return false;
 		if (treeMesh.nSurfaceId3 >= 0 && treeMesh.nSurfaceId3 >= aSurfaces.size()) return false;
 		if (treeMesh.nSurfaceId4 >= 0 && treeMesh.nSurfaceId4 >= aSurfaces.size()) return false;
 		if (treeMesh.nSurfaceId5 >= 0 && treeMesh.nSurfaceId5 >= aSurfaces.size()) return false;
-		if (treeMesh.nSurfaceId1 >= 0) aSurfaces[treeMesh.nSurfaceId1]._bUsedByAnything = true;
 		if (treeMesh.nSurfaceId2 >= 0) aSurfaces[treeMesh.nSurfaceId2]._bUsedByAnything = true;
 		if (treeMesh.nSurfaceId3 >= 0) aSurfaces[treeMesh.nSurfaceId3]._bUsedByAnything = true;
 		if (treeMesh.nSurfaceId4 >= 0) aSurfaces[treeMesh.nSurfaceId4]._bUsedByAnything = true;
@@ -658,7 +661,7 @@ void WriteStaticBatchToFile(std::ofstream& file, const tStaticBatch& staticBatch
 void WriteTreeMeshToFile(std::ofstream& file, const tTreeMesh& treeMesh) {
 	file.write((char*)&treeMesh.nUnk1, 4);
 	file.write((char*)&treeMesh.nUnk2, 4);
-	file.write((char*)&treeMesh.nSurfaceId1, 4);
+	file.write((char*)&treeMesh.nSurfaceId1Unused, 4);
 	file.write((char*)&treeMesh.nSurfaceId2, 4);
 	file.write((char*)treeMesh.fUnk, sizeof(treeMesh.fUnk));
 	file.write((char*)&treeMesh.nSurfaceId3, 4);
@@ -1109,7 +1112,7 @@ void WriteW32ToText() {
 	for (auto& treeMesh : aTreeMeshes) {
 		WriteFile("nUnknown1: " + std::to_string(treeMesh.nUnk1));
 		WriteFile("nUnknown2: " + std::to_string(treeMesh.nUnk2));
-		WriteFile("nSurfaceId1: " + std::to_string(treeMesh.nSurfaceId1));
+		WriteFile("nSurfaceId1: " + std::to_string(treeMesh.nSurfaceId1Unused));
 		WriteFile("nSurfaceId2: " + std::to_string(treeMesh.nSurfaceId2));
 		for (int j = 0; j < 19; j++) {
 			WriteFile("fUnk[" + std::to_string(j) + "]: " + std::to_string(treeMesh.fUnk[j]));
