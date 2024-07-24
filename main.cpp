@@ -45,16 +45,16 @@ void ReadFromFile(std::ifstream& file, void* out, size_t numBytes) {
 	file.read((char*)out, numBytes);
 }
 
-bool bDumpMeshData = false;
-bool bDumpMaterialData = false;
-bool bDumpSurfaceData = false;
-bool bDumpSurfaceCenterData = false;
-bool bDumpUnknownIntArrayData = false;
-bool bDumpUnknownIntArray2Data = false;
-bool bDumpTreeMeshData = false;
-bool bDumpModelData = false;
-bool bDumpObjectData = false;
-bool bDumpMeshObjectData = false;
+bool bDumpMeshData = true;
+bool bDumpMaterialData = true;
+bool bDumpSurfaceData = true;
+bool bDumpSurfaceCenterData = true;
+bool bDumpUnknownIntArrayData = true;
+bool bDumpUnknownIntArray2Data = true;
+bool bDumpTreeMeshData = true;
+bool bDumpModelData = true;
+bool bDumpObjectData = true;
+bool bDumpMeshObjectData = true;
 
 // vertex buffer data:
 // 1 2 3 always coords
@@ -129,7 +129,7 @@ bool ParseW32Materials(std::ifstream& file) {
 		if (identifier != 0x4354414D) return false; // "MATC"
 
 		auto textureName = ReadStringFromFile(file);
-		WriteFile("Material Name: " + textureName);
+		WriteFile("sName: " + textureName);
 
 		int alpha;
 		int v92;
@@ -146,11 +146,11 @@ bool ParseW32Materials(std::ifstream& file) {
 
 		if (bDumpMaterialData) {
 			WriteFile("nAlpha: " + std::to_string(alpha));
-			WriteFile("v92: " + std::to_string(v92));
+			WriteFile("nUnknown1: " + std::to_string(v92));
 			WriteFile("nNumTextures: " + std::to_string(nNumTextures));
-			WriteFile("v73: " + std::to_string(v73));
-			WriteFile("v75: " + std::to_string(v75));
-			WriteFile("v74: " + std::to_string(v74));
+			WriteFile("nUnknown2: " + std::to_string(v73));
+			WriteFile("nUnknown3: " + std::to_string(v75));
+			WriteFile("nUnknown4: " + std::to_string(v74));
 		}
 
 		int v108[3];
@@ -169,21 +169,21 @@ bool ParseW32Materials(std::ifstream& file) {
 		ReadFromFile(file, &v102, 4);
 
 		if (bDumpMaterialData) {
-			WriteFile("v108: " + std::to_string(v108[0]) + ", " + std::to_string(v108[1]) + ", " + std::to_string(v108[2]));
-			WriteFile("v109: " + std::to_string(v109[0]) + ", " + std::to_string(v109[1]) + ", " + std::to_string(v109[2]));
-			WriteFile("v98: " + std::to_string(v98[0]) + ", " + std::to_string(v98[1]) + ", " + std::to_string(v98[2]) + ", " + std::to_string(v98[3]));
-			WriteFile("v99: " + std::to_string(v99[0]) + ", " + std::to_string(v99[1]) + ", " + std::to_string(v99[2]) + ", " + std::to_string(v99[3]));
-			WriteFile("v100: " + std::to_string(v100[0]) + ", " + std::to_string(v100[1]) + ", " + std::to_string(v100[2]) + ", " + std::to_string(v100[3]));
-			WriteFile("v101: " + std::to_string(v101[0]) + ", " + std::to_string(v101[1]) + ", " + std::to_string(v101[2]) + ", " + std::to_string(v101[3]));
-			WriteFile("v102: " + std::to_string(v102));
+			WriteFile("nUnknown5: " + std::to_string(v108[0]) + ", " + std::to_string(v108[1]) + ", " + std::to_string(v108[2]));
+			WriteFile("nUnknown6: " + std::to_string(v109[0]) + ", " + std::to_string(v109[1]) + ", " + std::to_string(v109[2]));
+			WriteFile("nUnknown7: " + std::to_string(v98[0]) + ", " + std::to_string(v98[1]) + ", " + std::to_string(v98[2]) + ", " + std::to_string(v98[3]));
+			WriteFile("nUnknown8: " + std::to_string(v99[0]) + ", " + std::to_string(v99[1]) + ", " + std::to_string(v99[2]) + ", " + std::to_string(v99[3]));
+			WriteFile("nUnknown9: " + std::to_string(v100[0]) + ", " + std::to_string(v100[1]) + ", " + std::to_string(v100[2]) + ", " + std::to_string(v100[3]));
+			WriteFile("nUnknown10: " + std::to_string(v101[0]) + ", " + std::to_string(v101[1]) + ", " + std::to_string(v101[2]) + ", " + std::to_string(v101[3]));
+			WriteFile("nUnknown11: " + std::to_string(v102));
 		}
 
 		auto textureName2 = ReadStringFromFile(file);
-		WriteFile("Texture 1: " + textureName2);
+		WriteFile("sTextureFile1: " + textureName2);
 		auto textureName3 = ReadStringFromFile(file);
-		WriteFile("Texture 2: " + textureName3);
+		WriteFile("sTextureFile2: " + textureName3);
 		auto textureName4 = ReadStringFromFile(file);
-		WriteFile("Texture 3: " + textureName4);
+		WriteFile("sTextureFile3: " + textureName4);
 
 		WriteFile(""); // newline
 
@@ -213,12 +213,12 @@ bool ParseW32Materials(std::ifstream& file) {
 bool ParseW32Streams(std::ifstream& file) {
 	int numStreams;
 	ReadFromFile(file, &numStreams, 4);
-	WriteFile("Mesh Data Count: " + std::to_string(numStreams));
+	WriteFile("Stream Count: " + std::to_string(numStreams));
 
 	WriteFile(""); // newline
 
 	for (int i = 0; i < numStreams; i++) {
-		WriteFile("Mesh Data " + std::to_string(i));
+		WriteFile("Stream " + std::to_string(i));
 
 		int dataType;
 		ReadFromFile(file, &dataType, 4);
@@ -445,7 +445,7 @@ bool ParseW32SurfaceCenters(std::ifstream& file, int mapVersion) {
 			uint32_t nUnk;
 			ReadFromFile(file, &nUnk, 4);
 			if (bDumpSurfaceCenterData) {
-				WriteFile("nUnk: " + std::to_string(nUnk)); // always 0?
+				WriteFile("nUnknown1: " + std::to_string(nUnk)); // always 0?
 			}
 		}
 
@@ -485,18 +485,18 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 		ReadFromFile(file, &nUnk5, sizeof(nUnk5));
 		ReadFromFile(file, &nMaterialId, sizeof(nMaterialId));
 		if (bDumpTreeMeshData) {
-			WriteFile("nUnk1: " + std::to_string(nUnk1));
-			WriteFile("nUnk2: " + std::to_string(nUnk2));
+			WriteFile("nUnknown1: " + std::to_string(nUnk1));
+			WriteFile("nUnknown2: " + std::to_string(nUnk2));
 			WriteFile("nSurfaceId: " + std::to_string(nSurfaceId));
-			WriteFile("nUnk3: " + std::to_string(nUnk3));
+			WriteFile("nUnknown3: " + std::to_string(nUnk3));
 			for (int j = 0; j < 19; j++) {
 				WriteFile("fUnk[" + std::to_string(j) + "]: " + std::to_string(fUnk[j]));
 			}
 			WriteFile("nSurfaceId2: " + std::to_string(nSurfaceId2));
 			WriteFile("nSurfaceId3: " + std::to_string(nSurfaceId3));
 			WriteFile("nSurfaceId4: " + std::to_string(nSurfaceId4));
-			WriteFile("nUnk4: " + std::to_string(nUnk4));
-			WriteFile("nUnk5: " + std::to_string(nUnk5));
+			WriteFile("nUnknown4: " + std::to_string(nUnk4));
+			WriteFile("nUnknown5: " + std::to_string(nUnk5));
 			WriteFile("nMaterialId: " + std::to_string(nMaterialId));
 			WriteFile(""); // newline
 		}
@@ -516,7 +516,7 @@ bool ParseW32Models(std::ifstream& file) {
 		ReadFromFile(file, &unk, sizeof(unk));
 		auto name = ReadStringFromFile(file);
 		if (bDumpModelData) {
-			WriteFile("nUnk1: " + std::to_string(unk));
+			WriteFile("nUnknown1: " + std::to_string(unk));
 			WriteFile("sName: " + name);
 		}
 		float vCenter[3];
@@ -567,8 +567,8 @@ bool ParseW32Objects(std::ifstream& file) {
 		float mMatrix[4*4];
 		ReadFromFile(file, &mMatrix, sizeof(mMatrix));
 		if (bDumpObjectData) {
-			WriteFile("Name: " + name1);
-			WriteFile("Unknown string: " + name2);
+			WriteFile("sName: " + name1);
+			WriteFile("sUnknown: " + name2);
 			WriteFile(std::format("nFlags: 0x{:X}", nFlags));
 			WriteFile("mMatrix: ");
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[0], mMatrix[1], mMatrix[2], mMatrix[3]));
@@ -582,7 +582,7 @@ bool ParseW32Objects(std::ifstream& file) {
 	return true;
 }
 
-bool ParseW32MeshObjects(std::ifstream& file) {
+bool ParseW32MeshObjects(std::ifstream& file, uint32_t mapVersion) {
 	uint32_t meshCount;
 	uint32_t meshGroupCount;
 	ReadFromFile(file, &meshCount, 4);
@@ -600,11 +600,9 @@ bool ParseW32MeshObjects(std::ifstream& file) {
 		ReadFromFile(file, &nGroup, 4);
 		float mMatrix[4*4];
 		ReadFromFile(file, &mMatrix, sizeof(mMatrix));
-		uint32_t nUnkCount;
-		ReadFromFile(file, &nUnkCount, 4);
 		if (bDumpMeshObjectData) {
-			WriteFile("Model Name: " + name);
-			WriteFile("Object Name: " + name2);
+			WriteFile("sModelName: " + name);
+			WriteFile("sObjectName: " + name2);
 			WriteFile(std::format("nFlags: 0x{:X}", nFlags));
 			WriteFile("nGroup: " + std::to_string(nGroup));
 			WriteFile("mMatrix: ");
@@ -612,19 +610,83 @@ bool ParseW32MeshObjects(std::ifstream& file) {
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[4], mMatrix[5], mMatrix[6], mMatrix[7]));
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[8], mMatrix[9], mMatrix[10], mMatrix[11]));
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[12], mMatrix[12], mMatrix[13], mMatrix[14]));
-			WriteFile("nUnkCount: " + std::to_string(nUnkCount));
 		}
-		for (int j = 0; j < nUnkCount; j++) {
-			uint32_t nUnkValue;
-			ReadFromFile(file, &nUnkValue, 4);
+		if (mapVersion >= 0x20000) {
+			uint32_t nUnk;
+			int nBBoxIndex;
+			ReadFromFile(file, &nUnk, 4);
+			ReadFromFile(file, &nBBoxIndex, 4);
 			if (bDumpMeshObjectData) {
-				WriteFile(std::to_string(nUnkValue));
+				WriteFile("nUnknown1: " + std::to_string(nUnk));
+				WriteFile("nBBoxIndex: " + std::to_string(nBBoxIndex));
+			}
+		}
+		else {
+			uint32_t nUnkCount;
+			ReadFromFile(file, &nUnkCount, 4);
+			if (bDumpMeshObjectData) {
+				WriteFile("nUnknownCount: " + std::to_string(nUnkCount));
+				for (int j = 0; j < nUnkCount; j++) {
+					uint32_t nUnkValue;
+					ReadFromFile(file, &nUnkValue, 4);
+					if (bDumpMeshObjectData) {
+						WriteFile(std::to_string(nUnkValue));
+					}
+				}
 			}
 		}
 		if (bDumpMeshObjectData) {
 			WriteFile(""); // newline
 		}
 	}
+	return true;
+}
+
+bool ParseW32BoundingBoxes(std::ifstream& file) {
+	uint32_t boundingBoxCount;
+	ReadFromFile(file, &boundingBoxCount, 4);
+	WriteFile("Bounding box count: " + std::to_string(boundingBoxCount));
+	for (int i = 0; i < boundingBoxCount; i++) {
+		uint32_t modelCount;
+		ReadFromFile(file, &modelCount, 4);
+		WriteFile("Model count: " + std::to_string(modelCount));
+		for (int j = 0; j < modelCount; j++) {
+			uint32_t modelId;
+			ReadFromFile(file, &modelId, 4);
+			WriteFile(std::to_string(modelId));
+		}
+
+		float vCenter[3];
+		float vRadius[3];
+		ReadFromFile(file, vCenter, sizeof(vCenter));
+		ReadFromFile(file, vRadius, sizeof(vRadius));
+		WriteFile("vCenter.x: " + std::to_string(vCenter[0]));
+		WriteFile("vCenter.y: " + std::to_string(vCenter[1]));
+		WriteFile("vCenter.z: " + std::to_string(vCenter[2]));
+		WriteFile("vRadius.x: " + std::to_string(vRadius[0]));
+		WriteFile("vRadius.y: " + std::to_string(vRadius[1]));
+		WriteFile("vRadius.z: " + std::to_string(vRadius[2]));
+		WriteFile(""); // newline
+	}
+	WriteFile(""); // newline
+	return true;
+}
+
+bool ParseW32BoundingBoxMeshAssoc(std::ifstream& file) {
+	uint32_t assocCount;
+	ReadFromFile(file, &assocCount, 4);
+	WriteFile("Bounding box association count: " + std::to_string(assocCount));
+	for (int i = 0; i < assocCount; i++) {
+		auto name = ReadStringFromFile(file);
+		WriteFile("sName: " + name);
+
+		int nIds[2];
+		ReadFromFile(file, nIds, sizeof(nIds));
+		WriteFile("nIds[0]: " + std::to_string(nIds[0]));
+		WriteFile("nIds[1]: " + std::to_string(nIds[1]));
+		WriteFile(""); // newline
+	}
+	WriteFile(""); // newline
 	return true;
 }
 
@@ -661,12 +723,13 @@ bool ParseW32(const std::string& fileName) {
 			ReadFromFile(fin, &someValue, 4);
 			if (bDumpUnknownIntArrayData) WriteFile(std::format("0x{:X}", someValue));
 		}
+		WriteFile(""); // newline
 	}
 
 	{
 		uint32_t someCount;
 		ReadFromFile(fin, &someCount, 4);
-		WriteFile("unknown array count 2: " + std::to_string(someCount));
+		WriteFile("unknown array 2 count: " + std::to_string(someCount));
 		for (int i = 0; i < someCount; i++) {
 			float vPos[3];
 			float fValues[2];
@@ -678,13 +741,14 @@ bool ParseW32(const std::string& fileName) {
 				WriteFile("vPos.x: " + std::to_string(vPos[0]));
 				WriteFile("vPos.y: " + std::to_string(vPos[1]));
 				WriteFile("vPos.z: " + std::to_string(vPos[2]));
-				WriteFile("fValues[0]: " + std::to_string(fValues[0]));
-				WriteFile("fValues[1]: " + std::to_string(fValues[1]));
-				WriteFile(std::format("nValues[0]: 0x{:X}", nValues[0]));
-				WriteFile(std::format("nValues[1]: 0x{:X}", nValues[1]));
+				WriteFile("fUnknown[0]: " + std::to_string(fValues[0]));
+				WriteFile("fUnknown[1]: " + std::to_string(fValues[1]));
+				WriteFile(std::format("nUnknown[0]: 0x{:X}", nValues[0]));
+				WriteFile(std::format("nUnknown[1]: 0x{:X}", nValues[1]));
 				WriteFile(""); // newline
 			}
 		}
+		WriteFile(""); // newline
 	}
 
 	if (!ParseW32TreeMeshes(fin)) return false;
@@ -703,10 +767,12 @@ bool ParseW32(const std::string& fileName) {
 	if (!ParseW32Objects(fin)) return false;
 
 	if (mapVersion >= 0x20000) {
-		return false;
+		if (!ParseW32BoundingBoxes(fin)) return false;
+		if (!ParseW32BoundingBoxMeshAssoc(fin)) return false;
+		if (!ParseW32MeshObjects(fin, mapVersion)) return false;
 	}
 	else {
-		if (!ParseW32MeshObjects(fin)) return false;
+		if (!ParseW32MeshObjects(fin, mapVersion)) return false;
 	}
 
 
