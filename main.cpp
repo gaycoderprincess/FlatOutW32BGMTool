@@ -105,8 +105,8 @@ struct tMaterial {
 };
 struct tSurface {
 	int v37[7];
-	float vAbsoluteCenter[3];
-	float vRelativeCenter[3];
+	float vAbsoluteCenter[3] = { 0, 0, 0 };
+	float vRelativeCenter[3] = { 0, 0, 0 };
 	int nNumStreamsUsed;
 	uint32_t nStreamId[2];
 	uint32_t nStreamOffset[2];
@@ -115,9 +115,9 @@ struct tStaticBatch {
 	uint32_t nCenterId1;
 	uint32_t nCenterId2;
 	uint32_t nSurfaceId;
-	uint32_t nUnk;
-	float vAbsoluteCenter[3];
-	float vRelativeCenter[3];
+	uint32_t nUnk = 0; // seems to always be 0
+	float vAbsoluteCenter[3] = { 0, 0, 0 };
+	float vRelativeCenter[3] = { 0, 0, 0 };
 };
 struct tUnknownStructure {
 	float vPos[3];
@@ -319,9 +319,13 @@ bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 		if (mapVersion >= 0x20000) {
 			ReadFromFile(file, staticBatch.vAbsoluteCenter, 12);
 			ReadFromFile(file, staticBatch.vRelativeCenter, 12);
+
+			// backwards compatibility
+			memcpy(aSurfaces[staticBatch.nSurfaceId].vAbsoluteCenter, staticBatch.vAbsoluteCenter, 12);
+			memcpy(aSurfaces[staticBatch.nSurfaceId].vRelativeCenter, staticBatch.vRelativeCenter, 12);
 		}
 		else {
-			ReadFromFile(file, &staticBatch.nUnk, 4);
+			ReadFromFile(file, &staticBatch.nUnk, 4); // always 0?
 		}
 
 		aStaticBatches.push_back(staticBatch);
