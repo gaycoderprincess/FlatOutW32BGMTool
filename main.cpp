@@ -93,6 +93,7 @@ struct tVegVertexBuffer {
 	float* data;
 };
 struct tMaterial {
+	uint32_t identifier;
 	std::string name;
 	int nAlpha;
 	int v92;
@@ -188,6 +189,7 @@ bool ParseW32Materials(std::ifstream& file) {
 		WriteFile(""); // newline
 
 		tMaterial mat;
+		mat.identifier = 0x4354414D;
 		mat.nAlpha = alpha;
 		mat.v92 = v92;
 		mat.nNumTextures = nNumTextures;
@@ -361,7 +363,7 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 
 		if (bDumpSurfaceData) {
 			WriteFile("nIsVegetation: " + std::to_string(v37[0]));
-			WriteFile("nMatIdx: " + std::to_string(v37[1]));
+			WriteFile("nMaterialId: " + std::to_string(v37[1]));
 			WriteFile("nVertNum: " + std::to_string(v37[2]));
 			WriteFile(std::format("nFormat: 0x{:X}", v37[3]));
 			WriteFile("nPolyNum: " + std::to_string(v37[4]));
@@ -384,7 +386,7 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 			}
 		}
 
-		uint32_t nStreamIdx[2];
+		uint32_t nStreamId[2];
 		uint32_t nStreamOffset[2];
 
 		int nNumStreamsUsed;
@@ -395,10 +397,10 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 		if (nNumStreamsUsed > 2) return false;
 
 		for (int j = 0; j < nNumStreamsUsed; j++) {
-			ReadFromFile(file, &nStreamIdx[j], 4);
+			ReadFromFile(file, &nStreamId[j], 4);
 			ReadFromFile(file, &nStreamOffset[j], 4);
 			if (bDumpSurfaceData) {
-				WriteFile("nStreamIdx: " + std::to_string(nStreamIdx[j]));
+				WriteFile("nStreamId: " + std::to_string(nStreamId[j]));
 				WriteFile(std::format("nStreamOffset: 0x{:X}", nStreamOffset[j]));
 			}
 		}
@@ -574,7 +576,7 @@ bool ParseW32Objects(std::ifstream& file) {
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[0], mMatrix[1], mMatrix[2], mMatrix[3]));
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[4], mMatrix[5], mMatrix[6], mMatrix[7]));
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[8], mMatrix[9], mMatrix[10], mMatrix[11]));
-			WriteFile(std::format("{}, {}, {}, {}", mMatrix[12], mMatrix[12], mMatrix[13], mMatrix[14]));
+			WriteFile(std::format("{}, {}, {}, {}", mMatrix[12], mMatrix[13], mMatrix[14], mMatrix[15]));
 			WriteFile(""); // newline
 		}
 	}
@@ -601,15 +603,15 @@ bool ParseW32MeshObjects(std::ifstream& file, uint32_t mapVersion) {
 		float mMatrix[4*4];
 		ReadFromFile(file, &mMatrix, sizeof(mMatrix));
 		if (bDumpMeshObjectData) {
+			WriteFile("sObjectName: " + name);
 			WriteFile("sModelName: " + name);
-			WriteFile("sObjectName: " + name2);
 			WriteFile(std::format("nFlags: 0x{:X}", nFlags));
 			WriteFile("nGroup: " + std::to_string(nGroup));
 			WriteFile("mMatrix: ");
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[0], mMatrix[1], mMatrix[2], mMatrix[3]));
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[4], mMatrix[5], mMatrix[6], mMatrix[7]));
 			WriteFile(std::format("{}, {}, {}, {}", mMatrix[8], mMatrix[9], mMatrix[10], mMatrix[11]));
-			WriteFile(std::format("{}, {}, {}, {}", mMatrix[12], mMatrix[12], mMatrix[13], mMatrix[14]));
+			WriteFile(std::format("{}, {}, {}, {}", mMatrix[12], mMatrix[13], mMatrix[14], mMatrix[15]));
 		}
 		if (mapVersion >= 0x20000) {
 			uint32_t nUnk;
