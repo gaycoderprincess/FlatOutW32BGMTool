@@ -1927,19 +1927,19 @@ aiScene GenerateScene() {
 			meshNode->mName = compactMesh.sName1;
 			meshNode->mTransformation.a1 = compactMesh.mMatrix[0];
 			meshNode->mTransformation.b1 = compactMesh.mMatrix[1];
-			meshNode->mTransformation.c1 = compactMesh.mMatrix[2];
+			meshNode->mTransformation.c1 = -compactMesh.mMatrix[2];
 			meshNode->mTransformation.d1 = compactMesh.mMatrix[3];
 			meshNode->mTransformation.a2 = compactMesh.mMatrix[4];
 			meshNode->mTransformation.b2 = compactMesh.mMatrix[5];
-			meshNode->mTransformation.c2 = compactMesh.mMatrix[6];
+			meshNode->mTransformation.c2 = -compactMesh.mMatrix[6];
 			meshNode->mTransformation.d2 = compactMesh.mMatrix[7];
 			meshNode->mTransformation.a3 = compactMesh.mMatrix[8];
 			meshNode->mTransformation.b3 = compactMesh.mMatrix[9];
-			meshNode->mTransformation.c3 = compactMesh.mMatrix[10];
+			meshNode->mTransformation.c3 = -compactMesh.mMatrix[10];
 			meshNode->mTransformation.d3 = compactMesh.mMatrix[11];
 			meshNode->mTransformation.a4 = compactMesh.mMatrix[12];
 			meshNode->mTransformation.b4 = compactMesh.mMatrix[13];
-			meshNode->mTransformation.c4 = compactMesh.mMatrix[14];
+			meshNode->mTransformation.c4 = -compactMesh.mMatrix[14];
 			meshNode->mTransformation.d4 = compactMesh.mMatrix[15];
 			node->addChildren(1, &meshNode);
 
