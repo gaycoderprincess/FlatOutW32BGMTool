@@ -1973,7 +1973,10 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		if (!strcmp(arg, "-export_w32")) bDumpIntoW32 = true;
 		if (!strcmp(arg, "-export_text")) bDumpIntoTextFile = true;
 		if (!strcmp(arg, "-export_streams_into_text")) bDumpStreams = true;
-		if (!strcmp(arg, "-remove_props")) bDisableProps = true;
+		if (!strcmp(arg, "-remove_props")) {
+			bDisableProps = true;
+			bDumpIntoW32 = true;
+		}
 		if (!strcmp(arg, "-convert_to_fo1")) {
 			bConvertToFO1 = true;
 			bDumpIntoW32 = true;
