@@ -1721,6 +1721,9 @@ aiScene GenerateScene() {
 			dest->mTextureCoords[1] = new aiVector3D[src.nVertexCount];
 			dest->mNumUVComponents[1] = 2;
 		}
+		if ((vBuf->flags & VERTEX_NORMAL) != 0) {
+			dest->mNormals = new aiVector3D[src.nVertexCount];
+		}
 
 		if (nImportMapVersion >= 0x20002) {
 			for (int j = 0; j < src.nVertexCount; j++) {
@@ -1737,8 +1740,14 @@ aiScene GenerateScene() {
 				dest->mVertices[j].x *= src.foucVertexMultiplier[3];
 				dest->mVertices[j].y *= src.foucVertexMultiplier[3];
 				dest->mVertices[j].z *= src.foucVertexMultiplier[3];
+				vertices += 3;
 
-				if ((vBuf->flags & VERTEX_NORMAL) != 0) vertices += 3; // 3 floats
+				if ((vBuf->flags & VERTEX_NORMAL) != 0) {
+					dest->mNormals[j].x = vertices[0] / 32767.0;
+					dest->mNormals[j].y = vertices[1] / 32767.0;
+					dest->mNormals[j].z = vertices[2] / 32767.0;
+					vertices += 3; // 3 floats
+				}
 				if ((vBuf->flags & VERTEX_BLEND) != 0) vertices += 1; // 1 float
 				if ((vBuf->flags & VERTEX_UV) != 0) {
 					dest->mTextureCoords[0][j].x = vertices[0] / 32767.0;
@@ -1761,8 +1770,14 @@ aiScene GenerateScene() {
 				dest->mVertices[j].x = vertices[0];
 				dest->mVertices[j].y = vertices[1];
 				dest->mVertices[j].z = vertices[2];
+				vertices += 3;
 
-				if ((vBuf->flags & VERTEX_NORMAL) != 0) vertices += 3; // 3 floats
+				if ((vBuf->flags & VERTEX_NORMAL) != 0) {
+					dest->mNormals[j].x = vertices[0];
+					dest->mNormals[j].y = vertices[1];
+					dest->mNormals[j].z = vertices[2];
+					vertices += 3; // 3 floats
+				}
 				if ((vBuf->flags & VERTEX_BLEND) != 0) vertices += 1; // 1 float
 				if ((vBuf->flags & VERTEX_UV) != 0) {
 					dest->mTextureCoords[0][j].x = vertices[0];
