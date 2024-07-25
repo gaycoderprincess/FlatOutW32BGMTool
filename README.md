@@ -1,6 +1,6 @@
-# FlatOut 2 W32 Tool
+# FlatOut W32 Tool
 
-A tool to handle .w32 files in FlatOut 2, highly WIP
+A tool to handle .w32 files in FlatOut games, highly WIP
 
 This tool is currently only capable of parsing and recreating the format from memory, and converting FlatOut 2 tracks to FlatOut 1.
 
