@@ -32,7 +32,7 @@ bool bDumpStreams = true;
 
 // export options
 bool bDisableProps = false;
-bool bConvertToFO1 = true;
+bool bConvertToFO1 = false;
 
 std::string sFileName;
 
@@ -93,6 +93,7 @@ struct tVertexBuffer {
 	uint32_t vertexSize;
 	uint32_t flags;
 	float* data;
+	float* origDataForFOUCExport = nullptr;
 
 	uint32_t _vertexSizeBeforeFO1 = 0;
 	uint32_t _vertexCountForFOUC = 0;
@@ -104,8 +105,6 @@ struct tIndexBuffer {
 	int foucExtraFormat;
 	uint32_t indexCount;
 	uint16_t* data;
-
-	std::vector<uint16_t> foucExtraData;
 };
 struct tVegVertexBuffer {
 	int id;
@@ -142,11 +141,10 @@ struct tSurface {
 	int nPolyNumIndex;
 	float vAbsoluteCenter[3] = { 0, 0, 0 };
 	float vRelativeCenter[3] = { 0, 0, 0 };
+	float foucExtraData1[4];
 	int nNumStreamsUsed;
 	uint32_t nStreamId[2];
 	uint32_t nStreamOffset[2];
-
-	float foucExtraData1[4];
 
 	int _nNumReferencesByType[NUM_SURFACE_REFERENCE_TYPES] = {};
 	int _nNumReferences = 0;
@@ -184,10 +182,9 @@ struct tTreeMesh {
 	int nIdInUnkArray2;
 	int nMaterialId;
 
-	int foucData1[9];
-	int foucData2[9];
-	int foucData3[4];
-	int nSurfaceIdsFouc[3];
+	int foucExtraData1[9];
+	int foucExtraData2[9];
+	int foucExtraData3[4];
 };
 struct tModel {
 	uint32_t identifier; // BMOD
@@ -312,44 +309,44 @@ bool ParseW32Streams(std::ifstream& file) {
 				switch (formatType) {
 					case 0:
 					case 1: {
-						std::vector<float> aValues;
+						std::vector<uint32_t> aValues;
 
 						int size = buf.vertexCount;
 						for (int j = 0; j < buf.vertexCount * 8; j++) { // game reads it in packs of 8 here
-							float value;
+							uint32_t value;
 							ReadFromFile(file, &value, 4);
 							aValues.push_back(value);
 						}
 
-						auto vertexData = new float[aValues.size()];
-						memcpy(vertexData, &aValues[0], aValues.size() * sizeof(float));
+						auto vertexData = new uint32_t[aValues.size()];
+						memcpy(vertexData, &aValues[0], aValues.size() * sizeof(uint32_t));
 						buf.id = i;
-						buf.data = vertexData;
+						buf.data = (float*)vertexData;
 						aVertexBuffers.push_back(buf);
 					} break;
 					case 2: {
-						std::vector<float> aValues;
+						std::vector<uint32_t> aValues;
 
 						int size = buf.vertexCount;
 						for (int j = 0; j < buf.vertexCount * 6; j++) { // game reads it in packs of 6 here
-							float value;
+							uint32_t value;
 							ReadFromFile(file, &value, 4);
 							aValues.push_back(value);
 						}
 
-						auto vertexData = new float[aValues.size()];
-						memcpy(vertexData, &aValues[0], aValues.size() * sizeof(float));
+						auto vertexData = new uint32_t[aValues.size()];
+						memcpy(vertexData, &aValues[0], aValues.size() * sizeof(uint32_t));
 						buf.id = i;
-						buf.data = vertexData;
+						buf.data = (float*)vertexData;
 						aVertexBuffers.push_back(buf);
 					} break;
 					case 3: {
-						std::vector<float> aValues;
+						std::vector<uint32_t> aValues;
 
 						int someCount = (2 * buf.vertexCount) >> 5;
 						if (someCount) {
 							for (int j = 0; j < someCount * 32; j++) { // read in groups of 32 by the game
-								float value;
+								uint32_t value;
 								ReadFromFile(file, &value, 4);
 								aValues.push_back(value);
 							}
@@ -358,31 +355,34 @@ bool ParseW32Streams(std::ifstream& file) {
 						int someOtherCount = (16 * someCount);
 						int readCount = 2 * (buf.vertexCount - someOtherCount);
 						for (int j = 0; j < readCount; j++) {
-							float value;
+							uint32_t value;
 							ReadFromFile(file, &value, 4);
 							aValues.push_back(value);
 						}
 
-						auto vertexData = new float[aValues.size()];
-						memcpy(vertexData, &aValues[0], aValues.size() * sizeof(float));
+						auto vertexData = new uint32_t[aValues.size()];
+						memcpy(vertexData, &aValues[0], aValues.size() * sizeof(uint32_t));
 						buf.id = i;
-						buf.data = vertexData;
+						buf.data = (float*)vertexData;
 						aVertexBuffers.push_back(buf);
 					} break;
 					case 4: {
-						std::vector<float> aValues;
+						std::vector<uint32_t> aValues;
+						std::vector<uint32_t> aOrigValues;
 
-						int size = buf.vertexCount;
 						for (int j = 0; j < buf.vertexCount; j++) { // game reads it in packs of 5 here
-							float values[5];
+							uint32_t values[5];
 							ReadFromFile(file, values, 20);
+							for (int k = 0; k < 5; k++) {
+								aOrigValues.push_back(values[k]);
+							}
 
 							// then does.... huh?
 							for (int k = 0; k < 4; k++) {
 								uint16_t tmp[2];
 								tmp[0] = k;
 								tmp[1] = k;
-								aValues.push_back(*(float*)tmp);
+								aValues.push_back(*(uint32_t*)tmp);
 								aValues.push_back(values[0]);
 								aValues.push_back(values[1]);
 								aValues.push_back(values[2]);
@@ -391,12 +391,18 @@ bool ParseW32Streams(std::ifstream& file) {
 							}
 						}
 
-						auto vertexData = new float[aValues.size()];
-						memcpy(vertexData, &aValues[0], aValues.size() * sizeof(float));
+						if (!aOrigValues.empty()) {
+							auto vertexData2 = new uint32_t[aOrigValues.size()];
+							memcpy(vertexData2, &aOrigValues[0], aOrigValues.size() * sizeof(uint32_t));
+							buf.origDataForFOUCExport = (float*)vertexData2;
+						}
+
+						auto vertexData = new uint32_t[aValues.size()];
+						memcpy(vertexData, &aValues[0], aValues.size() * sizeof(uint32_t));
 						buf._vertexCountForFOUC = aValues.size() / 6;
 						buf._vertexSizeForFOUC = 6 * 4;
 						buf.id = i;
-						buf.data = vertexData;
+						buf.data = (float*)vertexData;
 						aVertexBuffers.push_back(buf);
 					} break;
 					default: {
@@ -426,23 +432,32 @@ bool ParseW32Streams(std::ifstream& file) {
 			ReadFromFile(file, &buf.foucExtraFormat, 4);
 			ReadFromFile(file, &buf.indexCount, 4);
 
+			std::vector<uint16_t> aValues;
+
+			int remainingIndexCount = buf.indexCount;
 			if (nImportMapVersion >= 0x20002) {
 				if (auto extraValue = buf.indexCount >> 6) {
-					buf.foucExtraData.reserve(extraValue * 32 * 2); // size 128 each
+					aValues.reserve(extraValue * 32 * 2); // size 128 each
 					// not sure why this is done at all here, these are all still int16 to my knowledge
 					for (int j = 0; j < extraValue * 32 * 2; j++) {
 						uint16_t tmp;
 						ReadFromFile(file, &tmp, 2);
-						buf.foucExtraData.push_back(tmp);
+						aValues.push_back(tmp);
 					}
 				}
 
-				buf.indexCount = -64 * (buf.indexCount >> 6) + buf.indexCount;
+				remainingIndexCount = -64 * (buf.indexCount >> 6) + buf.indexCount;
 			}
 
-			auto dataSize = buf.indexCount;
+			for (int j = 0; j < remainingIndexCount; j++) {
+				uint16_t tmp;
+				ReadFromFile(file, &tmp, 2);
+				aValues.push_back(tmp);
+			}
+
+			auto dataSize = aValues.size();
 			auto indexData = new uint16_t[dataSize];
-			ReadFromFile(file, indexData, dataSize * sizeof(uint16_t));
+			memcpy(indexData, &aValues[0], dataSize * sizeof(uint16_t));
 
 			buf.id = i;
 			buf.data = indexData;
@@ -589,15 +604,16 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 		if (nImportMapVersion >= 0x20002) {
 			if (treeMesh.nSurfaceId2 >= 0 && treeMesh.nSurfaceId2 < aSurfaces.size()) aSurfaces[treeMesh.nSurfaceId2].RegisterReference(SURFACE_REFERENCE_TREEMESH_2);
 
-			ReadFromFile(file, treeMesh.foucData1, sizeof(treeMesh.foucData1));
-			ReadFromFile(file, treeMesh.foucData2, sizeof(treeMesh.foucData2));
-			ReadFromFile(file, treeMesh.foucData3, sizeof(treeMesh.foucData3));
-			ReadFromFile(file, treeMesh.nSurfaceIdsFouc, sizeof(treeMesh.nSurfaceIdsFouc));
-			for (int j = 0; j < 3; j++) {
-				if (treeMesh.nSurfaceIdsFouc[j] < 0) continue;
-				if (treeMesh.nSurfaceIdsFouc[j] >= aSurfaces.size()) continue;
-				aSurfaces[treeMesh.nSurfaceIdsFouc[j]].RegisterReference(SURFACE_REFERENCE_TREEMESH_2 + j);
-			}
+			ReadFromFile(file, treeMesh.foucExtraData1, sizeof(treeMesh.foucExtraData1));
+			ReadFromFile(file, treeMesh.foucExtraData2, sizeof(treeMesh.foucExtraData2));
+			ReadFromFile(file, treeMesh.foucExtraData3, sizeof(treeMesh.foucExtraData3));
+			ReadFromFile(file, &treeMesh.nSurfaceId3, 4);
+			ReadFromFile(file, &treeMesh.nSurfaceId4, 4);
+			ReadFromFile(file, &treeMesh.nSurfaceId5, 4);
+
+			if (treeMesh.nSurfaceId3 >= 0 && treeMesh.nSurfaceId3 < aSurfaces.size()) aSurfaces[treeMesh.nSurfaceId3].RegisterReference(SURFACE_REFERENCE_TREEMESH_3);
+			if (treeMesh.nSurfaceId4 >= 0 && treeMesh.nSurfaceId4 < aSurfaces.size()) aSurfaces[treeMesh.nSurfaceId4].RegisterReference(SURFACE_REFERENCE_TREEMESH_4);
+			if (treeMesh.nSurfaceId5 >= 0 && treeMesh.nSurfaceId5 < aSurfaces.size()) aSurfaces[treeMesh.nSurfaceId5].RegisterReference(SURFACE_REFERENCE_TREEMESH_5);
 		}
 		else {
 			ReadFromFile(file, &treeMesh.nSurfaceId3, 4);
@@ -610,7 +626,6 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 			//if (treeMesh.nSurfaceId1 >= 0 && treeMesh.nSurfaceId1 >= aSurfaces.size()) return false;
 			//if (treeMesh.nSurfaceId1 >= 0) aSurfaces[treeMesh.nSurfaceId1]._bUsedByAnything = true;
 
-			if (treeMesh.nSurfaceId2 >= 0 && treeMesh.nSurfaceId2 >= aSurfaces.size()) return false;
 			if (treeMesh.nSurfaceId2 >= 0 && treeMesh.nSurfaceId2 >= aSurfaces.size()) return false;
 			if (treeMesh.nSurfaceId3 >= 0 && treeMesh.nSurfaceId3 >= aSurfaces.size()) return false;
 			if (treeMesh.nSurfaceId4 >= 0 && treeMesh.nSurfaceId4 >= aSurfaces.size()) return false;
@@ -826,7 +841,12 @@ void WriteVertexBufferToFile(std::ofstream& file, tVertexBuffer& buf) {
 		}
 	}
 	else {
-		file.write((char*)buf.data, buf.vertexCount * buf.vertexSize);
+		if (buf.origDataForFOUCExport) {
+			file.write((char*)buf.origDataForFOUCExport, buf.vertexCount * buf.vertexSize);
+		}
+		else {
+			file.write((char*)buf.data, buf.vertexCount * buf.vertexSize);
+		}
 	}
 }
 
@@ -868,6 +888,9 @@ void WriteSurfaceToFile(std::ofstream& file, tSurface& surface) {
 		file.write((char*)surface.vAbsoluteCenter, 12);
 		file.write((char*)surface.vRelativeCenter, 12);
 	}
+	if (nExportMapVersion >= 0x20002) {
+		file.write((char*)surface.foucExtraData1, sizeof(surface.foucExtraData1));
+	}
 	file.write((char*)&surface.nNumStreamsUsed, 4);
 	for (int j = 0; j < surface.nNumStreamsUsed; j++) {
 		file.write((char*)&surface.nStreamId[j], 4);
@@ -894,12 +917,22 @@ void WriteTreeMeshToFile(std::ofstream& file, const tTreeMesh& treeMesh) {
 	file.write((char*)&treeMesh.nSurfaceId1Unused, 4);
 	file.write((char*)&treeMesh.nSurfaceId2, 4);
 	file.write((char*)treeMesh.fUnk, sizeof(treeMesh.fUnk));
-	file.write((char*)&treeMesh.nSurfaceId3, 4);
-	file.write((char*)&treeMesh.nSurfaceId4, 4);
-	file.write((char*)&treeMesh.nSurfaceId5, 4);
-	file.write((char*)&treeMesh.nIdInUnkArray1, 4);
-	file.write((char*)&treeMesh.nIdInUnkArray2, 4);
-	file.write((char*)&treeMesh.nMaterialId, 4);
+	if (nExportMapVersion >= 0x20002) {
+		file.write((char*)treeMesh.foucExtraData1, sizeof(treeMesh.foucExtraData1));
+		file.write((char*)treeMesh.foucExtraData2, sizeof(treeMesh.foucExtraData2));
+		file.write((char*)treeMesh.foucExtraData3, sizeof(treeMesh.foucExtraData3));
+		file.write((char*)&treeMesh.nSurfaceId3, 4);
+		file.write((char*)&treeMesh.nSurfaceId4, 4);
+		file.write((char*)&treeMesh.nSurfaceId5, 4);
+	}
+	else {
+		file.write((char*)&treeMesh.nSurfaceId3, 4);
+		file.write((char*)&treeMesh.nSurfaceId4, 4);
+		file.write((char*)&treeMesh.nSurfaceId5, 4);
+		file.write((char*)&treeMesh.nIdInUnkArray1, 4);
+		file.write((char*)&treeMesh.nIdInUnkArray2, 4);
+		file.write((char*)&treeMesh.nMaterialId, 4);
+	}
 }
 
 void WriteModelToFile(std::ofstream& file, const tModel& model) {
@@ -959,15 +992,15 @@ void WriteCompactMeshToFile(std::ofstream& file, const tCompactMesh& mesh) {
 	}
 }
 
-void WriteW32(const std::string& fileName, bool isFO2) {
+void WriteW32(const std::string& fileName, uint32_t exportMapVersion) {
 	WriteConsole("Writing output w32 file...");
 
 	std::ofstream file(fileName + "_out.w32", std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 
-	nExportMapVersion = isFO2 ? 0x20001 : 0x10005;
+	nExportMapVersion = exportMapVersion;
 	file.write((char*)&nExportMapVersion, 4);
-	if (isFO2) file.write((char*)&nSomeMapValue, 4);
+	if (nExportMapVersion >= 0x20000) file.write((char*)&nSomeMapValue, 4);
 
 	uint32_t materialCount = aMaterials.size();
 	file.write((char*)&materialCount, 4);
@@ -1007,10 +1040,12 @@ void WriteW32(const std::string& fileName, bool isFO2) {
 		WriteStaticBatchToFile(file, staticBatch);
 	}
 
-	uint32_t unk1Count = aUnknownArray1.size();
-	file.write((char*)&unk1Count, 4);
-	for (auto& data : aUnknownArray1) {
-		file.write((char*)&data, 4);
+	if (nExportMapVersion < 0x20002) {
+		uint32_t unk1Count = aUnknownArray1.size();
+		file.write((char*)&unk1Count, 4);
+		for (auto &data: aUnknownArray1) {
+			file.write((char*)&data, 4);
+		}
 	}
 
 	uint32_t unk2Count = aUnknownArray2.size();
@@ -1284,20 +1319,9 @@ void WriteW32ToText() {
 		for (auto& buf : aIndexBuffers) {
 			if (buf.id == i) {
 				WriteFile("Index buffer");
-				if (nImportMapVersion >= 0x20002) {
-					WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
-					WriteFile(std::format("16bit Index Count: {}", buf.indexCount));
-					WriteFile(std::format("32bit Index Count: {}", buf.foucExtraData.size()));
-				}
-				else {
-					WriteFile(std::format("Index Count: {}", buf.indexCount));
-				}
+				if (nImportMapVersion >= 0x20002) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
+				WriteFile(std::format("Index Count: {}", buf.indexCount));
 				if (bDumpStreams) {
-					if (nImportMapVersion >= 0x20002) {
-						for (auto &data: buf.foucExtraData) {
-							WriteFile(std::to_string(data));
-						}
-					}
 					for (int j = 0; j < buf.indexCount; j++) {
 						WriteFile(std::to_string(buf.data[j]));
 					}
@@ -1407,31 +1431,31 @@ void WriteW32ToText() {
 			WriteFile("fUnk[" + std::to_string(j) + "]: " + std::to_string(treeMesh.fUnk[j]));
 		}
 		if (nImportMapVersion >= 0x20002) {
-			WriteFile("nMaterialId: " + std::to_string(treeMesh.foucData1[0]));
-			WriteFile("foucData1[1]: " + std::to_string(treeMesh.foucData1[1]));
-			WriteFile("foucData1[2]: " + std::to_string(treeMesh.foucData1[2]));
-			WriteFile("foucData1[3]: " + std::to_string(treeMesh.foucData1[3]));
-			WriteFile("foucData1[4]: " + std::to_string(treeMesh.foucData1[4]));
-			WriteFile("foucData1[5]: " + std::to_string(treeMesh.foucData1[5]));
-			WriteFile("foucData1[6]: " + std::to_string(treeMesh.foucData1[6]));
-			WriteFile("foucData1[7]: " + std::to_string(treeMesh.foucData1[7]));
-			WriteFile("foucData1[8]: " + std::to_string(treeMesh.foucData1[8]));
-			WriteFile("foucData2[0]: " + std::to_string(treeMesh.foucData2[0]));
-			WriteFile("foucData2[1]: " + std::to_string(treeMesh.foucData2[1]));
-			WriteFile("foucData2[2]: " + std::to_string(treeMesh.foucData2[2]));
-			WriteFile("nSomeId1: " + std::to_string(treeMesh.foucData2[3]));
-			WriteFile(std::format("nSomeOffset1: {:X}", treeMesh.foucData2[4]));
-			WriteFile("nSomeId2: " + std::to_string(treeMesh.foucData2[5]));
-			WriteFile(std::format("nSomeOffset2: {:X}", treeMesh.foucData2[6]));
-			WriteFile("nSomeId3: " + std::to_string(treeMesh.foucData2[7]));
-			WriteFile(std::format("nSomeOffset3: {:X}", treeMesh.foucData2[8]));
-			WriteFile("nMaterialId2: " + std::to_string(treeMesh.foucData3[0]));
-			WriteFile("foucData3[1]: " + std::to_string(treeMesh.foucData3[1]));
-			WriteFile("nSomeId4: " + std::to_string(treeMesh.foucData3[2]));
-			WriteFile(std::format("nSomeOffset4: {:X}", (uint32_t)treeMesh.foucData3[3]));
-			WriteFile("nSurfaceId3: " + std::to_string(treeMesh.nSurfaceIdsFouc[0]));
-			WriteFile("nSurfaceId4: " + std::to_string(treeMesh.nSurfaceIdsFouc[1]));
-			WriteFile("nSurfaceId5: " + std::to_string(treeMesh.nSurfaceIdsFouc[2]));
+			WriteFile("nMaterialId: " + std::to_string(treeMesh.foucExtraData1[0]));
+			WriteFile("foucData1[1]: " + std::to_string(treeMesh.foucExtraData1[1]));
+			WriteFile("foucData1[2]: " + std::to_string(treeMesh.foucExtraData1[2]));
+			WriteFile("foucData1[3]: " + std::to_string(treeMesh.foucExtraData1[3]));
+			WriteFile("foucData1[4]: " + std::to_string(treeMesh.foucExtraData1[4]));
+			WriteFile("foucData1[5]: " + std::to_string(treeMesh.foucExtraData1[5]));
+			WriteFile("foucData1[6]: " + std::to_string(treeMesh.foucExtraData1[6]));
+			WriteFile("foucData1[7]: " + std::to_string(treeMesh.foucExtraData1[7]));
+			WriteFile("foucData1[8]: " + std::to_string(treeMesh.foucExtraData1[8]));
+			WriteFile("foucData2[0]: " + std::to_string(treeMesh.foucExtraData2[0]));
+			WriteFile("foucData2[1]: " + std::to_string(treeMesh.foucExtraData2[1]));
+			WriteFile("foucData2[2]: " + std::to_string(treeMesh.foucExtraData2[2]));
+			WriteFile("nSomeId1: " + std::to_string(treeMesh.foucExtraData2[3]));
+			WriteFile(std::format("nSomeOffset1: {:X}", treeMesh.foucExtraData2[4]));
+			WriteFile("nSomeId2: " + std::to_string(treeMesh.foucExtraData2[5]));
+			WriteFile(std::format("nSomeOffset2: {:X}", treeMesh.foucExtraData2[6]));
+			WriteFile("nSomeId3: " + std::to_string(treeMesh.foucExtraData2[7]));
+			WriteFile(std::format("nSomeOffset3: {:X}", treeMesh.foucExtraData2[8]));
+			WriteFile("nMaterialId2: " + std::to_string(treeMesh.foucExtraData3[0]));
+			WriteFile("foucData3[1]: " + std::to_string(treeMesh.foucExtraData3[1]));
+			WriteFile("nSomeId4: " + std::to_string(treeMesh.foucExtraData3[2]));
+			WriteFile(std::format("nSomeOffset4: {:X}", (uint32_t)treeMesh.foucExtraData3[3]));
+			WriteFile("nSurfaceId3: " + std::to_string(treeMesh.nSurfaceId3));
+			WriteFile("nSurfaceId4: " + std::to_string(treeMesh.nSurfaceId4));
+			WriteFile("nSurfaceId5: " + std::to_string(treeMesh.nSurfaceId5));
 		}
 		else {
 			WriteFile("nSurfaceId3: " + std::to_string(treeMesh.nSurfaceId3));
@@ -1572,7 +1596,7 @@ int main(int argc, char *argv[]) {
 	}
 	else {
 		WriteW32ToText();
-		WriteW32(argv[1], !bConvertToFO1 && nImportMapVersion >= 0x20000);
+		WriteW32(argv[1], bConvertToFO1 ? 0x10005 : nImportMapVersion);
 	}
 	return 0;
 }
