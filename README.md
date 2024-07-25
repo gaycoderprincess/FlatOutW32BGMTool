@@ -8,7 +8,7 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 
 ## Usage
 
-- Enter a commandline prompt, run `FlatOut2W32Extractor_gcp.exe (filename)` with the arguments you'd like to use
+- Enter a commandline prompt, run `FlatOut2W32Tool_gcp.exe (filename)` with the arguments you'd like to use
 - The file will now be analyzed and processed by the tool
 - Enjoy, nya~ :3
 
@@ -19,8 +19,10 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-export_text` - Exports the map into a human-readable text file
 - `-export_streams_into_text` - If `-export_text` is enabled, also exports all vertex and index buffers into text, huge filesize and time cost!
 - `-streams_fouc_offseted` - If `-export_text` is enabled, exports vertex buffers with their surface offsets already applied
+- `-remove_object_dummies` - Creates a new .w32 file of the map with all objects and object dummies removed (e.g. menu cameras in FOUC)
 - `-remove_props` - Creates a new .w32 file of the map with all props removed
 - `-convert_to_fo1` - Creates a new .w32 file of the map that can be loaded by FlatOut 1
+- `-empty_bvh_gen` - Takes a track_bvh.gen file and generates a new one without any culling, will be required for custom maps in the future!
 
 ## Building
 
