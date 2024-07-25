@@ -4,6 +4,11 @@
 #include <fstream>
 #include <format>
 #include <vector>
+#include "assimp/Exporter.hpp"
+#include "assimp/Logger.hpp"
+#include "assimp/DefaultLogger.hpp"
+#include "assimp/scene.h"
+#include "assimp/postprocess.h"
 
 // research:
 // vertex buffer data:
@@ -27,6 +32,8 @@
 #define STREAM_VERTEX_TERRAIN2	(VERTEX_POSITION | VERTEX_UV2)
 
 // import options
+bool bDumpIntoTextFile = false;
+bool bDumpIntoFBX = true;
 bool bDumpMaterialData = true;
 bool bDumpStreams = true;
 
@@ -134,11 +141,11 @@ struct tMaterial {
 struct tSurface {
 	int nIsVegetation;
 	int nMaterialId;
-	int nVertNum;
+	int nVertexCount;
 	int nFlags;
-	int nPolyNum;
+	int nPolyCount;
 	int nPolyMode;
-	int nPolyNumIndex;
+	int nNumIndicesUsed;
 	float vAbsoluteCenter[3] = { 0, 0, 0 };
 	float vRelativeCenter[3] = { 0, 0, 0 };
 	float foucExtraData1[4];
@@ -251,6 +258,13 @@ tVertexBuffer* FindVertexBuffer(int id) {
 
 tVegVertexBuffer* FindVegVertexBuffer(int id) {
 	for (auto& buf : aVegVertexBuffers) {
+		if (buf.id == id) return &buf;
+	}
+	return nullptr;
+}
+
+tIndexBuffer* FindIndexBuffer(int id) {
+	for (auto& buf : aIndexBuffers) {
 		if (buf.id == id) return &buf;
 	}
 	return nullptr;
@@ -496,11 +510,11 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 		tSurface surface;
 		ReadFromFile(file, &surface.nIsVegetation, 4);
 		ReadFromFile(file, &surface.nMaterialId, 4);
-		ReadFromFile(file, &surface.nVertNum, 4);
+		ReadFromFile(file, &surface.nVertexCount, 4);
 		ReadFromFile(file, &surface.nFlags, 4);
-		ReadFromFile(file, &surface.nPolyNum, 4);
+		ReadFromFile(file, &surface.nPolyCount, 4);
 		ReadFromFile(file, &surface.nPolyMode, 4);
-		ReadFromFile(file, &surface.nPolyNumIndex, 4);
+		ReadFromFile(file, &surface.nNumIndicesUsed, 4);
 
 		if (mapVersion < 0x20000) {
 			ReadFromFile(file, surface.vAbsoluteCenter, 12);
@@ -526,7 +540,7 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 		if (nImportMapVersion >= 0x20002 && vBuf) {
 			auto ptr = (uintptr_t)vBuf->data;
 			ptr += surface.nStreamOffset[0];
-			for (int j = 0; j < surface.nVertNum; j++) {
+			for (int j = 0; j < surface.nVertexCount; j++) {
 				float value[3];
 				for (int k = 0; k < 3; k++) {
 					value[k] = *(int16_t*)(ptr + (2 * k));
@@ -879,11 +893,11 @@ void WriteSurfaceToFile(std::ofstream& file, tSurface& surface) {
 
 	file.write((char*)&surface.nIsVegetation, 4);
 	file.write((char*)&surface.nMaterialId, 4);
-	file.write((char*)&surface.nVertNum, 4);
+	file.write((char*)&surface.nVertexCount, 4);
 	file.write((char*)&surface.nFlags, 4);
-	file.write((char*)&surface.nPolyNum, 4);
+	file.write((char*)&surface.nPolyCount, 4);
 	file.write((char*)&surface.nPolyMode, 4);
-	file.write((char*)&surface.nPolyNumIndex, 4);
+	file.write((char*)&surface.nNumIndicesUsed, 4);
 	if (nExportMapVersion < 0x20000) {
 		file.write((char*)surface.vAbsoluteCenter, 12);
 		file.write((char*)surface.vRelativeCenter, 12);
@@ -992,10 +1006,10 @@ void WriteCompactMeshToFile(std::ofstream& file, const tCompactMesh& mesh) {
 	}
 }
 
-void WriteW32(const std::string& fileName, uint32_t exportMapVersion) {
+void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("Writing output w32 file...");
 
-	std::ofstream file(fileName + "_out.w32", std::ios::out | std::ios::binary );
+	std::ofstream file(sFileName + "_out.w32", std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 
 	nExportMapVersion = exportMapVersion;
@@ -1116,6 +1130,12 @@ void WriteW32(const std::string& fileName, uint32_t exportMapVersion) {
 }
 
 bool ParseW32(const std::string& fileName) {
+	if (sFileName.ends_with(".w32")) {
+		for (int i = 0; i < 4; i++) {
+			sFileName.pop_back();
+		}
+	}
+
 	std::ifstream fin(fileName, std::ios::in | std::ios::binary );
 	if (!fin.is_open()) return false;
 
@@ -1340,11 +1360,11 @@ void WriteW32ToText() {
 		WriteFile("Surface " + std::to_string(&surface - &aSurfaces[0]));
 		WriteFile("nIsVegetation: " + std::to_string(surface.nIsVegetation));
 		WriteFile("nMaterialId: " + std::to_string(surface.nMaterialId));
-		WriteFile("nVertNum: " + std::to_string(surface.nVertNum));
+		WriteFile("nVertexCount: " + std::to_string(surface.nVertexCount));
 		WriteFile(std::format("nFormat: 0x{:X}", surface.nFlags));
-		WriteFile("nPolyNum: " + std::to_string(surface.nPolyNum));
+		WriteFile("nPolyCount: " + std::to_string(surface.nPolyCount));
 		WriteFile("nPolyMode: " + std::to_string(surface.nPolyMode)); // 4-triindx or 5-tristrip
-		WriteFile("nPolyNumIndex: " + std::to_string(surface.nPolyNumIndex));
+		WriteFile("nNumIndicesUsed: " + std::to_string(surface.nNumIndicesUsed));
 		WriteFile("vAbsoluteCenter.x: " + std::to_string(surface.vAbsoluteCenter[0]));
 		WriteFile("vAbsoluteCenter.y: " + std::to_string(surface.vAbsoluteCenter[1]));
 		WriteFile("vAbsoluteCenter.z: " + std::to_string(surface.vAbsoluteCenter[2]));
@@ -1585,6 +1605,186 @@ void WriteW32ToText() {
 	}
 }
 
+bool CanSurfaceBeExported(tSurface* surface) {
+	auto vBuf = FindVertexBuffer(surface->nStreamId[0]);
+	if (!vBuf) return false;
+	if (surface->nNumStreamsUsed < 2) return false;
+	auto iBuf = FindIndexBuffer(surface->nStreamId[1]);
+	if (!iBuf) return false;
+	return true;
+}
+
+aiScene GenerateScene() {
+	aiScene scene;
+	scene.mRootNode = new aiNode();
+
+	// materials
+	scene.mMaterials = new aiMaterial*[aMaterials.size()];
+	for (int i = 0; i < aMaterials.size(); i++) {
+		scene.mMaterials[i] = new aiMaterial();
+
+		auto& src = aMaterials[i];
+		scene.mMaterials[i] = new aiMaterial();
+		auto dest = scene.mMaterials[i];
+		aiString matName(src.sName);
+		dest->AddProperty( &matName, AI_MATKEY_NAME );
+		for (int j = 0; j < 3; j++) {
+			if (src.sTextureNames[j].empty()) continue;
+			auto texName = src.sTextureNames[j];
+			if (texName.ends_with(".tga")) {
+				texName.pop_back();
+				texName.pop_back();
+				texName.pop_back();
+				texName += "dds";
+			}
+			aiString fileName(texName);
+			dest->AddProperty(&fileName, AI_MATKEY_TEXTURE_DIFFUSE(j));
+		}
+		if (src.sTextureNames[0].empty()) {
+			std::string str = "null";
+			aiString fileName(str);
+			dest->AddProperty(&fileName, AI_MATKEY_TEXTURE_DIFFUSE(0));
+		}
+		if (src.sName.empty()) {
+			std::string str = "null";
+			aiString fileName(str);
+			dest->AddProperty( &matName, AI_MATKEY_NAME );
+		}
+	}
+	scene.mNumMaterials = aMaterials.size();
+
+	int numSurfaces = 0;
+	for (auto& surface : aSurfaces) {
+		if (CanSurfaceBeExported(&surface)) numSurfaces++;
+	}
+	WriteConsole(std::to_string(numSurfaces) + " surfaces of " + std::to_string(aSurfaces.size()) + " can be exported");
+
+	scene.mMeshes = new aiMesh*[numSurfaces];
+	scene.mNumMeshes = numSurfaces;
+	scene.mRootNode->mMeshes = new uint32_t[numSurfaces];
+	scene.mRootNode->mNumMeshes = numSurfaces;
+	int counter = 0;
+	for (auto& src : aSurfaces) {
+		if (!CanSurfaceBeExported(&src)) continue;
+
+		int i = counter++;
+
+		scene.mMeshes[i] = new aiMesh();
+		scene.mRootNode->mMeshes[i] = i;
+
+		auto dest = scene.mMeshes[i];
+		dest->mMaterialIndex = src.nMaterialId;
+
+		auto vBuf = FindVertexBuffer(src.nStreamId[0]);
+		auto iBuf = FindIndexBuffer(src.nStreamId[1]);
+
+		auto stride = vBuf->vertexSize;
+		uintptr_t vertexData = ((uintptr_t)vBuf->data) + src.nStreamOffset[0];
+		uintptr_t indexData = ((uintptr_t)iBuf->data) + src.nStreamOffset[1];
+
+		uint32_t baseVertexOffset = src.nStreamOffset[0] / vBuf->vertexSize;
+
+		dest->mVertices = new aiVector3D[src.nVertexCount];
+		dest->mNumVertices = src.nVertexCount;
+		dest->mFaces = new aiFace[src.nPolyCount];
+		dest->mNumFaces = src.nPolyCount;
+		dest->mTextureCoords[0] = new aiVector3D[src.nVertexCount];
+		dest->mNumUVComponents[0] = 2;
+		if ((vBuf->flags & VERTEX_UV2) != 0) {
+			dest->mTextureCoords[1] = new aiVector3D[src.nVertexCount];
+			dest->mNumUVComponents[1] = 2;
+		}
+
+		for (int j = 0; j < src.nVertexCount; j++) {
+			auto vertices = (float*)vertexData;
+			dest->mVertices[j].x = vertices[0];
+			dest->mVertices[j].y = vertices[1];
+			dest->mVertices[j].z = vertices[2];
+
+			if ((vBuf->flags & VERTEX_NORMAL) != 0) vertices += 3; // 3 floats
+			if ((vBuf->flags & VERTEX_BLEND) != 0) vertices += 1; // 1 float
+			if ((vBuf->flags & VERTEX_UV) != 0) {
+				dest->mTextureCoords[0][j].x = vertices[0];
+				dest->mTextureCoords[0][j].y = vertices[1];
+				dest->mTextureCoords[0][j].z = 0;
+				vertices += 2;
+			}
+			if ((vBuf->flags & VERTEX_UV2) != 0) {
+				dest->mTextureCoords[1][j].x = vertices[0];
+				dest->mTextureCoords[1][j].y = vertices[1];
+				dest->mTextureCoords[1][j].z = 0;
+				vertices += 2;
+			}
+			vertexData += stride;
+		}
+
+		if (src.nPolyMode == 5) {
+			bool bFlip = false;
+			for (int j = 0; j < src.nPolyCount; j++) {
+				auto tmp = (uint16_t*)indexData;
+				int indices[3] = {tmp[0], tmp[1], tmp[2]};
+				indices[0] -= baseVertexOffset;
+				indices[1] -= baseVertexOffset;
+				indices[2] -= baseVertexOffset;
+				if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0])); exit(0); }
+				if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1])); exit(0); }
+				if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2])); exit(0); }
+				dest->mFaces[j].mIndices = new uint32_t[3];
+				if (bFlip) {
+					dest->mFaces[j].mIndices[0] = indices[2];
+					dest->mFaces[j].mIndices[1] = indices[1];
+					dest->mFaces[j].mIndices[2] = indices[0];
+				}
+				else {
+					dest->mFaces[j].mIndices[0] = indices[0];
+					dest->mFaces[j].mIndices[1] = indices[1];
+					dest->mFaces[j].mIndices[2] = indices[2];
+				}
+				dest->mFaces[j].mNumIndices = 3;
+				indexData += 2;
+				bFlip = !bFlip;
+			}
+		}
+		else {
+			for (int j = 0; j < src.nPolyCount; j++) {
+				auto tmp = (uint16_t*)indexData;
+				int indices[3] = {tmp[0], tmp[1], tmp[2]};
+				indices[0] -= baseVertexOffset;
+				indices[1] -= baseVertexOffset;
+				indices[2] -= baseVertexOffset;
+				if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0])); exit(0); }
+				if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1])); exit(0); }
+				if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2])); exit(0); }
+				dest->mFaces[j].mIndices = new uint32_t[3];
+				dest->mFaces[j].mIndices[0] = indices[0];
+				dest->mFaces[j].mIndices[1] = indices[1];
+				dest->mFaces[j].mIndices[2] = indices[2];
+				dest->mFaces[j].mNumIndices = 3;
+				indexData += 2 * 3;
+			}
+		}
+	}
+
+	return scene;
+}
+
+void WriteW32ToFBX() {
+	WriteConsole("Writing model file...");
+
+	if (nImportMapVersion >= 0x20002) {
+		WriteConsole("Model export not supported for UC yet!");
+		return;
+	}
+
+	auto scene = GenerateScene();
+
+	Assimp::Logger::LogSeverity severity = Assimp::Logger::VERBOSE;
+	Assimp::DefaultLogger::create("export_log.txt",severity, aiDefaultLogStream_FILE);
+
+	Assimp::Exporter exporter;
+	exporter.Export(&scene, "fbx", sFileName + "_out.fbx");
+}
+
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
 		WriteConsole("Usage: FlatOut2W32Extractor_gcp.exe <filename>");
@@ -1595,8 +1795,9 @@ int main(int argc, char *argv[]) {
 		WriteConsole("Failed to load " + (std::string)argv[1] + "!");
 	}
 	else {
-		WriteW32ToText();
-		WriteW32(argv[1], bConvertToFO1 ? 0x10005 : nImportMapVersion);
+		if (bDumpIntoTextFile) WriteW32ToText();
+		if (bDumpIntoFBX) WriteW32ToFBX();
+		WriteW32(bConvertToFO1 ? 0x10005 : nImportMapVersion);
 	}
 	return 0;
 }
