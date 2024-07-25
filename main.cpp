@@ -148,7 +148,7 @@ struct tSurface {
 	int nNumIndicesUsed;
 	float vAbsoluteCenter[3] = { 0, 0, 0 };
 	float vRelativeCenter[3] = { 0, 0, 0 };
-	float foucExtraData1[4];
+	float foucVertexMultiplier[4];
 	int nNumStreamsUsed;
 	uint32_t nStreamId[2];
 	uint32_t nStreamOffset[2];
@@ -522,7 +522,7 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 		}
 
 		if (mapVersion >= 0x20002) {
-			ReadFromFile(file, surface.foucExtraData1, sizeof(surface.foucExtraData1));
+			ReadFromFile(file, surface.foucVertexMultiplier, sizeof(surface.foucVertexMultiplier));
 		}
 
 		ReadFromFile(file, &surface.nNumStreamsUsed, 4);
@@ -544,8 +544,8 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 				float value[3];
 				for (int k = 0; k < 3; k++) {
 					value[k] = *(int16_t*)(ptr + (2 * k));
-					value[k] += surface.foucExtraData1[k];
-					value[k] *= surface.foucExtraData1[3];
+					value[k] += surface.foucVertexMultiplier[k];
+					value[k] *= surface.foucVertexMultiplier[3];
 					vBuf->_coordsAfterFOUCMult.push_back(value[k]);
 				}
 				ptr += vBuf->vertexSize;
@@ -903,7 +903,7 @@ void WriteSurfaceToFile(std::ofstream& file, tSurface& surface) {
 		file.write((char*)surface.vRelativeCenter, 12);
 	}
 	if (nExportMapVersion >= 0x20002) {
-		file.write((char*)surface.foucExtraData1, sizeof(surface.foucExtraData1));
+		file.write((char*)surface.foucVertexMultiplier, sizeof(surface.foucVertexMultiplier));
 	}
 	file.write((char*)&surface.nNumStreamsUsed, 4);
 	for (int j = 0; j < surface.nNumStreamsUsed; j++) {
@@ -1372,10 +1372,10 @@ void WriteW32ToText() {
 		WriteFile("vRelativeCenter.y: " + std::to_string(surface.vRelativeCenter[1]));
 		WriteFile("vRelativeCenter.z: " + std::to_string(surface.vRelativeCenter[2]));
 		if (nImportMapVersion >= 0x20002) {
-			WriteFile("foucExtraData[0]: " + std::to_string(surface.foucExtraData1[0]));
-			WriteFile("foucExtraData[1]: " + std::to_string(surface.foucExtraData1[1]));
-			WriteFile("foucExtraData[2]: " + std::to_string(surface.foucExtraData1[2]));
-			WriteFile("foucExtraData[3]: " + std::to_string(surface.foucExtraData1[3]));
+			WriteFile("foucVertexMultiplier.x: " + std::to_string(surface.foucVertexMultiplier[0]));
+			WriteFile("foucVertexMultiplier.y: " + std::to_string(surface.foucVertexMultiplier[1]));
+			WriteFile("foucVertexMultiplier.z: " + std::to_string(surface.foucVertexMultiplier[2]));
+			WriteFile("foucVertexMultiplier.w: " + std::to_string(surface.foucVertexMultiplier[3]));
 		}
 		WriteFile("nNumStreamsUsed: " + std::to_string(surface.nNumStreamsUsed));
 		for (int j = 0; j < surface.nNumStreamsUsed; j++) {
@@ -1695,27 +1695,62 @@ aiScene GenerateScene() {
 			dest->mNumUVComponents[1] = 2;
 		}
 
-		for (int j = 0; j < src.nVertexCount; j++) {
-			auto vertices = (float*)vertexData;
-			dest->mVertices[j].x = vertices[0];
-			dest->mVertices[j].y = vertices[1];
-			dest->mVertices[j].z = vertices[2];
+		if (nImportMapVersion >= 0x20002) {
+			for (int j = 0; j < src.nVertexCount; j++) {
+				auto vertices = (int16_t*)vertexData;
+				dest->mVertices[j].x = vertices[0];
+				dest->mVertices[j].y = vertices[1];
+				dest->mVertices[j].z = vertices[2];
+				dest->mVertices[j].x = vertices[0];
+				dest->mVertices[j].y = vertices[1];
+				dest->mVertices[j].z = vertices[2];
+				dest->mVertices[j].x += src.foucVertexMultiplier[0];
+				dest->mVertices[j].y += src.foucVertexMultiplier[1];
+				dest->mVertices[j].z += src.foucVertexMultiplier[2];
+				dest->mVertices[j].x *= src.foucVertexMultiplier[3];
+				dest->mVertices[j].y *= src.foucVertexMultiplier[3];
+				dest->mVertices[j].z *= src.foucVertexMultiplier[3];
 
-			if ((vBuf->flags & VERTEX_NORMAL) != 0) vertices += 3; // 3 floats
-			if ((vBuf->flags & VERTEX_BLEND) != 0) vertices += 1; // 1 float
-			if ((vBuf->flags & VERTEX_UV) != 0) {
-				dest->mTextureCoords[0][j].x = vertices[0];
-				dest->mTextureCoords[0][j].y = vertices[1];
-				dest->mTextureCoords[0][j].z = 0;
-				vertices += 2;
+				if ((vBuf->flags & VERTEX_NORMAL) != 0) vertices += 3; // 3 floats
+				if ((vBuf->flags & VERTEX_BLEND) != 0) vertices += 1; // 1 float
+				if ((vBuf->flags & VERTEX_UV) != 0) {
+					dest->mTextureCoords[0][j].x = vertices[0] / 32767.0;
+					dest->mTextureCoords[0][j].y = vertices[1] / 32767.0;
+					dest->mTextureCoords[0][j].z = 0;
+					vertices += 2;
+				}
+				if ((vBuf->flags & VERTEX_UV2) != 0) {
+					dest->mTextureCoords[1][j].x = vertices[0] / 32767.0;
+					dest->mTextureCoords[1][j].y = vertices[1] / 32767.0;
+					dest->mTextureCoords[1][j].z = 0;
+					vertices += 2;
+				}
+				vertexData += stride;
 			}
-			if ((vBuf->flags & VERTEX_UV2) != 0) {
-				dest->mTextureCoords[1][j].x = vertices[0];
-				dest->mTextureCoords[1][j].y = vertices[1];
-				dest->mTextureCoords[1][j].z = 0;
-				vertices += 2;
+		}
+		else {
+			for (int j = 0; j < src.nVertexCount; j++) {
+				auto vertices = (float*)vertexData;
+				dest->mVertices[j].x = vertices[0];
+				dest->mVertices[j].y = vertices[1];
+				dest->mVertices[j].z = vertices[2];
+
+				if ((vBuf->flags & VERTEX_NORMAL) != 0) vertices += 3; // 3 floats
+				if ((vBuf->flags & VERTEX_BLEND) != 0) vertices += 1; // 1 float
+				if ((vBuf->flags & VERTEX_UV) != 0) {
+					dest->mTextureCoords[0][j].x = vertices[0];
+					dest->mTextureCoords[0][j].y = vertices[1];
+					dest->mTextureCoords[0][j].z = 0;
+					vertices += 2;
+				}
+				if ((vBuf->flags & VERTEX_UV2) != 0) {
+					dest->mTextureCoords[1][j].x = vertices[0];
+					dest->mTextureCoords[1][j].y = vertices[1];
+					dest->mTextureCoords[1][j].z = 0;
+					vertices += 2;
+				}
+				vertexData += stride;
 			}
-			vertexData += stride;
 		}
 
 		if (src.nPolyMode == 5) {
@@ -1770,11 +1805,6 @@ aiScene GenerateScene() {
 
 void WriteW32ToFBX() {
 	WriteConsole("Writing model file...");
-
-	if (nImportMapVersion >= 0x20002) {
-		WriteConsole("Model export not supported for UC yet!");
-		return;
-	}
 
 	auto scene = GenerateScene();
 
