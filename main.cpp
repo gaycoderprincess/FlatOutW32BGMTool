@@ -1263,7 +1263,43 @@ void WriteW32ToText() {
 				if ((buf.flags & VERTEX_UV2) != 0) uvFlagsReadable += "DoubleUVMap ";
 				if ((buf.flags & VERTEX_INT16) != 0) uvFlagsReadable += "Int16 ";
 				WriteFile(std::format("nFlags: 0x{:X} {}", buf.flags, uvFlagsReadable));
-				if (bDumpStreams) {
+
+				if (nImportMapVersion >= 0x20002) {
+					if (bDumpFOUCOffsetedStreams && !buf._coordsAfterFOUCMult.empty()) {
+						int counter = 0;
+						std::string out;
+						for (auto& pos : buf._coordsAfterFOUCMult) {
+							out += std::to_string(pos);
+							out += " ";
+							counter++;
+							if (counter == 3) {
+								WriteFile(out);
+								counter = 0;
+								out = "";
+							}
+						}
+					}
+					else if (bDumpStreams) {
+						auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(uint16_t));
+
+						auto data = (uint16_t*)buf.data;
+						if (buf.origDataForFOUCExport) data = (uint16_t*)buf.origDataForFOUCExport;
+
+						size_t j = 0;
+						while (j < dataSize) {
+							std::string out;
+							for (int k = 0; k < buf.vertexSize / sizeof(uint16_t); k++) {
+								out += std::format("0x{:04X}", *(uint16_t*)&data[j]);
+								out += " ";
+								j++;
+							}
+							WriteFile(out);
+						}
+					}
+				}
+				else if (bDumpStreams) {
+					auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
+
 					int nVertexColorOffset = -1;
 					if ((buf.flags & 0x40) != 0) {
 						nVertexColorOffset = 3;
@@ -1272,63 +1308,19 @@ void WriteW32ToText() {
 						}
 					}
 
-					auto vertexCount = buf.vertexCount;
-					auto vertexSize = buf.vertexSize;
-					//if (nImportMapVersion >= 0x20002 && buf._vertexCountForFOUC > 0) {
-					//	vertexSize = buf._vertexSizeForFOUC;
-					//	vertexCount = buf._vertexCountForFOUC;
-					//}
-
-					if (nImportMapVersion >= 0x20002) {
-						if (bDumpFOUCOffsetedStreams && !buf._coordsAfterFOUCMult.empty()) {
-							int counter = 0;
-							std::string out;
-							for (auto& pos : buf._coordsAfterFOUCMult) {
-								out += std::to_string(pos);
-								out += " ";
-								counter++;
-								if (counter == 3) {
-									WriteFile(out);
-									counter = 0;
-									out = "";
-								}
+					size_t j = 0;
+					while (j < dataSize) {
+						std::string out;
+						for (int k = 0; k < buf.vertexSize / sizeof(float); k++) {
+							if (k == nVertexColorOffset) {
+								out += std::format("0x{:X}", *(uint32_t *) &buf.data[j]);
+							} else {
+								out += std::to_string(buf.data[j]);
 							}
+							out += " ";
+							j++;
 						}
-						else {
-							auto dataSize = vertexCount * (vertexSize / sizeof(uint16_t));
-
-							auto data = (uint16_t*)buf.data;
-							if (buf.origDataForFOUCExport) data = (uint16_t*)buf.origDataForFOUCExport;
-
-							size_t j = 0;
-							while (j < dataSize) {
-								std::string out;
-								for (int k = 0; k < vertexSize / sizeof(uint16_t); k++) {
-									out += std::format("0x{:04X}", *(uint16_t*)&data[j]);
-									out += " ";
-									j++;
-								}
-								WriteFile(out);
-							}
-						}
-					}
-					else {
-						auto dataSize = vertexCount * (vertexSize / sizeof(float));
-
-						size_t j = 0;
-						while (j < dataSize) {
-							std::string out;
-							for (int k = 0; k < vertexSize / sizeof(float); k++) {
-								if (k == nVertexColorOffset) {
-									out += std::format("0x{:X}", *(uint32_t *) &buf.data[j]);
-								} else {
-									out += std::to_string(buf.data[j]);
-								}
-								out += " ";
-								j++;
-							}
-							WriteFile(out);
-						}
+						WriteFile(out);
 					}
 				}
 			}
