@@ -45,6 +45,9 @@ bool bDisableObjects = false;
 bool bDisableProps = false;
 bool bConvertToFO1 = false;
 
+// special options
+bool bEmptyOutTrackBVH = false;
+
 std::string sFileName;
 std::string sFileNameNoExt;
 
@@ -1149,6 +1152,10 @@ void WriteW32(uint32_t exportMapVersion) {
 }
 
 bool ParseW32(const std::string fileName) {
+	if (!sFileName.ends_with(".w32")) {
+		return false;
+	}
+
 	std::ifstream fin(fileName, std::ios::in | std::ios::binary );
 	if (!fin.is_open()) return false;
 
@@ -1974,7 +1981,7 @@ void WriteW32ToFBX() {
 void ProcessCommandlineArguments(int argc, char* argv[]) {
 	sFileName = argv[1];
 	sFileNameNoExt = sFileName;
-	if (sFileNameNoExt.ends_with(".w32")) {
+	if (sFileNameNoExt.ends_with(".w32") || sFileNameNoExt.ends_with(".gen")) {
 		for (int i = 0; i < 4; i++) {
 			sFileNameNoExt.pop_back();
 		}
@@ -1998,7 +2005,100 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 			bConvertToFO1 = true;
 			bDumpIntoW32 = true;
 		}
+		if (!strcmp(arg, "-empty_bvh_gen")) {
+			bEmptyOutTrackBVH = true;
+		}
 	}
+}
+
+bool ReadAndEmptyTrackBVH() {
+	if (!sFileName.ends_with(".gen")) {
+		return false;
+	}
+
+	std::ifstream fin(sFileName, std::ios::in | std::ios::binary );
+	std::ofstream fout(sFileNameNoExt + "_out.gen", std::ios::out | std::ios::binary);
+	if (fin.is_open() && fout.is_open()) {
+		int header[3]; // 0 and 1 are unused, 2 is bvh count
+		ReadFromFile(fin, header, sizeof(header));
+		fout.write((char*)header, sizeof(header));
+		WriteFile(std::format("0x{:08X}", (uint32_t)header[0]));
+		WriteFile(std::to_string(header[1]));
+
+		WriteFile("First chunk begin");
+		WriteFile("Count: " + std::to_string(header[2]));
+		WriteFile(""); // newline
+
+		for (int i = 0; i < header[2]; i++) {
+			float data[3];
+			ReadFromFile(fin, data, 4 * 3);
+			WriteFile(std::to_string(data[0]));
+			WriteFile(std::to_string(data[1]));
+			WriteFile(std::to_string(data[2]));
+			fout.write((char*)data, sizeof(data));
+
+			ReadFromFile(fin, data, 4 * 3);
+			WriteFile(std::to_string(data[0]));
+			WriteFile(std::to_string(data[1]));
+			WriteFile(std::to_string(data[2]));
+			data[0] = 10000;
+			data[1] = 10000;
+			data[2] = 10000;
+			fout.write((char*)data, sizeof(data));
+
+			int unkValues[2];
+			ReadFromFile(fin, unkValues, sizeof(unkValues));
+			WriteFile(std::to_string(unkValues[0]));
+			WriteFile(std::to_string(unkValues[1]));
+			fout.write((char*)unkValues, sizeof(unkValues));
+
+			WriteFile(""); // newline
+		}
+
+		WriteFile("First chunk end");
+
+		WriteFile(""); // newline
+
+		WriteFile("Second chunk begin");
+
+		int chunk2Count;
+		ReadFromFile(fin, &chunk2Count, 4);
+		WriteFile("Count: " + std::to_string(chunk2Count)); // count
+		fout.write((char*)&chunk2Count, 4);
+
+		WriteFile(""); // newline
+
+		for (int i = 0; i < chunk2Count; i++) {
+			float data[3];
+			ReadFromFile(fin, data, 4 * 3);
+			WriteFile(std::to_string(data[0]));
+			WriteFile(std::to_string(data[1]));
+			WriteFile(std::to_string(data[2]));
+			fout.write((char*)data, sizeof(data));
+
+			ReadFromFile(fin, data, 4 * 3);
+			WriteFile(std::to_string(data[0]));
+			WriteFile(std::to_string(data[1]));
+			WriteFile(std::to_string(data[2]));
+			data[0] = 100000;
+			data[1] = 100000;
+			data[2] = 100000;
+			fout.write((char*)data, sizeof(data));
+
+			int unkValues[2];
+			ReadFromFile(fin, unkValues, sizeof(unkValues));
+			WriteFile(std::to_string(unkValues[0]));
+			WriteFile(std::to_string(unkValues[1]));
+			fout.write((char*)unkValues, sizeof(unkValues));
+
+			WriteFile(""); // newline
+		}
+
+		WriteFile("Second chunk end");
+
+		return true;
+	}
+	return false;
 }
 
 int main(int argc, char *argv[]) {
@@ -2007,13 +2107,21 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	ProcessCommandlineArguments(argc, argv);
-	if (!ParseW32(sFileName)) {
-		WriteConsole("Failed to load " + sFileName + "!");
+	if (bEmptyOutTrackBVH) {
+		if (!ReadAndEmptyTrackBVH()) {
+			WriteConsole("Failed to load " + sFileName + "!");
+		}
+		return 0;
 	}
 	else {
-		if (bDumpIntoTextFile) WriteW32ToText();
-		if (bDumpIntoFBX) WriteW32ToFBX();
-		if (bDumpIntoW32) WriteW32(bConvertToFO1 ? 0x10005 : nImportMapVersion);
+		if (!ParseW32(sFileName)) {
+			WriteConsole("Failed to load " + sFileName + "!");
+		}
+		else {
+			if (bDumpIntoTextFile) WriteW32ToText();
+			if (bDumpIntoFBX) WriteW32ToFBX();
+			if (bDumpIntoW32) WriteW32(bConvertToFO1 ? 0x10005 : nImportMapVersion);
+		}
 	}
 	return 0;
 }
