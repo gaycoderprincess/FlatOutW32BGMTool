@@ -1994,7 +1994,7 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
-		WriteConsole("Usage: FlatOut2W32Extractor_gcp.exe <filename>");
+		WriteConsole("Usage: FlatOut2W32Tool_gcp.exe <filename>");
 		return 0;
 	}
 	ProcessCommandlineArguments(argc, argv);
