@@ -19,15 +19,16 @@
 
 // gulbroz stuff:
 // Vertex stream flags
-#define VERTEX_POSITION			(1<<1)
-#define VERTEX_UV				(1<<8)
-#define VERTEX_UV2				(1<<9)
-#define VERTEX_NORMAL			(1<<4)
-#define VERTEX_BLEND			(1<<6)
+#define VERTEX_POSITION			0x2
+#define VERTEX_UV				0x100
+#define VERTEX_UV2				0x200
+#define VERTEX_NORMAL			0x10
+#define VERTEX_COLOR			0x40
+#define VERTEX_INT16			0x2000
 #define STREAM_VERTEX_DECAL		(VERTEX_POSITION | VERTEX_UV)
 #define STREAM_VERTEX_MODEL		(VERTEX_POSITION | VERTEX_UV  | VERTEX_NORMAL)
-#define STREAM_VERTEX_STATIC	(VERTEX_POSITION | VERTEX_UV  | VERTEX_BLEND)
-#define STREAM_VERTEX_WINDOW	(VERTEX_POSITION | VERTEX_UV  | VERTEX_NORMAL | VERTEX_BLEND)
+#define STREAM_VERTEX_STATIC	(VERTEX_POSITION | VERTEX_UV  | VERTEX_COLOR)
+#define STREAM_VERTEX_WINDOW	(VERTEX_POSITION | VERTEX_UV  | VERTEX_NORMAL | VERTEX_COLOR)
 #define STREAM_VERTEX_TERRAIN	(VERTEX_POSITION | VERTEX_UV2 | VERTEX_NORMAL)
 #define STREAM_VERTEX_TERRAIN2	(VERTEX_POSITION | VERTEX_UV2)
 
@@ -37,6 +38,7 @@ bool bDumpIntoFBX = false;
 bool bDumpIntoW32 = false;
 bool bDumpMaterialData = false;
 bool bDumpStreams = false;
+bool bDumpFOUCOffsetedStreams = false;
 
 // export options
 bool bDisableProps = false;
@@ -1253,7 +1255,14 @@ void WriteW32ToText() {
 				if (nImportMapVersion >= 0x20002) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
 				WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
 				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
-				WriteFile(std::format("nFlags: 0x{:X}", buf.flags));
+				std::string uvFlagsReadable = "";
+				if ((buf.flags & VERTEX_POSITION) != 0) uvFlagsReadable += "Position ";
+				if ((buf.flags & VERTEX_NORMAL) != 0) uvFlagsReadable += "Normals ";
+				if ((buf.flags & VERTEX_COLOR) != 0) uvFlagsReadable += "VertexColor ";
+				if ((buf.flags & VERTEX_UV) != 0) uvFlagsReadable += "UVMap ";
+				if ((buf.flags & VERTEX_UV2) != 0) uvFlagsReadable += "DoubleUVMap ";
+				if ((buf.flags & VERTEX_INT16) != 0) uvFlagsReadable += "Int16 ";
+				WriteFile(std::format("nFlags: 0x{:X} {}", buf.flags, uvFlagsReadable));
 				if (bDumpStreams) {
 					int nVertexColorOffset = -1;
 					if ((buf.flags & 0x40) != 0) {
@@ -1271,7 +1280,7 @@ void WriteW32ToText() {
 					}
 
 					if (nImportMapVersion >= 0x20002) {
-						if (!buf._coordsAfterFOUCMult.empty()) {
+						if (bDumpFOUCOffsetedStreams && !buf._coordsAfterFOUCMult.empty()) {
 							int counter = 0;
 							std::string out;
 							for (auto& pos : buf._coordsAfterFOUCMult) {
@@ -1758,8 +1767,8 @@ aiScene GenerateScene() {
 					dest->mNormals[j].z = vertices[2] / 32767.0;
 					vertices += 3; // 3 floats
 				}
-				if ((vBuf->flags & VERTEX_BLEND) != 0) vertices += 1; // 1 float
-				if ((vBuf->flags & VERTEX_UV) != 0) {
+				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 float
+				if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
 					dest->mTextureCoords[0][j].x = vertices[0] / 32767.0;
 					dest->mTextureCoords[0][j].y = vertices[1] / 32767.0;
 					dest->mTextureCoords[0][j].z = 0;
@@ -1788,8 +1797,8 @@ aiScene GenerateScene() {
 					dest->mNormals[j].z = vertices[2];
 					vertices += 3; // 3 floats
 				}
-				if ((vBuf->flags & VERTEX_BLEND) != 0) vertices += 1; // 1 float
-				if ((vBuf->flags & VERTEX_UV) != 0) {
+				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 float
+				if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
 					dest->mTextureCoords[0][j].x = vertices[0];
 					dest->mTextureCoords[0][j].y = vertices[1];
 					dest->mTextureCoords[0][j].z = 0;
@@ -1973,6 +1982,7 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		if (!strcmp(arg, "-export_w32")) bDumpIntoW32 = true;
 		if (!strcmp(arg, "-export_text")) bDumpIntoTextFile = true;
 		if (!strcmp(arg, "-export_streams_into_text")) bDumpStreams = true;
+		if (!strcmp(arg, "-streams_fouc_offseted")) bDumpFOUCOffsetedStreams = true;
 		if (!strcmp(arg, "-remove_props")) {
 			bDisableProps = true;
 			bDumpIntoW32 = true;
