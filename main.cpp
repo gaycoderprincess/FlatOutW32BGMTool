@@ -41,6 +41,7 @@ bool bDumpStreams = false;
 bool bDumpFOUCOffsetedStreams = false;
 
 // export options
+bool bDisableObjects = false;
 bool bDisableProps = false;
 bool bConvertToFO1 = false;
 
@@ -1098,10 +1099,16 @@ void WriteW32(uint32_t exportMapVersion) {
 		WriteModelToFile(file, model);
 	}
 
-	uint32_t objectCount = aObjects.size();
-	file.write((char*)&objectCount, 4);
-	for (auto& object : aObjects) {
-		WriteObjectToFile(file, object);
+	if (bDisableObjects) {
+		uint32_t tmpCount = 0;
+		file.write((char*)&tmpCount, 4); // objects
+	}
+	else {
+		uint32_t objectCount = aObjects.size();
+		file.write((char*)&objectCount, 4);
+		for (auto& object : aObjects) {
+			WriteObjectToFile(file, object);
+		}
 	}
 
 	if (bDisableProps) {
@@ -1666,7 +1673,7 @@ aiScene GenerateScene() {
 		for (int j = 0; j < 3; j++) {
 			if (src.sTextureNames[j].empty()) continue;
 			auto texName = src.sTextureNames[j];
-			if (texName.ends_with(".tga")) {
+			if (texName.ends_with(".tga") || texName.ends_with(".TGA")) {
 				texName.pop_back();
 				texName.pop_back();
 				texName.pop_back();
@@ -1745,21 +1752,18 @@ aiScene GenerateScene() {
 				dest->mVertices[j].x = vertices[0];
 				dest->mVertices[j].y = vertices[1];
 				dest->mVertices[j].z = vertices[2];
-				dest->mVertices[j].x = vertices[0];
-				dest->mVertices[j].y = vertices[1];
-				dest->mVertices[j].z = vertices[2];
 				dest->mVertices[j].x += src.foucVertexMultiplier[0];
 				dest->mVertices[j].y += src.foucVertexMultiplier[1];
 				dest->mVertices[j].z += src.foucVertexMultiplier[2];
 				dest->mVertices[j].x *= src.foucVertexMultiplier[3];
 				dest->mVertices[j].y *= src.foucVertexMultiplier[3];
-				dest->mVertices[j].z *= src.foucVertexMultiplier[3];
+				dest->mVertices[j].z *= -src.foucVertexMultiplier[3];
 				vertices += 3;
 
 				if ((vBuf->flags & VERTEX_NORMAL) != 0) {
 					dest->mNormals[j].x = vertices[0] / 32767.0;
 					dest->mNormals[j].y = vertices[1] / 32767.0;
-					dest->mNormals[j].z = vertices[2] / 32767.0;
+					dest->mNormals[j].z = -vertices[2] / 32767.0;
 					vertices += 3; // 3 floats
 				}
 				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32
@@ -1781,13 +1785,13 @@ aiScene GenerateScene() {
 				auto vertices = (float*)vertexData;
 				dest->mVertices[j].x = vertices[0];
 				dest->mVertices[j].y = vertices[1];
-				dest->mVertices[j].z = vertices[2];
+				dest->mVertices[j].z = -vertices[2];
 				vertices += 3;
 
 				if ((vBuf->flags & VERTEX_NORMAL) != 0) {
 					dest->mNormals[j].x = vertices[0];
 					dest->mNormals[j].y = vertices[1];
-					dest->mNormals[j].z = vertices[2];
+					dest->mNormals[j].z = -vertices[2];
 					vertices += 3; // 3 floats
 				}
 				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32
@@ -1891,19 +1895,19 @@ aiScene GenerateScene() {
 			objectNode->mName = object.sName1;
 			objectNode->mTransformation.a1 = object.mMatrix[0];
 			objectNode->mTransformation.b1 = object.mMatrix[1];
-			objectNode->mTransformation.c1 = object.mMatrix[2];
+			objectNode->mTransformation.c1 = -object.mMatrix[2];
 			objectNode->mTransformation.d1 = object.mMatrix[3];
 			objectNode->mTransformation.a2 = object.mMatrix[4];
 			objectNode->mTransformation.b2 = object.mMatrix[5];
-			objectNode->mTransformation.c2 = object.mMatrix[6];
+			objectNode->mTransformation.c2 = -object.mMatrix[6];
 			objectNode->mTransformation.d2 = object.mMatrix[7];
 			objectNode->mTransformation.a3 = object.mMatrix[8];
 			objectNode->mTransformation.b3 = object.mMatrix[9];
-			objectNode->mTransformation.c3 = object.mMatrix[10];
+			objectNode->mTransformation.c3 = -object.mMatrix[10];
 			objectNode->mTransformation.d3 = object.mMatrix[11];
 			objectNode->mTransformation.a4 = object.mMatrix[12];
 			objectNode->mTransformation.b4 = object.mMatrix[13];
-			objectNode->mTransformation.c4 = object.mMatrix[14];
+			objectNode->mTransformation.c4 = -object.mMatrix[14];
 			objectNode->mTransformation.d4 = object.mMatrix[15];
 		}
 	}
@@ -1982,6 +1986,10 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		if (!strcmp(arg, "-export_text")) bDumpIntoTextFile = true;
 		if (!strcmp(arg, "-export_streams_into_text")) bDumpStreams = true;
 		if (!strcmp(arg, "-streams_fouc_offseted")) bDumpFOUCOffsetedStreams = true;
+		if (!strcmp(arg, "-remove_object_dummies")) {
+			bDisableObjects = true;
+			bDumpIntoW32 = true;
+		}
 		if (!strcmp(arg, "-remove_props")) {
 			bDisableProps = true;
 			bDumpIntoW32 = true;
