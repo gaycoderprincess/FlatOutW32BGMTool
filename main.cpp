@@ -33,9 +33,10 @@
 
 // import options
 bool bDumpIntoTextFile = false;
-bool bDumpIntoFBX = true;
-bool bDumpMaterialData = true;
-bool bDumpStreams = true;
+bool bDumpIntoFBX = false;
+bool bDumpIntoW32 = false;
+bool bDumpMaterialData = false;
+bool bDumpStreams = false;
 
 // export options
 bool bDisableProps = false;
@@ -1010,6 +1011,11 @@ void WriteCompactMeshToFile(std::ofstream& file, const tCompactMesh& mesh) {
 void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("Writing output w32 file...");
 
+	if ((nExportMapVersion >= 0x20002 || nImportMapVersion >= 0x20002) && nImportMapVersion != nExportMapVersion) {
+		WriteConsole("ERROR: FOUC conversions are currently not supported!");
+		return;
+	}
+
 	std::ofstream file(sFileName + "_out.w32", std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 
@@ -1128,9 +1134,11 @@ void WriteW32(uint32_t exportMapVersion) {
 	}
 
 	file.flush();
+
+	WriteConsole("W32 export finished");
 }
 
-bool ParseW32(const std::string& fileName) {
+bool ParseW32(const std::string fileName) {
 	if (sFileName.ends_with(".w32")) {
 		for (int i = 0; i < 4; i++) {
 			sFileName.pop_back();
@@ -1604,6 +1612,8 @@ void WriteW32ToText() {
 			WriteConsole("WARNING: Surface " + std::to_string(&surface - &aSurfaces[0]) + " goes unused! The game will not like this!!");
 		}
 	}
+
+	WriteConsole("Text file export finished");
 }
 
 bool CanSurfaceBeExported(tSurface* surface) {
@@ -1947,7 +1957,28 @@ void WriteW32ToFBX() {
 	Assimp::DefaultLogger::create("export_log.txt",severity, aiDefaultLogStream_FILE);
 
 	Assimp::Exporter exporter;
-	exporter.Export(&scene, "fbx", sFileName + "_out.fbx");
+	if (exporter.Export(&scene, "fbx", sFileName + "_out.fbx") != aiReturn_SUCCESS) {
+		WriteConsole("Model export failed!");
+	}
+	else {
+		WriteConsole("Model export finished");
+	}
+}
+
+void ProcessCommandlineArguments(int argc, char* argv[]) {
+	sFileName = argv[1];
+	for (int i = 2; i < argc; i++) {
+		auto arg = argv[i];
+		if (!strcmp(arg, "-export_fbx")) bDumpIntoFBX = true;
+		if (!strcmp(arg, "-export_w32")) bDumpIntoW32 = true;
+		if (!strcmp(arg, "-export_text")) bDumpIntoTextFile = true;
+		if (!strcmp(arg, "-export_streams_into_text")) bDumpStreams = true;
+		if (!strcmp(arg, "-remove_props")) bDisableProps = true;
+		if (!strcmp(arg, "-convert_to_fo1")) {
+			bConvertToFO1 = true;
+			bDumpIntoW32 = true;
+		}
+	}
 }
 
 int main(int argc, char *argv[]) {
@@ -1955,14 +1986,14 @@ int main(int argc, char *argv[]) {
 		WriteConsole("Usage: FlatOut2W32Extractor_gcp.exe <filename>");
 		return 0;
 	}
-	sFileName = argv[1];
-	if (!ParseW32(argv[1])) {
-		WriteConsole("Failed to load " + (std::string)argv[1] + "!");
+	ProcessCommandlineArguments(argc, argv);
+	if (!ParseW32(sFileName)) {
+		WriteConsole("Failed to load " + sFileName + "!");
 	}
 	else {
 		if (bDumpIntoTextFile) WriteW32ToText();
 		if (bDumpIntoFBX) WriteW32ToFBX();
-		WriteW32(bConvertToFO1 ? 0x10005 : nImportMapVersion);
+		if (bDumpIntoW32) WriteW32(bConvertToFO1 ? 0x10005 : nImportMapVersion);
 	}
 	return 0;
 }
