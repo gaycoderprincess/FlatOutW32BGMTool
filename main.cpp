@@ -1908,9 +1908,9 @@ aiScene GenerateScene() {
 			objectNode->mTransformation.b2 = object.mMatrix[5];
 			objectNode->mTransformation.c2 = -object.mMatrix[6];
 			objectNode->mTransformation.d2 = object.mMatrix[7];
-			objectNode->mTransformation.a3 = object.mMatrix[8];
-			objectNode->mTransformation.b3 = object.mMatrix[9];
-			objectNode->mTransformation.c3 = -object.mMatrix[10];
+			objectNode->mTransformation.a3 = -object.mMatrix[8];
+			objectNode->mTransformation.b3 = -object.mMatrix[9];
+			objectNode->mTransformation.c3 = object.mMatrix[10];
 			objectNode->mTransformation.d3 = object.mMatrix[11];
 			objectNode->mTransformation.a4 = object.mMatrix[12];
 			objectNode->mTransformation.b4 = object.mMatrix[13];
@@ -1933,9 +1933,9 @@ aiScene GenerateScene() {
 			meshNode->mTransformation.b2 = compactMesh.mMatrix[5];
 			meshNode->mTransformation.c2 = -compactMesh.mMatrix[6];
 			meshNode->mTransformation.d2 = compactMesh.mMatrix[7];
-			meshNode->mTransformation.a3 = compactMesh.mMatrix[8];
-			meshNode->mTransformation.b3 = compactMesh.mMatrix[9];
-			meshNode->mTransformation.c3 = -compactMesh.mMatrix[10];
+			meshNode->mTransformation.a3 = -compactMesh.mMatrix[8];
+			meshNode->mTransformation.b3 = -compactMesh.mMatrix[9];
+			meshNode->mTransformation.c3 = compactMesh.mMatrix[10];
 			meshNode->mTransformation.d3 = compactMesh.mMatrix[11];
 			meshNode->mTransformation.a4 = compactMesh.mMatrix[12];
 			meshNode->mTransformation.b4 = compactMesh.mMatrix[13];
