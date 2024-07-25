@@ -45,6 +45,7 @@ bool bDisableProps = false;
 bool bConvertToFO1 = false;
 
 std::string sFileName;
+std::string sFileNameNoExt;
 
 void WriteConsole(const std::string& str) {
 	auto& out = std::cout;
@@ -54,7 +55,7 @@ void WriteConsole(const std::string& str) {
 }
 
 void WriteFile(const std::string& str) {
-	static auto out = std::ofstream(sFileName + "_log.txt");
+	static auto out = std::ofstream(sFileNameNoExt + "_log.txt");
 	out << str;
 	out << "\n";
 	out.flush();
@@ -1013,15 +1014,15 @@ void WriteCompactMeshToFile(std::ofstream& file, const tCompactMesh& mesh) {
 void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("Writing output w32 file...");
 
+	nExportMapVersion = exportMapVersion;
 	if ((nExportMapVersion >= 0x20002 || nImportMapVersion >= 0x20002) && nImportMapVersion != nExportMapVersion) {
 		WriteConsole("ERROR: FOUC conversions are currently not supported!");
 		return;
 	}
 
-	std::ofstream file(sFileName + "_out.w32", std::ios::out | std::ios::binary );
+	std::ofstream file(sFileNameNoExt + "_out.w32", std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 
-	nExportMapVersion = exportMapVersion;
 	file.write((char*)&nExportMapVersion, 4);
 	if (nExportMapVersion >= 0x20000) file.write((char*)&nSomeMapValue, 4);
 
@@ -1141,12 +1142,6 @@ void WriteW32(uint32_t exportMapVersion) {
 }
 
 bool ParseW32(const std::string fileName) {
-	if (sFileName.ends_with(".w32")) {
-		for (int i = 0; i < 4; i++) {
-			sFileName.pop_back();
-		}
-	}
-
 	std::ifstream fin(fileName, std::ios::in | std::ios::binary );
 	if (!fin.is_open()) return false;
 
@@ -1964,7 +1959,7 @@ void WriteW32ToFBX() {
 	Assimp::DefaultLogger::create("export_log.txt",severity, aiDefaultLogStream_FILE);
 
 	Assimp::Exporter exporter;
-	if (exporter.Export(&scene, "fbx", sFileName + "_out.fbx") != aiReturn_SUCCESS) {
+	if (exporter.Export(&scene, "fbx", sFileNameNoExt + "_out.fbx") != aiReturn_SUCCESS) {
 		WriteConsole("Model export failed!");
 	}
 	else {
@@ -1974,6 +1969,12 @@ void WriteW32ToFBX() {
 
 void ProcessCommandlineArguments(int argc, char* argv[]) {
 	sFileName = argv[1];
+	sFileNameNoExt = sFileName;
+	if (sFileNameNoExt.ends_with(".w32")) {
+		for (int i = 0; i < 4; i++) {
+			sFileNameNoExt.pop_back();
+		}
+	}
 	for (int i = 2; i < argc; i++) {
 		auto arg = argv[i];
 		if (!strcmp(arg, "-export_fbx")) bDumpIntoFBX = true;
