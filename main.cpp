@@ -54,7 +54,7 @@ std::string GetMapVersion(int value) {
 	if (value == 0x10003) return "BugBear Retro Demo (Unsupported)";
 	if (value == 0x10005) return "FlatOut 1";
 	if (value == 0x20001) return "FlatOut 2";
-	if (value == 0x20002) return "FlatOut Ultimate Carnage (Unsupported)";
+	if (value == 0x20002) return "FlatOut Ultimate Carnage";
 	if (value >= 0x20000) return "Unknown FlatOut 2";
 	return "Unknown FlatOut 1";
 }
