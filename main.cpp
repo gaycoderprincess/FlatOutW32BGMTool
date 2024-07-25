@@ -97,6 +97,7 @@ struct tVertexBuffer {
 	uint32_t _vertexSizeBeforeFO1 = 0;
 	uint32_t _vertexCountForFOUC = 0;
 	uint32_t _vertexSizeForFOUC = 0;
+	std::vector<float> _coordsAfterFOUCMult;
 };
 struct tIndexBuffer {
 	int id;
@@ -246,6 +247,13 @@ uint32_t nCompactMeshGroupCount;
 
 tVertexBuffer* FindVertexBuffer(int id) {
 	for (auto& buf : aVertexBuffers) {
+		if (buf.id == id) return &buf;
+	}
+	return nullptr;
+}
+
+tVegVertexBuffer* FindVegVertexBuffer(int id) {
+	for (auto& buf : aVegVertexBuffers) {
 		if (buf.id == id) return &buf;
 	}
 	return nullptr;
@@ -489,11 +497,30 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 		}
 
 		ReadFromFile(file, &surface.nNumStreamsUsed, 4);
-		if (surface.nNumStreamsUsed > 2) return false;
+		if (surface.nNumStreamsUsed <= 0 || surface.nNumStreamsUsed > 2) return false;
 
 		for (int j = 0; j < surface.nNumStreamsUsed; j++) {
 			ReadFromFile(file, &surface.nStreamId[j], 4);
 			ReadFromFile(file, &surface.nStreamOffset[j], 4);
+		}
+
+		auto id = surface.nStreamId[0];
+		auto vBuf = FindVertexBuffer(id);
+		auto vegvBuf = FindVegVertexBuffer(id);
+		if (!vBuf && !vegvBuf) return false;
+		if (nImportMapVersion >= 0x20002 && vBuf) {
+			auto ptr = (uintptr_t)vBuf->data;
+			ptr += surface.nStreamOffset[0];
+			for (int j = 0; j < surface.nVertNum; j++) {
+				float value[3];
+				for (int k = 0; k < 3; k++) {
+					value[k] = *(int16_t*)(ptr + (2 * k));
+					value[k] += surface.foucExtraData1[k];
+					value[k] *= surface.foucExtraData1[3];
+					vBuf->_coordsAfterFOUCMult.push_back(value[k]);
+				}
+				ptr += vBuf->vertexSize;
+			}
 		}
 
 		aSurfaces.push_back(surface);
@@ -1164,8 +1191,6 @@ void WriteW32ToText() {
 				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
 				WriteFile(std::format("nFlags: 0x{:X}", buf.flags));
 				if (bDumpStreams) {
-					auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
-
 					int nVertexColorOffset = -1;
 					if ((buf.flags & 0x40) != 0) {
 						nVertexColorOffset = 3;
@@ -1174,26 +1199,62 @@ void WriteW32ToText() {
 						}
 					}
 
+					auto vertexCount = buf.vertexCount;
 					auto vertexSize = buf.vertexSize;
 					if (nImportMapVersion >= 0x20002 && buf._vertexCountForFOUC > 0) {
 						vertexSize = buf._vertexSizeForFOUC;
-						dataSize = buf._vertexCountForFOUC * (vertexSize / sizeof(float));
+						vertexCount = buf._vertexCountForFOUC;
 					}
 
-					size_t j = 0;
-					while (j < dataSize) {
-						std::string out;
-						for (int k = 0; k < vertexSize / sizeof(float); k++) {
-							if (k == nVertexColorOffset || nImportMapVersion >= 0x20002) {
-								out += std::format("0x{:X}", *(uint32_t*)&buf.data[j]);
+					if (nImportMapVersion >= 0x20002) {
+						if (!buf._coordsAfterFOUCMult.empty()) {
+							int counter = 0;
+							std::string out;
+							for (auto& pos : buf._coordsAfterFOUCMult) {
+								out += std::to_string(pos);
+								out += " ";
+								counter++;
+								if (counter == 3) {
+									WriteFile(out);
+									counter = 0;
+									out = "";
+								}
 							}
-							else {
-								out += std::to_string(buf.data[j]);
-							}
-							out += " ";
-							j++;
 						}
-						WriteFile(out);
+						else {
+							auto dataSize = vertexCount * (vertexSize / sizeof(uint16_t));
+
+							auto data = (uint16_t*)buf.data;
+
+							size_t j = 0;
+							while (j < dataSize) {
+								std::string out;
+								for (int k = 0; k < vertexSize / sizeof(uint16_t); k++) {
+									out += std::format("0x{:04X}", *(uint16_t *) &data[j]);
+									out += " ";
+									j++;
+								}
+								WriteFile(out);
+							}
+						}
+					}
+					else {
+						auto dataSize = vertexCount * (vertexSize / sizeof(float));
+
+						size_t j = 0;
+						while (j < dataSize) {
+							std::string out;
+							for (int k = 0; k < vertexSize / sizeof(float); k++) {
+								if (k == nVertexColorOffset) {
+									out += std::format("0x{:X}", *(uint32_t *) &buf.data[j]);
+								} else {
+									out += std::to_string(buf.data[j]);
+								}
+								out += " ";
+								j++;
+							}
+							WriteFile(out);
+						}
 					}
 				}
 			}
@@ -1359,15 +1420,15 @@ void WriteW32ToText() {
 			WriteFile("foucData2[1]: " + std::to_string(treeMesh.foucData2[1]));
 			WriteFile("foucData2[2]: " + std::to_string(treeMesh.foucData2[2]));
 			WriteFile("nSomeId1: " + std::to_string(treeMesh.foucData2[3]));
-			WriteFile(std::format("nSomeOffset1: 0x{:X}", treeMesh.foucData2[4]));
+			WriteFile(std::format("nSomeOffset1: {:X}", treeMesh.foucData2[4]));
 			WriteFile("nSomeId2: " + std::to_string(treeMesh.foucData2[5]));
-			WriteFile(std::format("nSomeOffset2: 0x{:X}", treeMesh.foucData2[6]));
+			WriteFile(std::format("nSomeOffset2: {:X}", treeMesh.foucData2[6]));
 			WriteFile("nSomeId3: " + std::to_string(treeMesh.foucData2[7]));
-			WriteFile(std::format("nSomeOffset3: 0x{:X}", treeMesh.foucData2[8]));
+			WriteFile(std::format("nSomeOffset3: {:X}", treeMesh.foucData2[8]));
 			WriteFile("nMaterialId2: " + std::to_string(treeMesh.foucData3[0]));
 			WriteFile("foucData3[1]: " + std::to_string(treeMesh.foucData3[1]));
 			WriteFile("nSomeId4: " + std::to_string(treeMesh.foucData3[2]));
-			WriteFile(std::format("nSomeOffset4: 0x{:X}", (uint32_t)treeMesh.foucData3[3]));
+			WriteFile(std::format("nSomeOffset4: {:X}", (uint32_t)treeMesh.foucData3[3]));
 			WriteFile("nSurfaceId3: " + std::to_string(treeMesh.nSurfaceIdsFouc[0]));
 			WriteFile("nSurfaceId4: " + std::to_string(treeMesh.nSurfaceIdsFouc[1]));
 			WriteFile("nSurfaceId5: " + std::to_string(treeMesh.nSurfaceIdsFouc[2]));
