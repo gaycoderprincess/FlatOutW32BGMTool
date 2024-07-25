@@ -14,6 +14,18 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 
 ## Building
 
-Building is done on an Arch Linux system with CLion and vcpkg being used for the build process. 
+Building is done on an Arch Linux system with CLion and vcpkg being used for the build process.
 
-Required packages: `mingw-w64-gcc`
+Required packages: `mingw-w64-gcc vcpkg`
+
+To install all dependencies, use:
+```console
+vcpkg install assimp:x86-mingw-static
+```
+
+Once installed, copy files from `~/.vcpkg/vcpkg/installed/x86-mingw-static/`:
+
+- `include` dir to `nya-common/3rdparty`
+- `lib` dir to `nya-common/lib32`
+
+You should be able to build the project now in CLion.
