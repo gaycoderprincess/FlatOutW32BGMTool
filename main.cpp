@@ -95,6 +95,8 @@ struct tVertexBuffer {
 	float* data;
 
 	uint32_t _vertexSizeBeforeFO1 = 0;
+	uint32_t _vertexCountForFOUC = 0;
+	uint32_t _vertexSizeForFOUC = 0;
 };
 struct tIndexBuffer {
 	int id;
@@ -102,7 +104,7 @@ struct tIndexBuffer {
 	uint32_t indexCount;
 	uint16_t* data;
 
-	std::vector<uint32_t> foucExtraData;
+	std::vector<uint16_t> foucExtraData;
 };
 struct tVegVertexBuffer {
 	int id;
@@ -297,7 +299,110 @@ bool ParseW32Streams(std::ifstream& file) {
 			ReadFromFile(file, &buf.vertexSize, 4);
 			ReadFromFile(file, &buf.flags, 4);
 
-			if (nImportMapVersion >= 0x20002 && buf.foucExtraFormat - 22 <= 4) { // no clue what or why or when or how, this is a bugbear specialty
+			if (nImportMapVersion >= 0x20002) { // no clue what or why or when or how, this is a bugbear specialty
+				int formatType = buf.foucExtraFormat - 22;
+				switch (formatType) {
+					case 0:
+					case 1: {
+						std::vector<float> aValues;
+
+						int size = buf.vertexCount;
+						for (int j = 0; j < buf.vertexCount * 8; j++) { // game reads it in packs of 8 here
+							float value;
+							ReadFromFile(file, &value, 4);
+							aValues.push_back(value);
+						}
+
+						auto vertexData = new float[aValues.size()];
+						memcpy(vertexData, &aValues[0], aValues.size() * sizeof(float));
+						buf.id = i;
+						buf.data = vertexData;
+						aVertexBuffers.push_back(buf);
+					} break;
+					case 2: {
+						std::vector<float> aValues;
+
+						int size = buf.vertexCount;
+						for (int j = 0; j < buf.vertexCount * 6; j++) { // game reads it in packs of 6 here
+							float value;
+							ReadFromFile(file, &value, 4);
+							aValues.push_back(value);
+						}
+
+						auto vertexData = new float[aValues.size()];
+						memcpy(vertexData, &aValues[0], aValues.size() * sizeof(float));
+						buf.id = i;
+						buf.data = vertexData;
+						aVertexBuffers.push_back(buf);
+					} break;
+					case 3: {
+						std::vector<float> aValues;
+
+						int someCount = (2 * buf.vertexCount) >> 5;
+						if (someCount) {
+							for (int j = 0; j < someCount * 32; j++) { // read in groups of 32 by the game
+								float value;
+								ReadFromFile(file, &value, 4);
+								aValues.push_back(value);
+							}
+						}
+
+						int someOtherCount = (16 * someCount);
+						int readCount = 2 * (buf.vertexCount - someOtherCount);
+						for (int j = 0; j < readCount; j++) {
+							float value;
+							ReadFromFile(file, &value, 4);
+							aValues.push_back(value);
+						}
+
+						auto vertexData = new float[aValues.size()];
+						memcpy(vertexData, &aValues[0], aValues.size() * sizeof(float));
+						buf.id = i;
+						buf.data = vertexData;
+						aVertexBuffers.push_back(buf);
+					} break;
+					case 4: {
+						std::vector<float> aValues;
+
+						int size = buf.vertexCount;
+						for (int j = 0; j < buf.vertexCount; j++) { // game reads it in packs of 5 here
+							float values[5];
+							ReadFromFile(file, values, 20);
+
+							// then does.... huh?
+							for (int k = 0; k < 4; k++) {
+								uint16_t tmp[2];
+								tmp[0] = k;
+								tmp[1] = k;
+								aValues.push_back(*(float*)tmp);
+								aValues.push_back(values[0]);
+								aValues.push_back(values[1]);
+								aValues.push_back(values[2]);
+								aValues.push_back(values[3]);
+								aValues.push_back(values[4]);
+							}
+						}
+
+						auto vertexData = new float[aValues.size()];
+						memcpy(vertexData, &aValues[0], aValues.size() * sizeof(float));
+						buf._vertexCountForFOUC = aValues.size() / 6;
+						buf._vertexSizeForFOUC = 6 * 4;
+						buf.id = i;
+						buf.data = vertexData;
+						aVertexBuffers.push_back(buf);
+					} break;
+					default: {
+						auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
+						auto vertexData = new float[dataSize];
+						ReadFromFile(file, vertexData, dataSize * sizeof(float));
+
+						buf.id = i;
+						buf.data = vertexData;
+						aVertexBuffers.push_back(buf);
+					} break;
+				}
+			}
+			else if (nImportMapVersion < 0x20002) {
 				auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
 				auto vertexData = new float[dataSize];
 				ReadFromFile(file, vertexData, dataSize * sizeof(float));
@@ -315,10 +420,11 @@ bool ParseW32Streams(std::ifstream& file) {
 
 			if (nImportMapVersion >= 0x20002) {
 				if (auto extraValue = buf.indexCount >> 6) {
-					buf.foucExtraData.reserve(extraValue * 32); // size 128 each
-					for (int j = 0; j < extraValue * 32; j++) {
-						int tmp;
-						ReadFromFile(file, &tmp, 4);
+					buf.foucExtraData.reserve(extraValue * 32 * 2); // size 128 each
+					// not sure why this is done at all here, these are all still int16 to my knowledge
+					for (int j = 0; j < extraValue * 32 * 2; j++) {
+						uint16_t tmp;
+						ReadFromFile(file, &tmp, 2);
 						buf.foucExtraData.push_back(tmp);
 					}
 				}
@@ -1068,11 +1174,17 @@ void WriteW32ToText() {
 						}
 					}
 
+					auto vertexSize = buf.vertexSize;
+					if (nImportMapVersion >= 0x20002 && buf._vertexCountForFOUC > 0) {
+						vertexSize = buf._vertexSizeForFOUC;
+						dataSize = buf._vertexCountForFOUC * (vertexSize / sizeof(float));
+					}
+
 					size_t j = 0;
 					while (j < dataSize) {
 						std::string out;
-						for (int k = 0; k < buf.vertexSize / sizeof(float); k++) {
-							if (k == nVertexColorOffset) {
+						for (int k = 0; k < vertexSize / sizeof(float); k++) {
+							if (k == nVertexColorOffset || nImportMapVersion >= 0x20002) {
 								out += std::format("0x{:X}", *(uint32_t*)&buf.data[j]);
 							}
 							else {
