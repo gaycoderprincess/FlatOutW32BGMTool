@@ -1274,10 +1274,10 @@ void WriteW32ToText() {
 
 					auto vertexCount = buf.vertexCount;
 					auto vertexSize = buf.vertexSize;
-					if (nImportMapVersion >= 0x20002 && buf._vertexCountForFOUC > 0) {
-						vertexSize = buf._vertexSizeForFOUC;
-						vertexCount = buf._vertexCountForFOUC;
-					}
+					//if (nImportMapVersion >= 0x20002 && buf._vertexCountForFOUC > 0) {
+					//	vertexSize = buf._vertexSizeForFOUC;
+					//	vertexCount = buf._vertexCountForFOUC;
+					//}
 
 					if (nImportMapVersion >= 0x20002) {
 						if (bDumpFOUCOffsetedStreams && !buf._coordsAfterFOUCMult.empty()) {
@@ -1298,12 +1298,13 @@ void WriteW32ToText() {
 							auto dataSize = vertexCount * (vertexSize / sizeof(uint16_t));
 
 							auto data = (uint16_t*)buf.data;
+							if (buf.origDataForFOUCExport) data = (uint16_t*)buf.origDataForFOUCExport;
 
 							size_t j = 0;
 							while (j < dataSize) {
 								std::string out;
 								for (int k = 0; k < vertexSize / sizeof(uint16_t); k++) {
-									out += std::format("0x{:04X}", *(uint16_t *) &data[j]);
+									out += std::format("0x{:04X}", *(uint16_t*)&data[j]);
 									out += " ";
 									j++;
 								}
@@ -1719,6 +1720,7 @@ aiScene GenerateScene() {
 		scene.mMeshes[i] = new aiMesh();
 
 		auto dest = scene.mMeshes[i];
+		dest->mName = "Surface" + std::to_string(&src - &aSurfaces[0]);
 		dest->mMaterialIndex = src.nMaterialId;
 
 		auto vBuf = FindVertexBuffer(src.nStreamId[0]);
@@ -1747,6 +1749,12 @@ aiScene GenerateScene() {
 		if (nImportMapVersion >= 0x20002) {
 			for (int j = 0; j < src.nVertexCount; j++) {
 				auto vertices = (int16_t*)vertexData;
+
+				// uvs always seem to be the last 2 or 4 values in the vertex buffer
+				auto uvOffset = stride - 4;
+				if ((vBuf->flags & VERTEX_UV2) != 0) uvOffset -= 4;
+				auto uvs = (int16_t*)(vertexData + uvOffset);
+
 				dest->mVertices[j].x = vertices[0];
 				dest->mVertices[j].y = vertices[1];
 				dest->mVertices[j].z = vertices[2];
@@ -1767,18 +1775,16 @@ aiScene GenerateScene() {
 					dest->mNormals[j].z = vertices[2] / 32767.0;
 					vertices += 3; // 3 floats
 				}
-				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 float
+				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32
 				if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
-					dest->mTextureCoords[0][j].x = vertices[0] / 32767.0;
-					dest->mTextureCoords[0][j].y = vertices[1] / 32767.0;
+					dest->mTextureCoords[0][j].x = uvs[0] / 2048.0;
+					dest->mTextureCoords[0][j].y = 1 - (uvs[1] / 2048.0);
 					dest->mTextureCoords[0][j].z = 0;
-					vertices += 2;
 				}
 				if ((vBuf->flags & VERTEX_UV2) != 0) {
-					dest->mTextureCoords[1][j].x = vertices[0] / 32767.0;
-					dest->mTextureCoords[1][j].y = vertices[1] / 32767.0;
+					dest->mTextureCoords[1][j].x = uvs[2] / 2048.0;
+					dest->mTextureCoords[1][j].y = 1 - (uvs[3] / 2048.0);
 					dest->mTextureCoords[1][j].z = 0;
-					vertices += 2;
 				}
 				vertexData += stride;
 			}
@@ -1797,16 +1803,16 @@ aiScene GenerateScene() {
 					dest->mNormals[j].z = vertices[2];
 					vertices += 3; // 3 floats
 				}
-				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 float
+				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32
 				if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
 					dest->mTextureCoords[0][j].x = vertices[0];
-					dest->mTextureCoords[0][j].y = vertices[1];
+					dest->mTextureCoords[0][j].y = 1 - vertices[1];
 					dest->mTextureCoords[0][j].z = 0;
 					vertices += 2;
 				}
 				if ((vBuf->flags & VERTEX_UV2) != 0) {
 					dest->mTextureCoords[1][j].x = vertices[0];
-					dest->mTextureCoords[1][j].y = vertices[1];
+					dest->mTextureCoords[1][j].y = 1 - vertices[1];
 					dest->mTextureCoords[1][j].z = 0;
 					vertices += 2;
 				}
