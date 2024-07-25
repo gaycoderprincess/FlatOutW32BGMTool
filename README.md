@@ -2,7 +2,7 @@
 
 A tool to handle .w32 files in FlatOut games, highly WIP
 
-This tool is currently only capable of parsing and recreating the format from memory, converting FlatOut 2 tracks to FlatOut 1, and exporting tracks to .fbx (WIP, currently doesn't support terrain UV maps or blending)
+This tool is currently only capable of parsing and recreating the format from memory, converting FlatOut 2 tracks to FlatOut 1, and exporting tracks to .fbx (WIP)
 
 Thanks to Gulbroz for their existing work on this format, it was a great jumping-off point.
 
