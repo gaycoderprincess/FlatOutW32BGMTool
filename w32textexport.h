@@ -79,7 +79,12 @@ void WriteW32StreamsToText() {
 						while (j < dataSize) {
 							std::string out;
 							for (int k = 0; k < buf.vertexSize / sizeof(uint16_t); k++) {
-								out += std::format("0x{:04X}", *(uint16_t*)&data[j]);
+								if (bDumpFOUCNormalizedStreams) {
+									out += std::to_string((*(int16_t*)&data[j]) / 32767.0);
+								}
+								else {
+									out += std::format("0x{:04X}", *(uint16_t *) &data[j]);
+								}
 								out += " ";
 								j++;
 							}

@@ -25,6 +25,7 @@ std::string sFileNameNoExt;
 
 bool bIsBGMModel = false;
 bool bIsFOUCModel = false;
+bool bIsXboxBetaModel = false;
 
 void WriteConsole(const std::string& str) {
 	auto& out = std::cout;

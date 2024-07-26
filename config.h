@@ -5,6 +5,7 @@ bool bDumpIntoW32 = false;
 bool bDumpIntoBGM = false;
 bool bDumpMaterialData = false;
 bool bDumpStreams = false;
+bool bDumpFOUCNormalizedStreams = false;
 bool bDumpFOUCOffsetedStreams = false;
 
 // export options

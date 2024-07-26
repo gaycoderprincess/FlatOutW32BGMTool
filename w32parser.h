@@ -218,6 +218,19 @@ bool ParseW32Streams(std::ifstream& file) {
 			buf.data = data;
 			aVegVertexBuffers.push_back(buf);
 		}
+		// unknown, maybe some custom type of buffer in the xbox beta bgm format
+		else if (dataType == 4 || dataType == 5) {
+			bIsXboxBetaModel = true;
+
+			tVertexBuffer buf;
+			ReadFromFile(file, &buf.foucExtraFormat, 4);
+			ReadFromFile(file, &buf.vertexCount, 4);
+			ReadFromFile(file, &buf.vertexSize, 4);
+			for (int j = 0; j < buf.vertexCount * buf.vertexSize; j++) {
+				uint8_t tmp = 0;
+				ReadFromFile(file, &tmp, 1);
+			}
+		}
 		else {
 			WriteConsole("Unknown stream type " + std::to_string(dataType));
 			return false;
@@ -228,6 +241,22 @@ bool ParseW32Streams(std::ifstream& file) {
 
 bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 	WriteConsole("Parsing surfaces...");
+
+	if (bIsXboxBetaModel) {
+		uint32_t nCPUPushBufferCount;
+		ReadFromFile(file, &nCPUPushBufferCount, 4);
+		for (int i = 0; i < nCPUPushBufferCount; i++) {
+			uint32_t tmp[2];
+			ReadFromFile(file, tmp, sizeof(tmp));
+		}
+
+		uint32_t nGPUPushBufferCount;
+		ReadFromFile(file, &nGPUPushBufferCount, 4);
+		for (int i = 0; i < nGPUPushBufferCount; i++) {
+			uint32_t tmp[2];
+			ReadFromFile(file, tmp, sizeof(tmp));
+		}
+	}
 
 	uint32_t nSurfaceCount;
 	ReadFromFile(file, &nSurfaceCount, 4);
@@ -241,6 +270,11 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 		ReadFromFile(file, &surface.nPolyCount, 4);
 		ReadFromFile(file, &surface.nPolyMode, 4);
 		ReadFromFile(file, &surface.nNumIndicesUsed, 4);
+
+		if (bIsXboxBetaModel) {
+			uint32_t tmp;
+			ReadFromFile(file, &tmp, 4);
+		}
 
 		if (mapVersion < 0x20000) {
 			ReadFromFile(file, surface.vAbsoluteCenter, 12);
