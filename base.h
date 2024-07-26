@@ -201,7 +201,7 @@ enum eSurfaceReference {
 
 struct tVertexBuffer {
 	int id;
-	int foucExtraFormat;
+	int foucExtraFormat = 0;
 	uint32_t vertexCount;
 	uint32_t vertexSize;
 	uint32_t flags;
@@ -215,13 +215,13 @@ struct tVertexBuffer {
 };
 struct tIndexBuffer {
 	int id;
-	int foucExtraFormat;
+	int foucExtraFormat = 0;
 	uint32_t indexCount;
 	uint16_t* data;
 };
 struct tVegVertexBuffer {
 	int id;
-	int foucExtraFormat;
+	int foucExtraFormat = 0;
 	uint32_t vertexCount;
 	uint32_t vertexSize;
 	float* data;

@@ -539,6 +539,137 @@ void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("W32 export finished");
 }
 
+std::vector<tVertexBuffer> aConversionVertexBuffers;
+std::vector<tIndexBuffer> aConversionIndexBuffers;
+void ConvertFOUCSurfaceToFO2(tSurface& surface) {
+	auto vBuf = FindVertexBuffer(surface.nStreamId[0]);
+	auto iBuf = FindIndexBuffer(surface.nStreamId[1]);
+
+	auto stride = vBuf->vertexSize;
+	uintptr_t vertexData = ((uintptr_t)vBuf->data) + surface.nStreamOffset[0];
+	uintptr_t indexData = ((uintptr_t)iBuf->data) + surface.nStreamOffset[1];
+
+	uint32_t baseVertexOffset = surface.nStreamOffset[0] / vBuf->vertexSize;
+
+	size_t numVertexValues = 6;
+
+	auto newBuffer = new float[surface.nVertexCount * numVertexValues];
+	auto newVertexData = (uintptr_t)newBuffer;
+	auto newStride = numVertexValues * 4;
+	for (int i = 0; i < surface.nVertexCount; i++) {
+		auto src = (int16_t*)vertexData;
+		auto dest = (float*)newVertexData;
+
+		// uvs always seem to be the last 2 or 4 values in the vertex buffer
+		auto uvOffset = stride - 4;
+		if ((vBuf->flags & VERTEX_UV2) != 0) uvOffset -= 4;
+		auto uvs = (int16_t*)(vertexData + uvOffset);
+
+		dest[0] = src[0];
+		dest[1] = src[1];
+		dest[2] = src[2];
+		dest[0] += surface.foucVertexMultiplier[0];
+		dest[1] += surface.foucVertexMultiplier[1];
+		dest[2] += surface.foucVertexMultiplier[2];
+		dest[0] *= surface.foucVertexMultiplier[3];
+		dest[1] *= surface.foucVertexMultiplier[3];
+		dest[2] *= surface.foucVertexMultiplier[3];
+		src += 3;
+
+		//dest[3] = 0;
+		//dest[4] = 1;
+		//dest[5] = 0;
+
+		*(uint32_t*)&dest[3] = 0xFFFFFFFF; // vertex color
+
+		//if ((vBuf->flags & VERTEX_NORMAL) != 0) {
+		//	vertices += 3; // 3 floats
+		//}
+		if ((vBuf->flags & VERTEX_COLOR) != 0) src += 9;
+		if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
+			dest[4] = uvs[0] / 2048.0;
+			dest[5] = uvs[1] / 2048.0;
+		}
+		//if ((vBuf->flags & VERTEX_UV2) != 0) {
+		//}
+		vertexData += stride;
+		newVertexData += newStride;
+	}
+
+	surface.nStreamOffset[0] = 0;
+	surface.nStreamOffset[1] = 0;
+
+	tVertexBuffer newVertexBuffer;
+	surface.nStreamId[0] = newVertexBuffer.id = (aConversionVertexBuffers.size() + aConversionIndexBuffers.size());
+	surface.nFlags = newVertexBuffer.flags = VERTEX_POSITION | VERTEX_COLOR | VERTEX_UV;
+	newVertexBuffer.vertexSize = numVertexValues * 4;
+	newVertexBuffer.vertexCount = surface.nVertexCount;
+	newVertexBuffer.data = newBuffer;
+	aConversionVertexBuffers.push_back(newVertexBuffer);
+
+	auto newIndices = new uint16_t[surface.nNumIndicesUsed];
+	for (int i = 0; i < surface.nNumIndicesUsed; i++) {
+		auto tmp = *(uint16_t*)indexData;
+		newIndices[i] = tmp - baseVertexOffset;
+		if (newIndices[i] < 0 || newIndices[i] >= surface.nVertexCount) {
+			WriteConsole("Index out of bounds: " + std::to_string(newIndices[i]));
+			exit(0);
+		}
+		indexData += 2;
+	}
+
+	tIndexBuffer newIndexBuffer;
+	surface.nStreamId[1] = newIndexBuffer.id = (aConversionVertexBuffers.size() + aConversionIndexBuffers.size());
+	newIndexBuffer.indexCount = surface.nNumIndicesUsed;
+	newIndexBuffer.data = newIndices;
+	aConversionIndexBuffers.push_back(newIndexBuffer);
+}
+
+/*void ConvertFOUCVertexBufferToFO2(tVertexBuffer& buf) {
+	size_t numVertexValues = 9;
+
+	auto stride = buf.vertexSize;
+	uintptr_t vertexData = (uintptr_t)buf.data;
+	auto newBuffer = new float[buf.vertexCount * numVertexValues];
+	auto newVertexData = (uintptr_t)newBuffer;
+	auto newStride = numVertexValues * 4;
+	for (int i = 0; i < buf.vertexCount; i++) {
+		auto src = (int16_t*)vertexData;
+		auto dest = (float*)newVertexData;
+
+		// uvs always seem to be the last 2 or 4 values in the vertex buffer
+		auto uvOffset = stride - 4;
+		if ((buf.flags & VERTEX_UV2) != 0) uvOffset -= 4;
+		auto uvs = (int16_t*)(vertexData + uvOffset);
+
+		dest[0] = src[0];
+		dest[1] = src[1];
+		dest[2] = src[2];
+		dest[0] *= 0.000977;
+		dest[1] *= 0.000977;
+		dest[2] *= 0.000977;
+		src += 3;
+
+		dest[3] = 0;
+		dest[4] = 1;
+		dest[5] = 0;
+
+		*(uint32_t*)&dest[6] = 0xFFFFFFFF; // vertex color
+
+		if ((buf.flags & VERTEX_COLOR) != 0) src += 9;
+		if ((buf.flags & VERTEX_UV) != 0 || (buf.flags & VERTEX_UV2) != 0) {
+			dest[7] = uvs[0] / 2048.0;
+			dest[8] = uvs[1] / 2048.0;
+		}
+		vertexData += stride;
+		newVertexData += newStride;
+	}
+	buf.foucExtraFormat = 0;
+	buf.vertexSize = numVertexValues * 4;
+	buf.data = newBuffer;
+	buf.flags = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_COLOR | VERTEX_UV;
+}*/
+
 void WriteBGM(uint32_t exportMapVersion) {
 	WriteConsole("Writing output bgm file...");
 
@@ -552,8 +683,41 @@ void WriteBGM(uint32_t exportMapVersion) {
 	uint32_t materialCount = aMaterials.size();
 	file.write((char*)&materialCount, 4);
 	for (auto& material : aMaterials) {
+		// replace car interior shader with car diffuse
+		if (bIsFOUCModel && bConvertToFO1 && material.nShaderId == 43) {
+			material.nShaderId = 7;
+		}
 		WriteMaterialToFile(file, material);
 	}
+
+	if (bIsFOUCModel && bConvertToFO1) {
+		/*for (auto& buf : aVertexBuffers) {
+			ConvertFOUCVertexBufferToFO2(buf);
+		}
+		for (auto& surface : aSurfaces) {
+			if (surface.nFlags != 0x2242) {
+				WriteConsole("Unexpected flags value for surface! Can't convert");
+				return;
+			}
+			surface.nFlags = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_COLOR | VERTEX_UV;
+			surface.nStreamOffset[0] /= 32;
+			surface.nStreamOffset[0] *= 9 * 4;
+		}*/
+
+		for (auto& surface : aSurfaces) {
+			if (surface.nFlags != 0x2242) {
+				WriteConsole("Unexpected flags value for surface! Can't convert");
+				return;
+			}
+			ConvertFOUCSurfaceToFO2(surface);
+		}
+
+		aVertexBuffers = aConversionVertexBuffers;
+		aIndexBuffers = aConversionIndexBuffers;
+		aVegVertexBuffers.clear();
+	}
+
+	if (bConvertToFO1) bIsFOUCModel = false;
 
 	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
 	file.write((char*)&streamCount, 4);
