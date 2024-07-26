@@ -11,6 +11,8 @@ bool bDisableObjects = false;
 bool bDisableProps = false;
 bool bEnableAllProps = false;
 bool bConvertToFO1 = false;
+bool bImportPropsFromFBX = false;
+bool bLoadFBX = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;

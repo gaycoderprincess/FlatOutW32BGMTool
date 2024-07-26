@@ -265,3 +265,73 @@ int IsSurfaceValidAndExportable(int id) {
 	if (!CanSurfaceBeExported(&aSurfaces[id])) return false;
 	return true;
 }
+
+const aiScene* pParsedFBXScene = nullptr;
+aiNode* GetFBXNodeForCompactMeshArray() {
+	auto root = pParsedFBXScene->mRootNode;
+	if (!root) return nullptr;
+
+	for (int i = 0; i < root->mNumChildren; i++) {
+		auto node = root->mChildren[i];
+		if (!strcmp(node->mName.C_Str(), "CompactMesh")) return node;
+	}
+	return nullptr;
+}
+
+aiNode* FindFBXNodeForCompactMesh(const std::string& name) {
+	auto root = GetFBXNodeForCompactMeshArray();
+	if (!root) return nullptr;
+
+	for (int i = 0; i < root->mNumChildren; i++) {
+		auto node = root->mChildren[i];
+		if (!strcmp(node->mName.C_Str(), name.c_str())) return node;
+	}
+	return nullptr;
+}
+
+aiMatrix4x4 GetFullMatrixFromCompactMeshObject(aiNode* node) {
+	auto root = pParsedFBXScene->mRootNode;
+	auto compactMeshRoot = GetFBXNodeForCompactMeshArray();
+
+	return root->mTransformation * compactMeshRoot->mTransformation * node->mTransformation;
+}
+
+void FO2MatrixToFBXMatrix(const float* src, aiMatrix4x4* dest) {
+	dest->a1 = src[0];
+	dest->b1 = src[1];
+	dest->c1 = -src[2];
+	dest->d1 = src[3];
+	dest->a2 = src[4];
+	dest->b2 = src[5];
+	dest->c2 = -src[6];
+	dest->d2 = src[7];
+	dest->a3 = -src[8];
+	dest->b3 = -src[9];
+	dest->c3 = src[10];
+	dest->d3 = src[11];
+	dest->a4 = src[12];
+	dest->b4 = src[13];
+	dest->c4 = -src[14];
+	dest->d4 = src[15];
+}
+
+// for some reason the FBX already exports with Z mirrored... odd
+// blender seems to change this though, so reimporting directly will break this but blender reexport works fine
+void FBXMatrixToFO2Matrix(const aiMatrix4x4& src, float* dest) {
+	dest[0] = src.a1;
+	dest[1] = src.b1;
+	dest[2] = -src.c1;
+	dest[3] = src.d1;
+	dest[4] = src.a2;
+	dest[5] = src.b2;
+	dest[6] = -src.c2;
+	dest[7] = src.d2;
+	dest[8] = -src.a3;
+	dest[9] = -src.b3;
+	dest[10] = src.c3;
+	dest[11] = src.d3;
+	dest[12] = src.a4;
+	dest[13] = src.b4;
+	dest[14] = -src.c4;
+	dest[15] = src.d4;
+}

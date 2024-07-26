@@ -4,6 +4,7 @@
 #include <fstream>
 #include <format>
 #include <vector>
+#include "assimp/Importer.hpp"
 #include "assimp/Exporter.hpp"
 #include "assimp/Logger.hpp"
 #include "assimp/DefaultLogger.hpp"
@@ -52,7 +53,20 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		if (!strcmp(arg, "-empty_bvh_gen")) {
 			bEmptyOutTrackBVH = true;
 		}
+		if (!strcmp(arg, "-import_props_from_fbx")) {
+			bImportPropsFromFBX = true;
+			bLoadFBX = true;
+			bDumpIntoW32 = true;
+		}
 	}
+}
+
+bool ParseFBX(const std::string& fileName) {
+	WriteConsole("Parsing FBX...");
+
+	static Assimp::Importer importer;
+	pParsedFBXScene = importer.ReadFile(fileName.c_str(), aiProcessPreset_TargetRealtime_Quality);
+	return pParsedFBXScene != nullptr;
 }
 
 int main(int argc, char *argv[]) {
@@ -61,6 +75,15 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	ProcessCommandlineArguments(argc, argv);
+	if (bLoadFBX) {
+		if (!ParseFBX(argv[2])) {
+			WriteConsole("Failed to load " + (std::string)argv[2] + "!");
+			exit(0);
+		}
+		else {
+			WriteConsole("Parsing finished");
+		}
+	}
 	if (bEmptyOutTrackBVH) {
 		if (!ReadAndEmptyTrackBVH()) {
 			WriteConsole("Failed to load " + sFileName + "!");

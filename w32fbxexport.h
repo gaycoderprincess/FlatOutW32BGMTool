@@ -253,25 +253,9 @@ aiScene GenerateScene() {
 		scene.mRootNode->addChildren(1, &node);
 		for (auto& object : aObjects) {
 			auto objectNode = new aiNode();
-			node->addChildren(1, &objectNode);
-
 			objectNode->mName = object.sName1;
-			objectNode->mTransformation.a1 = object.mMatrix[0];
-			objectNode->mTransformation.b1 = object.mMatrix[1];
-			objectNode->mTransformation.c1 = -object.mMatrix[2];
-			objectNode->mTransformation.d1 = object.mMatrix[3];
-			objectNode->mTransformation.a2 = object.mMatrix[4];
-			objectNode->mTransformation.b2 = object.mMatrix[5];
-			objectNode->mTransformation.c2 = -object.mMatrix[6];
-			objectNode->mTransformation.d2 = object.mMatrix[7];
-			objectNode->mTransformation.a3 = -object.mMatrix[8];
-			objectNode->mTransformation.b3 = -object.mMatrix[9];
-			objectNode->mTransformation.c3 = object.mMatrix[10];
-			objectNode->mTransformation.d3 = object.mMatrix[11];
-			objectNode->mTransformation.a4 = object.mMatrix[12];
-			objectNode->mTransformation.b4 = object.mMatrix[13];
-			objectNode->mTransformation.c4 = -object.mMatrix[14];
-			objectNode->mTransformation.d4 = object.mMatrix[15];
+			FO2MatrixToFBXMatrix(object.mMatrix, &objectNode->mTransformation);
+			node->addChildren(1, &objectNode);
 		}
 	}
 
@@ -281,22 +265,7 @@ aiScene GenerateScene() {
 		for (auto& compactMesh : aCompactMeshes) {
 			auto meshNode = new aiNode();
 			meshNode->mName = compactMesh.sName1;
-			meshNode->mTransformation.a1 = compactMesh.mMatrix[0];
-			meshNode->mTransformation.b1 = compactMesh.mMatrix[1];
-			meshNode->mTransformation.c1 = -compactMesh.mMatrix[2];
-			meshNode->mTransformation.d1 = compactMesh.mMatrix[3];
-			meshNode->mTransformation.a2 = compactMesh.mMatrix[4];
-			meshNode->mTransformation.b2 = compactMesh.mMatrix[5];
-			meshNode->mTransformation.c2 = -compactMesh.mMatrix[6];
-			meshNode->mTransformation.d2 = compactMesh.mMatrix[7];
-			meshNode->mTransformation.a3 = -compactMesh.mMatrix[8];
-			meshNode->mTransformation.b3 = -compactMesh.mMatrix[9];
-			meshNode->mTransformation.c3 = compactMesh.mMatrix[10];
-			meshNode->mTransformation.d3 = compactMesh.mMatrix[11];
-			meshNode->mTransformation.a4 = compactMesh.mMatrix[12];
-			meshNode->mTransformation.b4 = compactMesh.mMatrix[13];
-			meshNode->mTransformation.c4 = -compactMesh.mMatrix[14];
-			meshNode->mTransformation.d4 = compactMesh.mMatrix[15];
+			FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
 			node->addChildren(1, &meshNode);
 
 			// not loading the damaged or lod parts here

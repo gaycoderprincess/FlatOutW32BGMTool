@@ -198,7 +198,14 @@ void WriteBoundingBoxMeshAssocToFile(std::ofstream& file, const tBoundingBoxMesh
 	file.write((char*)assoc.nIds, sizeof(assoc.nIds));
 }
 
-void WriteCompactMeshToFile(std::ofstream& file, const tCompactMesh& mesh) {
+void WriteCompactMeshToFile(std::ofstream& file, tCompactMesh& mesh) {
+	if (bEnableAllProps && mesh.nFlags == 0x8000) mesh.nFlags = 0x2000;
+	if (bImportPropsFromFBX) {
+		if (auto fbx = FindFBXNodeForCompactMesh(mesh.sName1)) {
+			FBXMatrixToFO2Matrix( GetFullMatrixFromCompactMeshObject(fbx), mesh.mMatrix);
+		}
+	}
+
 	file.write((char*)&mesh.identifier, 4);
 	file.write(mesh.sName1.c_str(), mesh.sName1.length() + 1);
 	file.write(mesh.sName2.c_str(), mesh.sName2.length() + 1);
@@ -345,7 +352,6 @@ void WriteW32(uint32_t exportMapVersion) {
 		file.write((char*)&nCompactMeshGroupCount, 4);
 		file.write((char*)&compactMeshCount, 4);
 		for (auto& mesh : aCompactMeshes) {
-			if (bEnableAllProps && mesh.nFlags == 0x8000) mesh.nFlags = 0x2000;
 			WriteCompactMeshToFile(file, mesh);
 		}
 	}
