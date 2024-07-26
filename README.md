@@ -14,6 +14,8 @@ This tool is currently capable of:
 
 Thanks to Gulbroz for their existing work on this format, it was a great jumping-off point.
 
+![custom mesh preview](https://i.imgur.com/lpQsDOl.png)
+
 ## Usage
 
 - Enter a commandline prompt, run `FlatOut2W32Tool_gcp.exe (filename)` with the arguments you'd like to use
