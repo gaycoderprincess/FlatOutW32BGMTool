@@ -43,6 +43,7 @@ bool bDumpFOUCOffsetedStreams = false;
 // export options
 bool bDisableObjects = false;
 bool bDisableProps = false;
+bool bEnableAllProps = false;
 bool bConvertToFO1 = false;
 
 // special options
@@ -1142,6 +1143,7 @@ void WriteW32(uint32_t exportMapVersion) {
 		file.write((char*)&nCompactMeshGroupCount, 4);
 		file.write((char*)&compactMeshCount, 4);
 		for (auto& mesh : aCompactMeshes) {
+			if (bEnableAllProps && mesh.nFlags == 0x8000) mesh.nFlags = 0x2000;
 			WriteCompactMeshToFile(file, mesh);
 		}
 	}
@@ -1999,6 +2001,10 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		}
 		if (!strcmp(arg, "-remove_props")) {
 			bDisableProps = true;
+			bDumpIntoW32 = true;
+		}
+		if (!strcmp(arg, "-enable_all_props")) {
+			bEnableAllProps = true;
 			bDumpIntoW32 = true;
 		}
 		if (!strcmp(arg, "-convert_to_fo1")) {
