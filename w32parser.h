@@ -13,8 +13,8 @@ bool ParseW32Materials(std::ifstream& file) {
 		ReadFromFile(file, &material.nAlpha, 4);
 		ReadFromFile(file, &material.v92, 4);
 		ReadFromFile(file, &material.nNumTextures, 4);
-		ReadFromFile(file, &material.v73, 4);
-		ReadFromFile(file, &material.v75, 4);
+		ReadFromFile(file, &material.nShaderId, 4);
+		ReadFromFile(file, &material.nUseColormap, 4);
 		ReadFromFile(file, &material.v74, 4);
 		ReadFromFile(file, material.v108, 12);
 		ReadFromFile(file, material.v109, 12);
@@ -53,7 +53,6 @@ bool ParseW32Streams(std::ifstream& file) {
 					case 1: {
 						std::vector<uint32_t> aValues;
 
-						int size = buf.vertexCount;
 						for (int j = 0; j < buf.vertexCount * 8; j++) { // game reads it in packs of 8 here
 							uint32_t value;
 							ReadFromFile(file, &value, 4);
@@ -69,7 +68,6 @@ bool ParseW32Streams(std::ifstream& file) {
 					case 2: {
 						std::vector<uint32_t> aValues;
 
-						int size = buf.vertexCount;
 						for (int j = 0; j < buf.vertexCount * 6; j++) { // game reads it in packs of 6 here
 							uint32_t value;
 							ReadFromFile(file, &value, 4);

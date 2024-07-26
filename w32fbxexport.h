@@ -24,13 +24,11 @@ aiScene GenerateScene() {
 	// materials
 	scene.mMaterials = new aiMaterial*[aMaterials.size()];
 	for (int i = 0; i < aMaterials.size(); i++) {
-		scene.mMaterials[i] = new aiMaterial();
-
 		auto& src = aMaterials[i];
 		scene.mMaterials[i] = new aiMaterial();
 		auto dest = scene.mMaterials[i];
 		aiString matName(src.sName);
-		dest->AddProperty( &matName, AI_MATKEY_NAME );
+		dest->AddProperty(&matName, AI_MATKEY_NAME);
 		for (int j = 0; j < 3; j++) {
 			if (src.sTextureNames[j].empty()) continue;
 			auto texName = src.sTextureNames[j];

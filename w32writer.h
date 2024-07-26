@@ -4,8 +4,8 @@ void WriteMaterialToFile(std::ofstream& file, const tMaterial& material) {
 	file.write((char*)&material.nAlpha, 4);
 	file.write((char*)&material.v92, 4);
 	file.write((char*)&material.nNumTextures, 4);
-	file.write((char*)&material.v73, 4);
-	file.write((char*)&material.v75, 4);
+	file.write((char*)&material.nShaderId, 4);
+	file.write((char*)&material.nUseColormap, 4);
 	file.write((char*)&material.v74, 4);
 	file.write((char*)material.v108, sizeof(material.v108));
 	file.write((char*)material.v109, sizeof(material.v109));
@@ -232,6 +232,66 @@ void WriteCompactMeshToFile(std::ofstream& file, tCompactMesh& mesh) {
 	}
 }
 
+void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
+	int id = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
+
+	tVertexBuffer vBuf;
+	vBuf.id = id;
+	vBuf.flags = flags;
+	vBuf.vertexSize = vertexSize;
+	vBuf.vertexCount = mesh->mNumVertices;
+	vBuf.data = new float[mesh->mNumVertices * (vertexSize / 4)];
+	auto vertexData = vBuf.data;
+	for (int i = 0; i < mesh->mNumVertices; i++) {
+		auto vertices = (float*)vertexData;
+		vertices[0] = mesh->mVertices[i].x;
+		vertices[1] = mesh->mVertices[i].y;
+		vertices[2] = -mesh->mVertices[i].z;
+		vertices += 3;
+
+		if ((flags & VERTEX_NORMAL) != 0) {
+			vertices[0] = mesh->mNormals[i].x;
+			vertices[1] = mesh->mNormals[i].y;
+			vertices[2] = -mesh->mNormals[i].z;
+			vertices += 3; // 3 floats
+		}
+		if ((flags & VERTEX_COLOR) != 0) {
+			*(uint32_t*)&vertices[0] = 0xFFFFFFFF; // todo
+			vertices += 1; // 1 int32
+		}
+		if ((flags & VERTEX_UV) != 0 || (flags & VERTEX_UV2) != 0) {
+			vertices[0] = mesh->mTextureCoords[0][i].x;
+			vertices[1] = 1 - mesh->mTextureCoords[0][i].y;
+			vertices += 2; // 2 floats
+		}
+		if ((flags & VERTEX_UV2) != 0) {
+			vertices[0] = mesh->mTextureCoords[1][i].x;
+			vertices[1] = 1 - mesh->mTextureCoords[1][i].y;
+			vertices += 2; // 2 floats
+		}
+		vertexData += vertexSize / 4;
+	}
+	aVertexBuffers.push_back(vBuf);
+
+	tIndexBuffer iBuf;
+	iBuf.id = id;
+	iBuf.indexCount = mesh->mNumFaces * 3;
+	iBuf.data = new uint16_t[iBuf.indexCount];
+	auto indexData = iBuf.data;
+	for (int i = 0; i < mesh->mNumFaces; i++) {
+		auto face = mesh->mFaces[i];
+		if (face.mNumIndices != 3) {
+			WriteConsole("ERROR: Non-tri found in FBX mesh while exporting!");
+			continue;
+		}
+		indexData[0] = face.mIndices[0];
+		indexData[1] = face.mIndices[1];
+		indexData[2] = face.mIndices[2];
+		indexData += 3;
+	}
+	aIndexBuffers.push_back(iBuf);
+}
+
 void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("Writing output w32 file...");
 
@@ -247,13 +307,87 @@ void WriteW32(uint32_t exportMapVersion) {
 	file.write((char*)&nExportMapVersion, 4);
 	if (nExportMapVersion >= 0x20000) file.write((char*)&nSomeMapValue, 4);
 
+	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
+	if (bLoadFBX && bImportSurfacesFromFBX && nExportMapVersion < 0x20002) { // surface exports only supported for FO1 and FO2 currently
+		for (auto& surface : aSurfaces) {
+			if (auto node = FindFBXNodeForSurface(&surface - &aSurfaces[0])) {
+				if (ShouldSurfaceMeshBeImported(node)) {
+					WriteConsole("Exporting surface " + (std::string)node->mName.C_Str());
+
+					auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[0]];
+					uint32_t bufFlags = VERTEX_POSITION;
+					uint32_t vertexSize = 3 * sizeof(float);
+					if (mesh->HasNormals()) {
+						bufFlags += VERTEX_NORMAL;
+						vertexSize += 3 * sizeof(float);
+					}
+					if (mesh->HasVertexColors(0)) { // todo
+						bufFlags += VERTEX_COLOR;
+						vertexSize += 1 * sizeof(uint32_t);
+					}
+					if (mesh->HasTextureCoords(0) && mesh->HasTextureCoords(1)) {
+						bufFlags += VERTEX_UV2;
+						vertexSize += 4 * sizeof(float);
+					}
+					else if (mesh->HasTextureCoords(0)) {
+						bufFlags += VERTEX_UV;
+						vertexSize += 2 * sizeof(float);
+					}
+
+					// todo this seems to be broken - mMaterialIndex isn't correct here for some reason
+					if (bImportSurfaceMaterialsFromFBX) {
+						auto fbxMaterial = pParsedFBXScene->mMaterials[mesh->mMaterialIndex];
+						auto matName = fbxMaterial->GetName().C_Str();
+						auto material = FindMaterialIDByName(matName);
+						if (material < 0) {
+							material = aMaterials.size();
+							tMaterial mat;
+							mat.sName = matName;
+							mat.nAlpha = mat.sName.starts_with("alpha") || mat.sName.starts_with("Alpha");
+							mat.nNumTextures = fbxMaterial->GetTextureCount(aiTextureType_DIFFUSE);
+							if (mat.nNumTextures > 3) mat.nNumTextures = 3;
+							for (int i = 0; i < mat.nNumTextures; i++) {
+								mat.sTextureNames[i] = GetFBXTextureInFO2Style(fbxMaterial, i);
+								if (i == 0 && mat.sTextureNames[i] == "colormap.tga") {
+									mat.nShaderId = 2; // terrain specular
+									mat.nUseColormap = 1;
+
+									// hack to load colormapped textures properly when the fbx has texture2 stripped
+									if (mat.nNumTextures == 1) {
+										mat.sTextureNames[1] = mat.sName + ".tga";
+										mat.nNumTextures = 2;
+										break;
+									}
+								}
+							}
+							WriteConsole("Creating new material " + mat.sName);
+							aMaterials.push_back(mat);
+						}
+						WriteConsole("Assigning material " + aMaterials[material].sName + " to surface " + node->mName.C_Str());
+						surface.nMaterialId = material;
+					}
+
+					CreateStreamsFromFBX(mesh, bufFlags, vertexSize);
+					surface.nFlags = bufFlags;
+					surface.nVertexCount = mesh->mNumVertices;
+					surface.nPolyCount = mesh->mNumFaces;
+					surface.nNumIndicesUsed = mesh->mNumFaces * 3;
+					surface.nPolyMode = 4;
+					surface.nStreamOffset[0] = surface.nStreamOffset[1] = 0;
+					surface.nStreamId[0] = streamCount;
+					surface.nStreamId[1] = streamCount + 1;
+					streamCount += 2;
+				}
+			}
+		}
+	}
+
 	uint32_t materialCount = aMaterials.size();
 	file.write((char*)&materialCount, 4);
 	for (auto& material : aMaterials) {
 		WriteMaterialToFile(file, material);
 	}
 
-	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
 	file.write((char*)&streamCount, 4);
 	for (int i = 0; i < streamCount; i++) {
 		for (auto& buf : aVertexBuffers) {

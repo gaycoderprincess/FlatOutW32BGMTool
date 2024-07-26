@@ -46,6 +46,130 @@ std::string GetMapVersion(int value) {
 	return "Unknown FlatOut 1";
 }
 
+std::string GetShaderName(int value, int mapVersion) {
+	if (mapVersion == 0x20002) {
+		switch (value) {
+			case 0: return "static prelit";
+			case 1: return "terrain";
+			case 2: return "terrain specular";
+			case 3: return "dynamic diffuse";
+			case 4: return "dynamic specular";
+			case 5: return "car body";
+			case 6: return "car window";
+			case 7: return "car diffuse";
+			case 8: return "car metal";
+			case 9: return "car tire rim";
+			case 10: return "car lights";
+			case 11: return "car shear";
+			case 12: return "car scale";
+			case 13: return "shadow project";
+			case 14: return "car lights unlit";
+			case 15: return "default";
+			case 16: return "vertex color";
+			case 17: return "shadow sampler";
+			case 18: return "grass";
+			case 19: return "tree trunk";
+			case 20: return "tree branch";
+			case 21: return "tree leaf";
+			case 22: return "particle";
+			case 23: return "sunflare";
+			case 24: return "intensitymap";
+			case 25: return "water";
+			case 26: return "skinning";
+			case 27: return "tree lod (default)";
+			case 28: return "@deprecated: streak shader on PS2";
+			case 29: return "clouds (uvscroll)";
+			case 30: return "car bodylod";
+			case 31: return "@deprecated: vertex color static (now used as depth buffer visualization shader)";
+			case 32: return "car window damaged";
+			case 33: return "skin shadow(deprecated)";
+			case 34: return "reflecting window shader (static)";
+			case 35: return "reflecting window shader (dynamic)";
+			case 36: return "@deprecated: old STATIC_SPECULAR, same as #35 - STATIC_WINDOW";
+			case 37: return "skybox";
+			case 38: return "horizon";
+			case 39: return "ghost body";
+			case 40: return "static nonlit";
+			case 41: return "dynamic nonlit";
+			case 42: return "skid marks";
+			case 43: return "car interior";
+			case 44: return "car tire";
+			case 45: return "puddle";
+			case 46: return "ambient shadow";
+			case 47: return "Local water shader";
+			case 48: return "Static specular/hilight shader (SHADER_STATIC_HILIGHT)";
+			case 49: return "Lightmapped planar reflection";
+			case 50: return "racemap";
+			case 51: return "HDR default shader (runtime)";
+			case 52: return "Ambient particle shader";
+			case 53: return "Videoscreen shader (dynamic)";
+			case 54: return "Videoscreen shader (static)";
+		}
+	}
+	else {
+		switch (value) {
+			case 0: return "static prelit";
+			case 1: return "terrain";
+			case 2: return "terrain specular";
+			case 3: return "dynamic diffuse";
+			case 4: return "dynamic specular";
+			case 5: return "car body";
+			case 6: return "car window";
+			case 7: return "car diffuse";
+			case 8: return "car metal";
+			case 9: return "car tire";
+			case 10: return "car lights";
+			case 11: return "car shear";
+			case 12: return "car scale";
+			case 13: return "shadow project";
+			case 14: return "car lights unlit";
+			case 15: return "default";
+			case 16: return "vertex color";
+			case 17: return "shadow sampler";
+			case 18: return "grass";
+			case 19: return "tree trunk";
+			case 20: return "tree branch";
+			case 21: return "tree leaf";
+			case 22: return "particle";
+			case 23: return "sunflare";
+			case 24: return "intensitymap";
+			case 25: return "water";
+			case 26: return "skinning";
+			case 27: return "tree lod (default)";
+			case 28: return "DUMMY (streak shader on PS2)";
+			case 29: return "clouds (uvscroll)";
+			case 30: return "car bodylod";
+			case 31: return "vertex color static (dummy? same as vertexcolor)";
+			case 32: return "car window damaged";
+			case 33: return "skin shadow";
+			default: return "UNKNOWN";
+		}
+	}
+	return "Unknown";
+}
+
+std::string GetFBXTextureInFO2Style(aiMaterial* material, int id) {
+	aiString tmp;
+	material->GetTexture(aiTextureType_DIFFUSE, id, &tmp);
+	std::string str = tmp.C_Str();
+	while (str.find('\\') != std::string::npos) {
+		str.erase(str.begin());
+	}
+	while (str.find('/') != std::string::npos) {
+		str.erase(str.begin());
+	}
+	if (str.find('.') == std::string::npos) {
+		str += ".tga";
+	}
+	else if (str.length() > 3) {
+		for (int j = 0; j < 3; j++) {
+			str.pop_back();
+		}
+		str += "tga";
+	}
+	return str;
+}
+
 std::string ReadStringFromFile(std::ifstream& file) {
 	std::string string;
 	char value = 0;
@@ -101,22 +225,31 @@ struct tVegVertexBuffer {
 	float* data;
 };
 struct tMaterial {
-	uint32_t identifier; // MATC
+	uint32_t identifier = 0x4354414D; // MATC
 	std::string sName;
-	int nAlpha;
-	int v92;
-	int nNumTextures;
-	int v73;
-	int v75;
-	int v74;
+	int nAlpha = 0;
+	int v92 = 0;
+	int nNumTextures = 0;
+	int nShaderId = 0;
+	int nUseColormap = 0;
+	int v74 = 0;
 	int v108[3];
 	int v109[3];
 	int v98[4];
 	int v99[4];
 	int v100[4];
 	int v101[4];
-	int v102;
+	int v102 = 0;
 	std::string sTextureNames[3];
+
+	tMaterial() {
+		memset(v108, 0, sizeof(v108));
+		memset(v109, 0, sizeof(v109));
+		memset(v98, 0, sizeof(v98));
+		memset(v99, 0, sizeof(v99));
+		memset(v100, 0, sizeof(v100));
+		memset(v101, 0, sizeof(v101));
+	}
 };
 struct tSurface {
 	int nIsVegetation;
@@ -275,6 +408,7 @@ int IsSurfaceValidAndExportable(int id, bool checkNotModel = false) {
 
 const aiScene* pParsedFBXScene = nullptr;
 aiNode* FindFBXNodeFromRoot(const char* name) {
+	if (!pParsedFBXScene) return nullptr;
 	auto root = pParsedFBXScene->mRootNode;
 	if (!root) return nullptr;
 
@@ -329,6 +463,9 @@ aiNode* FindFBXNodeForSurface(int id) {
 	std::string name = "Surface" + std::to_string(id);
 	if (auto node = FindFBXNodeForStaticBatchSurface(name)) return node;
 	if (auto node = FindFBXNodeForTreeMeshSurface(name)) return node;
+	name += "_export";
+	if (auto node = FindFBXNodeForStaticBatchSurface(name)) return node;
+	if (auto node = FindFBXNodeForTreeMeshSurface(name)) return node;
 	return nullptr;
 }
 
@@ -377,4 +514,22 @@ void FBXMatrixToFO2Matrix(const aiMatrix4x4& src, float* dest) {
 	dest[13] = src.b4;
 	dest[14] = -src.c4;
 	dest[15] = src.d4;
+}
+
+bool ShouldSurfaceMeshBeImported(aiNode* node) {
+	if (!node) return false;
+	auto name = (std::string)node->mName.C_Str();
+	if (!name.ends_with("_export")) return false;
+	if (node->mNumMeshes != 1) {
+		WriteConsole("ERROR: Surface " + name + " has more than one mesh or material!");
+		return false;
+	}
+	return true;
+}
+
+int FindMaterialIDByName(const std::string& name) {
+	for (auto& material : aMaterials) {
+		if (material.sName == name) return &material - &aMaterials[0];
+	}
+	return -1;
 }

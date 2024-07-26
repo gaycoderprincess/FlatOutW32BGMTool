@@ -32,8 +32,18 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		if (!strcmp(arg, "-export_fbx")) bDumpIntoFBX = true;
 		if (!strcmp(arg, "-export_w32")) bDumpIntoW32 = true;
 		if (!strcmp(arg, "-export_text")) bDumpIntoTextFile = true;
-		if (!strcmp(arg, "-export_streams_into_text")) bDumpStreams = true;
-		if (!strcmp(arg, "-streams_fouc_offseted")) bDumpFOUCOffsetedStreams = true;
+		if (!strcmp(arg, "-text_streams")) {
+			bDumpStreams = true;
+			bDumpIntoTextFile = true;
+		}
+		if (!strcmp(arg, "-text_materials")) {
+			bDumpMaterialData = true;
+			bDumpIntoTextFile = true;
+		}
+		if (!strcmp(arg, "-text_streams_fouc_offseted")) {
+			bDumpFOUCOffsetedStreams = true;
+			bDumpIntoTextFile = true;
+		}
 		if (!strcmp(arg, "-remove_object_dummies")) {
 			bDisableObjects = true;
 			bDumpIntoW32 = true;
@@ -53,17 +63,23 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		if (!strcmp(arg, "-empty_bvh_gen")) {
 			bEmptyOutTrackBVH = true;
 		}
-		if (!strcmp(arg, "-import_props_from_fbx")) {
+		if (!strcmp(arg, "-import_moved_props")) {
 			bImportPropsFromFBX = true;
 			bLoadFBX = true;
 			bDumpIntoW32 = true;
 			if (!strcmp(arg, "-ungroup_moved_props")) {
 				bUngroupMovedPropsFromFBX = true;
-				bLoadFBX = true;
-				bDumpIntoW32 = true;
 			}
 		}
-		if (!strcmp(arg, "-import_deletions_from_fbx")) {
+		if (!strcmp(arg, "-import_surfaces")) {
+			bImportSurfacesFromFBX = true;
+			bLoadFBX = true;
+			bDumpIntoW32 = true;
+			if (!strcmp(arg, "-import_materials")) {
+				bImportSurfaceMaterialsFromFBX = true;
+			}
+		}
+		if (!strcmp(arg, "-import_deletions")) {
 			bImportDeletionFromFBX = true;
 			bLoadFBX = true;
 			bDumpIntoW32 = true;
