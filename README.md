@@ -32,7 +32,7 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-convert_to_fo1` - Creates a new .w32 file of the map that can be loaded by FlatOut 1
 - `-empty_bvh_gen` - Takes a track_bvh.gen file and generates a new one without any culling, will be required for custom maps in the future!
 - `-import_props_from_fbx` - Imports moved prop positions from an .fbx file, usage: `FlatOutW32Tool_gcp.exe (w32 filename) (fbx filename) -import_props_from_fbx`
-- `-import_deleted_surfaces_from_fbx` - Imports moved prop positions from an .fbx file, usage: `FlatOutW32Tool_gcp.exe (w32 filename) (fbx filename) -import_deleted_surfaces_from_fbx`
+- `-import_deleted_surfaces_from_fbx` - Deletes surfaces that have been deleted from an .fbx file, usage: `FlatOutW32Tool_gcp.exe (w32 filename) (fbx filename) -import_deleted_surfaces_from_fbx`
 
 ## Building
 
