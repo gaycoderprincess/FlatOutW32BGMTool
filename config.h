@@ -12,7 +12,8 @@ bool bDisableProps = false;
 bool bEnableAllProps = false;
 bool bConvertToFO1 = false;
 bool bImportPropsFromFBX = false;
-bool bImportSurfaceDeletionFromFBX = false;
+bool bImportDeletionFromFBX = false;
+bool bUngroupMovedPropsFromFBX = false;
 bool bLoadFBX = false;
 
 // special options

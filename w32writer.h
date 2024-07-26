@@ -202,7 +202,14 @@ void WriteCompactMeshToFile(std::ofstream& file, tCompactMesh& mesh) {
 	if (bEnableAllProps && mesh.nFlags == 0x8000) mesh.nFlags = 0x2000;
 	if (bImportPropsFromFBX) {
 		if (auto fbx = FindFBXNodeForCompactMesh(mesh.sName1)) {
+			float oldMatrix[4*4];
+			memcpy(oldMatrix, mesh.mMatrix, sizeof(oldMatrix));
 			FBXMatrixToFO2Matrix( GetFullMatrixFromCompactMeshObject(fbx), mesh.mMatrix);
+			if (bUngroupMovedPropsFromFBX) {
+				if (std::abs(oldMatrix[12] - mesh.mMatrix[12]) > 1 || std::abs(oldMatrix[13] - mesh.mMatrix[13]) > 1 || std::abs(oldMatrix[14] - mesh.mMatrix[14]) > 1) {
+					mesh.nGroup = -1;
+				}
+			}
 		}
 	}
 
@@ -269,7 +276,7 @@ void WriteW32(uint32_t exportMapVersion) {
 	uint32_t surfaceCount = aSurfaces.size();
 	file.write((char*)&surfaceCount, 4);
 	for (auto& surface : aSurfaces) {
-		if (bImportSurfaceDeletionFromFBX && !FindFBXNodeForSurface(&surface - &aSurfaces[0]) && !surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL]) {
+		if (bImportDeletionFromFBX && !FindFBXNodeForSurface(&surface - &aSurfaces[0]) && !surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL]) {
 			surface.nPolyCount = 0;
 			surface.nVertexCount = 0;
 			surface.nNumIndicesUsed = 0;
@@ -355,9 +362,16 @@ void WriteW32(uint32_t exportMapVersion) {
 		}
 
 		uint32_t compactMeshCount = aCompactMeshes.size();
+		if (bImportDeletionFromFBX) {
+			for (auto& mesh : aCompactMeshes) {
+				if (!FindFBXNodeForCompactMesh(mesh.sName1)) compactMeshCount--;
+			}
+		}
+
 		file.write((char*)&nCompactMeshGroupCount, 4);
 		file.write((char*)&compactMeshCount, 4);
 		for (auto& mesh : aCompactMeshes) {
+			if (bImportDeletionFromFBX && !FindFBXNodeForCompactMesh(mesh.sName1)) continue;
 			WriteCompactMeshToFile(file, mesh);
 		}
 	}

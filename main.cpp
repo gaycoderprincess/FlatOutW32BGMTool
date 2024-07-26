@@ -57,9 +57,14 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 			bImportPropsFromFBX = true;
 			bLoadFBX = true;
 			bDumpIntoW32 = true;
+			if (!strcmp(arg, "-ungroup_moved_props")) {
+				bUngroupMovedPropsFromFBX = true;
+				bLoadFBX = true;
+				bDumpIntoW32 = true;
+			}
 		}
-		if (!strcmp(arg, "-import_deleted_surfaces_from_fbx")) {
-			bImportSurfaceDeletionFromFBX = true;
+		if (!strcmp(arg, "-import_deletions_from_fbx")) {
+			bImportDeletionFromFBX = true;
 			bLoadFBX = true;
 			bDumpIntoW32 = true;
 		}
@@ -71,7 +76,7 @@ bool ParseFBX(const std::string& fileName) {
 
 	static Assimp::Importer importer;
 	pParsedFBXScene = importer.ReadFile(fileName.c_str(), aiProcessPreset_TargetRealtime_Quality);
-	return pParsedFBXScene != nullptr;
+	return pParsedFBXScene != nullptr && GetFBXNodeForStaticBatchArray() && GetFBXNodeForTreeMeshArray() && GetFBXNodeForCompactMeshArray();
 }
 
 int main(int argc, char *argv[]) {

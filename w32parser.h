@@ -514,7 +514,7 @@ bool ParseW32BoundingBoxMeshAssoc(std::ifstream& file) {
 	return true;
 }
 
-bool ParseW32(const std::string fileName) {
+bool ParseW32(const std::string& fileName) {
 	if (!sFileName.ends_with(".w32")) {
 		return false;
 	}
