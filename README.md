@@ -1,6 +1,6 @@
 # FlatOut W32 Tool
 
-A tool to handle .w32 files in FlatOut games, highly WIP
+A tool to handle .w32 files in FlatOut games, WIP
 
 This tool is currently capable of:
 - Parsing and recreating the format from memory
