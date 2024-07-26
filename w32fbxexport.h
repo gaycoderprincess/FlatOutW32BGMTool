@@ -98,6 +98,9 @@ aiScene GenerateScene() {
 		if ((vBuf->flags & VERTEX_NORMAL) != 0) {
 			dest->mNormals = new aiVector3D[src.nVertexCount];
 		}
+		if ((vBuf->flags & VERTEX_COLOR) != 0 && nImportMapVersion < 0x20002 && !aVertexColors.empty()) {
+			dest->mColors[0] = new aiColor4D[src.nVertexCount];
+		}
 
 		if (nImportMapVersion >= 0x20002) {
 			for (int j = 0; j < src.nVertexCount; j++) {
@@ -153,7 +156,32 @@ aiScene GenerateScene() {
 					dest->mNormals[j].z = -vertices[2];
 					vertices += 3; // 3 floats
 				}
-				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32
+				if ((vBuf->flags & VERTEX_COLOR) != 0) {
+					if (!aVertexColors.empty()) {
+						auto vertexColorOffset = *(uint32_t*)&vertices[0];
+						if (vertexColorOffset >= 0xFF000000) {
+							auto rgb = (uint8_t*)&vertexColorOffset;
+							dest->mColors[0][j].r = rgb[0] / 255.0;
+							dest->mColors[0][j].g = rgb[1] / 255.0;
+							dest->mColors[0][j].b = rgb[2] / 255.0;
+							dest->mColors[0][j].a = 1;
+						}
+						else {
+							int id = vertexColorOffset & 0xFFFFFF;
+							if (id >= aVertexColors.size()) {
+								WriteConsole("ERROR: Vertex colors for surface " + std::to_string(&src - &aSurfaces[0]) + " out of bounds!");
+								WriteConsole(std::to_string(id) + "/" + std::to_string(aVertexColors.size()));
+								exit(0);
+							}
+							auto rgb = (uint8_t*)&aVertexColors[id];
+							dest->mColors[0][j].r = rgb[0] / 255.0;
+							dest->mColors[0][j].g = rgb[1] / 255.0;
+							dest->mColors[0][j].b = rgb[2] / 255.0;
+							dest->mColors[0][j].a = 1;
+						}
+					}
+					vertices += 1; // 1 int32
+				}
 				if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
 					dest->mTextureCoords[0][j].x = vertices[0];
 					dest->mTextureCoords[0][j].y = 1 - vertices[1];

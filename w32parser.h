@@ -512,6 +512,23 @@ bool ParseW32BoundingBoxMeshAssoc(std::ifstream& file) {
 	return true;
 }
 
+bool ParseVertexColors(const std::string& fileName) {
+	std::ifstream file(fileName, std::ios::in | std::ios::binary);
+	if (!file.is_open()) return false;
+
+	file.seekg(0, std::ios::end);
+	size_t fileSize = file.tellg();
+	file.seekg(0, std::ios::beg);
+
+	aVertexColors.reserve(fileSize / 4);
+	for (int i = 0; i < fileSize / 4; i++) {
+		uint32_t color;
+		file.read((char*)&color, sizeof(color));
+		aVertexColors.push_back(color);
+	}
+	return true;
+}
+
 bool ParseW32(const std::string& fileName) {
 	if (!sFileName.ends_with(".w32")) {
 		return false;
@@ -522,6 +539,12 @@ bool ParseW32(const std::string& fileName) {
 
 	ReadFromFile(fin, &nImportMapVersion, 4);
 	if (nImportMapVersion > 0x20000) ReadFromFile(fin, &nSomeMapValue, 4);
+	if (nImportMapVersion < 0x20002) {
+		auto vertexColorsPath = "vertexcolors_w2.w32";
+		if (!ParseVertexColors(vertexColorsPath)) {
+			WriteConsole("Failed to load " + (std::string)vertexColorsPath + ", vertex colors will not be exported");
+		}
+	}
 
 	if (!ParseW32Materials(fin)) return false;
 	if (!ParseW32Streams(fin)) return false;

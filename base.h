@@ -361,6 +361,7 @@ std::vector<tObject> aObjects;
 std::vector<tCompactMesh> aCompactMeshes;
 std::vector<tBoundingBox> aBoundingBoxes;
 std::vector<tBoundingBoxMeshAssoc> aBoundingBoxMeshAssoc;
+std::vector<uint32_t> aVertexColors;
 uint32_t nCompactMeshGroupCount;
 
 tVertexBuffer* FindVertexBuffer(int id) {

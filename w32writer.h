@@ -256,7 +256,16 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 			vertices += 3; // 3 floats
 		}
 		if ((flags & VERTEX_COLOR) != 0) {
-			*(uint32_t*)&vertices[0] = 0xFFFFFFFF; // todo
+			if (mesh->HasVertexColors(0)) {
+				uint8_t tmp[4] = {0, 0, 0, 0xFF};
+				tmp[0] = mesh->mColors[0][i].r * 255.0;
+				tmp[1] = mesh->mColors[0][i].g * 255.0;
+				tmp[2] = mesh->mColors[0][i].b * 255.0;
+				*(uint32_t*)&vertices[0] = *(uint32_t*)tmp;
+			}
+			else {
+				*(uint32_t*)&vertices[0] = 0xFFFFFFFF; // todo
+			}
 			vertices += 1; // 1 int32
 		}
 		if ((flags & VERTEX_UV) != 0 || (flags & VERTEX_UV2) != 0) {
@@ -314,14 +323,15 @@ void WriteW32(uint32_t exportMapVersion) {
 				if (ShouldSurfaceMeshBeImported(node)) {
 					WriteConsole("Exporting surface " + (std::string)node->mName.C_Str());
 
+					auto buf = FindVertexBuffer(surface.nStreamId[0]);
 					auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[0]];
 					uint32_t bufFlags = VERTEX_POSITION;
 					uint32_t vertexSize = 3 * sizeof(float);
-					if (mesh->HasNormals()) {
+					if ((buf->flags & VERTEX_NORMAL) != 0) {
 						bufFlags += VERTEX_NORMAL;
 						vertexSize += 3 * sizeof(float);
 					}
-					if (mesh->HasVertexColors(0)) { // todo
+					if ((buf->flags & VERTEX_COLOR) != 0) {
 						bufFlags += VERTEX_COLOR;
 						vertexSize += 1 * sizeof(uint32_t);
 					}
