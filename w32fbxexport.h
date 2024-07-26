@@ -1,21 +1,19 @@
 aiNode* CreateNodeForTreeMesh(aiScene* scene, const tTreeMesh& treeMesh) {
-	int numTreeMeshes = 0;
-	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId2)) numTreeMeshes++;
-	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId3)) numTreeMeshes++;
-	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId4)) numTreeMeshes++;
-	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId5)) numTreeMeshes++;
-	if (numTreeMeshes <= 0) return nullptr;
+	std::vector<int> surfaceIds;
+	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId2, true)) surfaceIds.push_back(treeMesh.nSurfaceId2);
+	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId3, true)) surfaceIds.push_back(treeMesh.nSurfaceId3);
+	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId4, true)) surfaceIds.push_back(treeMesh.nSurfaceId4);
+	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId5, true)) surfaceIds.push_back(treeMesh.nSurfaceId5);
+	if (surfaceIds.empty()) return nullptr;
 
 	auto node = new aiNode();
 	node->mName = "TreeMesh" + std::to_string(&treeMesh - &aTreeMeshes[0]);
-	node->mMeshes = new uint32_t[numTreeMeshes];
-	node->mNumMeshes = numTreeMeshes;
-
+	node->mMeshes = new uint32_t[surfaceIds.size()];
+	node->mNumMeshes = surfaceIds.size();
 	int i = 0;
-	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId2)) node->mMeshes[i++] = aSurfaces[treeMesh.nSurfaceId2]._nFBXModelId;
-	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId3)) node->mMeshes[i++] = aSurfaces[treeMesh.nSurfaceId3]._nFBXModelId;
-	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId4)) node->mMeshes[i++] = aSurfaces[treeMesh.nSurfaceId4]._nFBXModelId;
-	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId5)) node->mMeshes[i++] = aSurfaces[treeMesh.nSurfaceId5]._nFBXModelId;
+	for (auto& surfaceId : surfaceIds) {
+		node->mMeshes[i++] = aSurfaces[surfaceId]._nFBXModelId;
+	}
 	return node;
 }
 
@@ -222,19 +220,18 @@ aiScene GenerateScene() {
 	}
 
 	if (auto node = new aiNode()) {
-		int numStaticMeshes = 0;
+		std::vector<int> surfaceIds;
 		for (auto& batch : aStaticBatches) {
-			if (IsSurfaceValidAndExportable(batch.nSurfaceId)) numStaticMeshes++;
+			if (IsSurfaceValidAndExportable(batch.nSurfaceId, true)) surfaceIds.push_back(batch.nSurfaceId);
 		}
 
 		node->mName = "StaticBatch";
 		scene.mRootNode->addChildren(1, &node);
-		node->mMeshes = new uint32_t[numStaticMeshes];
-		node->mNumMeshes = numStaticMeshes;
+		node->mMeshes = new uint32_t[surfaceIds.size()];
+		node->mNumMeshes = surfaceIds.size();
 		int i = 0;
-		for (auto &batch: aStaticBatches) {
-			if (!IsSurfaceValidAndExportable(batch.nSurfaceId)) continue;
-			node->mMeshes[i++] = aSurfaces[batch.nSurfaceId]._nFBXModelId;
+		for (auto& surfaceId : surfaceIds) {
+			node->mMeshes[i++] = aSurfaces[surfaceId]._nFBXModelId;
 		}
 	}
 
@@ -265,6 +262,12 @@ aiScene GenerateScene() {
 		for (auto& compactMesh : aCompactMeshes) {
 			auto meshNode = new aiNode();
 			meshNode->mName = compactMesh.sName1;
+
+			// assimp doesn't support fbx metadata export, sad!
+			//meshNode->mMetaData = new aiMetadata();
+			//meshNode->mMetaData->Add("nFlags", compactMesh.nFlags);
+			//meshNode->mMetaData->Add("nGroup", compactMesh.nGroup);
+
 			FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
 			node->addChildren(1, &meshNode);
 

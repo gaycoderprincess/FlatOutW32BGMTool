@@ -260,9 +260,16 @@ bool CanSurfaceBeExported(tSurface* surface) {
 	return true;
 }
 
-int IsSurfaceValidAndExportable(int id) {
+int IsSurfaceValidAndExportable(int id, bool checkNotModel = false) {
 	if (id < 0 || id >= aSurfaces.size()) return false;
 	if (!CanSurfaceBeExported(&aSurfaces[id])) return false;
+	if (checkNotModel) {
+		for (auto& model : aModels) {
+			for (auto& surface : model.aSurfaces) {
+				if (surface == id) return false;
+			}
+		}
+	}
 	return true;
 }
 
