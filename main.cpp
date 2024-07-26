@@ -31,6 +31,7 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		auto arg = argv[i];
 		if (!strcmp(arg, "-export_fbx")) bDumpIntoFBX = true;
 		if (!strcmp(arg, "-export_w32")) bDumpIntoW32 = true;
+		if (!strcmp(arg, "-export_bgm")) bDumpIntoBGM = true;
 		if (!strcmp(arg, "-export_text")) bDumpIntoTextFile = true;
 		if (!strcmp(arg, "-text_streams")) {
 			bDumpStreams = true;
@@ -124,7 +125,7 @@ int main(int argc, char *argv[]) {
 			else {
 				if (bDumpIntoTextFile) WriteBGMToText();
 				if (bDumpIntoFBX) WriteToFBX();
-				//if (bDumpIntoW32) WriteBGM(bConvertToFO1 ? 0x10005 : nImportFileVersion);
+				if (bDumpIntoBGM) WriteBGM(bConvertToFO1 ? 0x10004 : nImportFileVersion);
 			}
 		}
 		else {

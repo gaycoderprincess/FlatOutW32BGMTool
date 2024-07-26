@@ -42,8 +42,9 @@ void WriteFile(const std::string& str) {
 
 std::string GetFileVersion(int value) {
 	if (value == 0x10003) return "BugBear Retro Demo (Unsupported)";
-	if (value == 0x10005) return "FlatOut 1";
-	if (value == 0x20000) return "FlatOut 2 Car";
+	if (value == 0x10004) return "FlatOut 1 Car";
+	if (value == 0x10005) return "FlatOut 1 Track";
+	if (value == 0x20000) return "FlatOut 2 / Ultimate Carnage Car";
 	if (value == 0x20001) return "FlatOut 2 Track";
 	if (value == 0x20002) return "FlatOut Ultimate Carnage Track";
 	if (value >= 0x20000) return "Unknown FlatOut 2";

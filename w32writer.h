@@ -232,6 +232,20 @@ void WriteCompactMeshToFile(std::ofstream& file, tCompactMesh& mesh) {
 	}
 }
 
+void WriteCarMeshToFile(std::ofstream& file, tCarMesh& mesh) {
+	file.write((char*)&mesh.identifier, 4);
+	file.write(mesh.sName1.c_str(), mesh.sName1.length() + 1);
+	file.write(mesh.sName2.c_str(), mesh.sName2.length() + 1);
+	file.write((char*)&mesh.nFlags, 4);
+	file.write((char*)&mesh.nGroup, 4);
+	file.write((char*)mesh.mMatrix, sizeof(mesh.mMatrix));
+	int numModels = mesh.aModels.size();
+	file.write((char*)&numModels, 4);
+	for (auto model : mesh.aModels) {
+		file.write((char*)&model, 4);
+	}
+}
+
 void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 	int id = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
 
@@ -523,4 +537,69 @@ void WriteW32(uint32_t exportMapVersion) {
 	file.flush();
 
 	WriteConsole("W32 export finished");
+}
+
+void WriteBGM(uint32_t exportMapVersion) {
+	WriteConsole("Writing output bgm file...");
+
+	nExportFileVersion = exportMapVersion;
+
+	std::ofstream file(sFileNameNoExt + "_out.bgm", std::ios::out | std::ios::binary );
+	if (!file.is_open()) return;
+
+	file.write((char*)&nExportFileVersion, 4);
+
+	uint32_t materialCount = aMaterials.size();
+	file.write((char*)&materialCount, 4);
+	for (auto& material : aMaterials) {
+		WriteMaterialToFile(file, material);
+	}
+
+	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
+	file.write((char*)&streamCount, 4);
+	for (int i = 0; i < streamCount; i++) {
+		for (auto& buf : aVertexBuffers) {
+			if (buf.id == i) {
+				WriteVertexBufferToFile(file, buf);
+			}
+		}
+		for (auto& buf : aVegVertexBuffers) {
+			if (buf.id == i) {
+				WriteVegVertexBufferToFile(file, buf);
+			}
+		}
+		for (auto& buf : aIndexBuffers) {
+			if (buf.id == i) {
+				WriteIndexBufferToFile(file, buf);
+			}
+		}
+	}
+
+	uint32_t surfaceCount = aSurfaces.size();
+	file.write((char*)&surfaceCount, 4);
+	for (auto& surface : aSurfaces) {
+		WriteSurfaceToFile(file, surface);
+	}
+
+	uint32_t modelCount = aModels.size();
+	file.write((char*)&modelCount, 4);
+	for (auto& model : aModels) {
+		WriteModelToFile(file, model);
+	}
+
+	uint32_t carMeshCount = aCarMeshes.size();
+	file.write((char*)&carMeshCount, 4);
+	for (auto& mesh : aCarMeshes) {
+		WriteCarMeshToFile(file, mesh);
+	}
+
+	uint32_t objectCount = aObjects.size();
+	file.write((char*)&objectCount, 4);
+	for (auto& object : aObjects) {
+		WriteObjectToFile(file, object);
+	}
+
+	file.flush();
+
+	WriteConsole("BGM export finished");
 }
