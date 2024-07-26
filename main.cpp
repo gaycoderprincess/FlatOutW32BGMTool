@@ -58,6 +58,11 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 			bLoadFBX = true;
 			bDumpIntoW32 = true;
 		}
+		if (!strcmp(arg, "-import_deleted_surfaces_from_fbx")) {
+			bImportSurfaceDeletionFromFBX = true;
+			bLoadFBX = true;
+			bDumpIntoW32 = true;
+		}
 	}
 }
 

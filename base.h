@@ -267,16 +267,20 @@ int IsSurfaceValidAndExportable(int id) {
 }
 
 const aiScene* pParsedFBXScene = nullptr;
-aiNode* GetFBXNodeForCompactMeshArray() {
+aiNode* FindFBXNodeFromRoot(const char* name) {
 	auto root = pParsedFBXScene->mRootNode;
 	if (!root) return nullptr;
 
 	for (int i = 0; i < root->mNumChildren; i++) {
 		auto node = root->mChildren[i];
-		if (!strcmp(node->mName.C_Str(), "CompactMesh")) return node;
+		if (!strcmp(node->mName.C_Str(), name)) return node;
 	}
 	return nullptr;
 }
+
+aiNode* GetFBXNodeForCompactMeshArray() { return FindFBXNodeFromRoot("CompactMesh");}
+aiNode* GetFBXNodeForStaticBatchArray() { return FindFBXNodeFromRoot("StaticBatch"); }
+aiNode* GetFBXNodeForTreeMeshArray() { return FindFBXNodeFromRoot("TreeMesh"); }
 
 aiNode* FindFBXNodeForCompactMesh(const std::string& name) {
 	auto root = GetFBXNodeForCompactMeshArray();
@@ -286,6 +290,38 @@ aiNode* FindFBXNodeForCompactMesh(const std::string& name) {
 		auto node = root->mChildren[i];
 		if (!strcmp(node->mName.C_Str(), name.c_str())) return node;
 	}
+	return nullptr;
+}
+
+aiNode* FindFBXNodeForStaticBatchSurface(const std::string& name) {
+	auto root = GetFBXNodeForStaticBatchArray();
+	if (!root) return nullptr;
+
+	for (int i = 0; i < root->mNumChildren; i++) {
+		auto node = root->mChildren[i];
+		if (!strcmp(node->mName.C_Str(), name.c_str())) return node;
+	}
+	return nullptr;
+}
+
+aiNode* FindFBXNodeForTreeMeshSurface(const std::string& name) {
+	auto root = GetFBXNodeForTreeMeshArray();
+	if (!root) return nullptr;
+
+	for (int i = 0; i < root->mNumChildren; i++) {
+		auto node = root->mChildren[i];
+		for (int j = 0; j < node->mNumChildren; j++) {
+			auto node2 = node->mChildren[j];
+			if (!strcmp(node2->mName.C_Str(), name.c_str())) return node2;
+		}
+	}
+	return nullptr;
+}
+
+aiNode* FindFBXNodeForSurface(int id) {
+	std::string name = "Surface" + std::to_string(id);
+	if (auto node = FindFBXNodeForStaticBatchSurface(name)) return node;
+	if (auto node = FindFBXNodeForTreeMeshSurface(name)) return node;
 	return nullptr;
 }
 

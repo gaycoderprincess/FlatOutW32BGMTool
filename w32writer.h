@@ -269,6 +269,12 @@ void WriteW32(uint32_t exportMapVersion) {
 	uint32_t surfaceCount = aSurfaces.size();
 	file.write((char*)&surfaceCount, 4);
 	for (auto& surface : aSurfaces) {
+		if (bImportSurfaceDeletionFromFBX && !FindFBXNodeForSurface(&surface - &aSurfaces[0]) && !surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL]) {
+			surface.nPolyCount = 0;
+			surface.nVertexCount = 0;
+			surface.nNumIndicesUsed = 0;
+		}
+
 		WriteSurfaceToFile(file, surface);
 	}
 
