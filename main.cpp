@@ -61,6 +61,10 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 			bConvertToFO1 = true;
 			bDumpIntoW32 = true;
 		}
+		if (!strcmp(arg, "-convert_to_fo2")) {
+			bConvertToFO2 = true;
+			bDumpIntoW32 = true;
+		}
 		if (!strcmp(arg, "-empty_bvh_gen")) {
 			bEmptyOutTrackBVH = true;
 		}
@@ -125,7 +129,12 @@ int main(int argc, char *argv[]) {
 			else {
 				if (bDumpIntoTextFile) WriteBGMToText();
 				if (bDumpIntoFBX) WriteToFBX();
-				if (bDumpIntoBGM) WriteBGM(bConvertToFO1 ? 0x10004 : nImportFileVersion);
+				if (bDumpIntoBGM) {
+					uint32_t version = nImportFileVersion;
+					if (bConvertToFO1) version = 0x10004;
+					if (bConvertToFO2) version = 0x20000;
+					WriteBGM(version);
+				}
 			}
 		}
 		else {

@@ -23,6 +23,7 @@ void WriteMaterialToFile(std::ofstream& file, const tMaterial& material) {
 // for exporting to FO1, i adjust the vertex buffers to not have normals if they also have vertex colors
 // this could prolly be fixed with a plugin too to actually get rid of the issue
 bool IsBufferReductionRequiredForFO1(uint32_t flags) {
+	if (bIsBGMModel) return false;
 	if ((flags & 0x10) == 0) return false;
 	if ((flags & 0x40) == 0) return false;
 	return true;
@@ -551,7 +552,7 @@ void ConvertFOUCSurfaceToFO2(tSurface& surface) {
 
 	uint32_t baseVertexOffset = surface.nStreamOffset[0] / vBuf->vertexSize;
 
-	size_t numVertexValues = 6;
+	size_t numVertexValues = 9;
 
 	auto newBuffer = new float[surface.nVertexCount * numVertexValues];
 	auto newVertexData = (uintptr_t)newBuffer;
@@ -576,19 +577,19 @@ void ConvertFOUCSurfaceToFO2(tSurface& surface) {
 		dest[2] *= surface.foucVertexMultiplier[3];
 		src += 3;
 
-		//dest[3] = 0;
-		//dest[4] = 1;
-		//dest[5] = 0;
+		dest[3] = src[1] / 32768.0;
+		dest[4] = src[2] / 32768.0;
+		dest[5] = src[3] / 32768.0;
 
-		*(uint32_t*)&dest[3] = 0xFFFFFFFF; // vertex color
+		*(uint32_t*)&dest[6] = 0xFFFFFFFF; // vertex color
 
 		//if ((vBuf->flags & VERTEX_NORMAL) != 0) {
 		//	vertices += 3; // 3 floats
 		//}
 		if ((vBuf->flags & VERTEX_COLOR) != 0) src += 9;
 		if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
-			dest[4] = uvs[0] / 2048.0;
-			dest[5] = uvs[1] / 2048.0;
+			dest[7] = uvs[0] / 2048.0;
+			dest[8] = uvs[1] / 2048.0;
 		}
 		//if ((vBuf->flags & VERTEX_UV2) != 0) {
 		//}
@@ -601,7 +602,7 @@ void ConvertFOUCSurfaceToFO2(tSurface& surface) {
 
 	tVertexBuffer newVertexBuffer;
 	surface.nStreamId[0] = newVertexBuffer.id = (aConversionVertexBuffers.size() + aConversionIndexBuffers.size());
-	surface.nFlags = newVertexBuffer.flags = VERTEX_POSITION | VERTEX_COLOR | VERTEX_UV;
+	surface.nFlags = newVertexBuffer.flags = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_COLOR | VERTEX_UV;
 	newVertexBuffer.vertexSize = numVertexValues * 4;
 	newVertexBuffer.vertexCount = surface.nVertexCount;
 	newVertexBuffer.data = newBuffer;
@@ -684,13 +685,13 @@ void WriteBGM(uint32_t exportMapVersion) {
 	file.write((char*)&materialCount, 4);
 	for (auto& material : aMaterials) {
 		// replace car interior shader with car diffuse
-		if (bIsFOUCModel && bConvertToFO1 && material.nShaderId == 43) {
+		if (bIsFOUCModel && (bConvertToFO1 || bConvertToFO2) && material.nShaderId == 43) {
 			material.nShaderId = 7;
 		}
 		WriteMaterialToFile(file, material);
 	}
 
-	if (bIsFOUCModel && bConvertToFO1) {
+	if (bIsFOUCModel && (bConvertToFO1 || bConvertToFO2)) {
 		/*for (auto& buf : aVertexBuffers) {
 			ConvertFOUCVertexBufferToFO2(buf);
 		}
@@ -717,7 +718,7 @@ void WriteBGM(uint32_t exportMapVersion) {
 		aVegVertexBuffers.clear();
 	}
 
-	if (bConvertToFO1) bIsFOUCModel = false;
+	if (bConvertToFO1 || bConvertToFO2) bIsFOUCModel = false;
 
 	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
 	file.write((char*)&streamCount, 4);
