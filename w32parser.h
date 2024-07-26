@@ -42,11 +42,12 @@ bool ParseW32Streams(std::ifstream& file) {
 		if (dataType == 1) {
 			tVertexBuffer buf;
 			ReadFromFile(file, &buf.foucExtraFormat, 4);
+			if (buf.foucExtraFormat > 0) bIsFOUCModel = true;
 			ReadFromFile(file, &buf.vertexCount, 4);
 			ReadFromFile(file, &buf.vertexSize, 4);
 			ReadFromFile(file, &buf.flags, 4);
 
-			if (nImportMapVersion >= 0x20002) { // no clue what or why or when or how, this is a bugbear specialty
+			if (bIsFOUCModel) { // no clue what or why or when or how, this is a bugbear specialty
 				int formatType = buf.foucExtraFormat - 22;
 				switch (formatType) {
 					case 0:
@@ -156,7 +157,7 @@ bool ParseW32Streams(std::ifstream& file) {
 					} break;
 				}
 			}
-			else if (nImportMapVersion < 0x20002) {
+			else {
 				auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
 				auto vertexData = new float[dataSize];
 				ReadFromFile(file, vertexData, dataSize * sizeof(float));
@@ -168,14 +169,14 @@ bool ParseW32Streams(std::ifstream& file) {
 		}
 		else if (dataType == 2) {
 			tIndexBuffer buf;
-
 			ReadFromFile(file, &buf.foucExtraFormat, 4);
+			if (buf.foucExtraFormat > 0) bIsFOUCModel = true;
 			ReadFromFile(file, &buf.indexCount, 4);
 
 			std::vector<uint16_t> aValues;
 
 			int remainingIndexCount = buf.indexCount;
-			if (nImportMapVersion >= 0x20002) {
+			if (bIsFOUCModel) {
 				if (auto extraValue = buf.indexCount >> 6) {
 					aValues.reserve(extraValue * 32 * 2); // size 128 each
 					// not sure why this is done at all here, these are all still int16 to my knowledge
@@ -205,7 +206,6 @@ bool ParseW32Streams(std::ifstream& file) {
 		}
 		else if (dataType == 3) {
 			tVegVertexBuffer buf;
-
 			ReadFromFile(file, &buf.foucExtraFormat, 4);
 			ReadFromFile(file, &buf.vertexCount, 4);
 			ReadFromFile(file, &buf.vertexSize, 4);
@@ -247,7 +247,7 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 			ReadFromFile(file, surface.vRelativeCenter, 12);
 		}
 
-		if (mapVersion >= 0x20002) {
+		if (bIsFOUCModel) {
 			ReadFromFile(file, surface.foucVertexMultiplier, sizeof(surface.foucVertexMultiplier));
 		}
 
@@ -263,7 +263,7 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 		auto vBuf = FindVertexBuffer(id);
 		auto vegvBuf = FindVegVertexBuffer(id);
 		if (!vBuf && !vegvBuf) return false;
-		if (nImportMapVersion >= 0x20002 && vBuf) {
+		if (bIsFOUCModel && vBuf) {
 			auto ptr = (uintptr_t)vBuf->data;
 			ptr += surface.nStreamOffset[0];
 			for (int j = 0; j < surface.nVertexCount; j++) {
@@ -296,7 +296,7 @@ bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 		ReadFromFile(file, &staticBatch.nSurfaceId, 4);
 
 		bool bIsSurfaceValid = staticBatch.nSurfaceId < aSurfaces.size();
-		if (nImportMapVersion < 0x20002 && !bIsSurfaceValid) return false;
+		if (nImportFileVersion < 0x20002 && !bIsSurfaceValid) return false;
 
 		if (bIsSurfaceValid) {
 			aSurfaces[staticBatch.nSurfaceId].RegisterReference(SURFACE_REFERENCE_STATICBATCH);
@@ -341,7 +341,7 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 		ReadFromFile(file, &treeMesh.nSurfaceId2, 4);
 		ReadFromFile(file, treeMesh.fUnk, sizeof(treeMesh.fUnk));
 
-		if (nImportMapVersion >= 0x20002) {
+		if (bIsFOUCModel) {
 			if (treeMesh.nSurfaceId2 >= 0 && treeMesh.nSurfaceId2 < aSurfaces.size()) aSurfaces[treeMesh.nSurfaceId2].RegisterReference(SURFACE_REFERENCE_TREEMESH_2);
 
 			ReadFromFile(file, treeMesh.foucExtraData1, sizeof(treeMesh.foucExtraData1));
@@ -529,6 +529,35 @@ bool ParseVertexColors(const std::string& fileName) {
 	return true;
 }
 
+bool ParseBGMCarMeshes(std::ifstream& file) {
+	WriteConsole("Parsing car meshes...");
+
+	uint32_t meshCount;
+	ReadFromFile(file, &meshCount, 4);
+	aCarMeshes.reserve(meshCount);
+	for (int i = 0; i < meshCount; i++) {
+		tCarMesh mesh;
+		ReadFromFile(file, &mesh.identifier, 4);
+		if (mesh.identifier != 0x4853454D) return false; // "MESH"
+
+		mesh.sName1 = ReadStringFromFile(file);
+		mesh.sName2 = ReadStringFromFile(file);
+		ReadFromFile(file, &mesh.nFlags, 4);
+		ReadFromFile(file, &mesh.nGroup, 4);
+		ReadFromFile(file, mesh.mMatrix, sizeof(mesh.mMatrix));
+		int numModels;
+		ReadFromFile(file, &numModels, 4);
+		for (int j = 0; j < numModels; j++) {
+			int id;
+			ReadFromFile(file, &id, 4);
+			mesh.aModels.push_back(id);
+		}
+		aCarMeshes.push_back(mesh);
+	}
+
+	return true;
+}
+
 bool ParseW32(const std::string& fileName) {
 	if (!sFileName.ends_with(".w32")) {
 		return false;
@@ -537,9 +566,10 @@ bool ParseW32(const std::string& fileName) {
 	std::ifstream fin(fileName, std::ios::in | std::ios::binary );
 	if (!fin.is_open()) return false;
 
-	ReadFromFile(fin, &nImportMapVersion, 4);
-	if (nImportMapVersion > 0x20000) ReadFromFile(fin, &nSomeMapValue, 4);
-	if (nImportMapVersion < 0x20002) {
+	ReadFromFile(fin, &nImportFileVersion, 4);
+	if (nImportFileVersion > 0x20000) ReadFromFile(fin, &nSomeMapValue, 4);
+	if (nImportFileVersion >= 0x20002) bIsFOUCModel = true;
+	if (nImportFileVersion < 0x20002) {
 		auto vertexColorsPath = "vertexcolors_w2.w32";
 		if (!ParseVertexColors(vertexColorsPath)) {
 			WriteConsole("Failed to load " + (std::string)vertexColorsPath + ", vertex colors will not be exported");
@@ -548,12 +578,12 @@ bool ParseW32(const std::string& fileName) {
 
 	if (!ParseW32Materials(fin)) return false;
 	if (!ParseW32Streams(fin)) return false;
-	if (!ParseW32Surfaces(fin, nImportMapVersion)) return false;
-	if (!ParseW32StaticBatches(fin, nImportMapVersion)) return false;
+	if (!ParseW32Surfaces(fin, nImportFileVersion)) return false;
+	if (!ParseW32StaticBatches(fin, nImportFileVersion)) return false;
 
 	WriteConsole("Parsing tree-related data...");
 
-	if (nImportMapVersion < 0x20002) {
+	if (nImportFileVersion < 0x20002) {
 		uint32_t someCount;
 		ReadFromFile(fin, &someCount, 4);
 		for (int i = 0; i < someCount; i++) {
@@ -576,7 +606,7 @@ bool ParseW32(const std::string& fileName) {
 	if (!ParseW32TreeMeshes(fin)) return false;
 
 	WriteConsole("Parsing unknown data...");
-	if (nImportMapVersion >= 0x10004) {
+	if (nImportFileVersion >= 0x10004) {
 		for (int i = 0; i < 16; i++) {
 			float value;
 			ReadFromFile(fin, &value, sizeof(value));
@@ -587,12 +617,35 @@ bool ParseW32(const std::string& fileName) {
 	if (!ParseW32Models(fin)) return false;
 	if (!ParseW32Objects(fin)) return false;
 
-	if (nImportMapVersion >= 0x20000) {
+	if (nImportFileVersion >= 0x20000) {
 		if (!ParseW32BoundingBoxes(fin)) return false;
 		if (!ParseW32BoundingBoxMeshAssoc(fin)) return false;
 	}
 
-	if (!ParseW32CompactMeshes(fin, nImportMapVersion)) return false;
+	if (!ParseW32CompactMeshes(fin, nImportFileVersion)) return false;
+
+	WriteConsole("Parsing finished");
+	return true;
+}
+
+bool ParseBGM(const std::string& fileName) {
+	if (!sFileName.ends_with(".bgm")) {
+		return false;
+	}
+
+	std::ifstream fin(fileName, std::ios::in | std::ios::binary );
+	if (!fin.is_open()) return false;
+
+	ReadFromFile(fin, &nImportFileVersion, 4);
+	if (nImportFileVersion >= 0x20002) bIsFOUCModel = true;
+	bIsBGMModel = true;
+
+	if (!ParseW32Materials(fin)) return false;
+	if (!ParseW32Streams(fin)) return false;
+	if (!ParseW32Surfaces(fin, nImportFileVersion)) return false;
+	if (!ParseW32Models(fin)) return false;
+	if (!ParseBGMCarMeshes(fin)) return false;
+	if (!ParseW32Objects(fin)) return false;
 
 	WriteConsole("Parsing finished");
 	return true;

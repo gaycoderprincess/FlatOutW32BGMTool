@@ -30,7 +30,7 @@ bool IsBufferReductionRequiredForFO1(uint32_t flags) {
 
 void WriteVertexBufferToFile(std::ofstream& file, tVertexBuffer& buf) {
 	bool bRemoveNormals = false;
-	if (nExportMapVersion < 0x20000 && nExportMapVersion != nImportMapVersion && IsBufferReductionRequiredForFO1(buf.flags)) {
+	if (nExportFileVersion < 0x20000 && nExportFileVersion != nImportFileVersion && IsBufferReductionRequiredForFO1(buf.flags)) {
 		buf._vertexSizeBeforeFO1 = buf.vertexSize;
 		buf.flags -= 0x10;
 		buf.vertexSize -= 0xC;
@@ -94,7 +94,7 @@ void WriteVegVertexBufferToFile(std::ofstream& file, const tVegVertexBuffer& buf
 }
 
 void WriteSurfaceToFile(std::ofstream& file, tSurface& surface) {
-	if (nExportMapVersion < 0x20000 && nExportMapVersion != nImportMapVersion && IsBufferReductionRequiredForFO1(surface.nFlags)) {
+	if (nExportFileVersion < 0x20000 && nExportFileVersion != nImportFileVersion && IsBufferReductionRequiredForFO1(surface.nFlags)) {
 		surface.nFlags -= 0x10;
 		auto stream = FindVertexBuffer(surface.nStreamId[0]);
 		auto vertexSizeBefore = stream->_vertexSizeBeforeFO1;
@@ -110,11 +110,11 @@ void WriteSurfaceToFile(std::ofstream& file, tSurface& surface) {
 	file.write((char*)&surface.nPolyCount, 4);
 	file.write((char*)&surface.nPolyMode, 4);
 	file.write((char*)&surface.nNumIndicesUsed, 4);
-	if (nExportMapVersion < 0x20000) {
+	if (nExportFileVersion < 0x20000) {
 		file.write((char*)surface.vAbsoluteCenter, 12);
 		file.write((char*)surface.vRelativeCenter, 12);
 	}
-	if (nExportMapVersion >= 0x20002) {
+	if (bIsFOUCModel) {
 		file.write((char*)surface.foucVertexMultiplier, sizeof(surface.foucVertexMultiplier));
 	}
 	file.write((char*)&surface.nNumStreamsUsed, 4);
@@ -128,7 +128,7 @@ void WriteStaticBatchToFile(std::ofstream& file, const tStaticBatch& staticBatch
 	file.write((char*)&staticBatch.nCenterId1, 4);
 	file.write((char*)&staticBatch.nCenterId2, 4);
 	file.write((char*)&staticBatch.nSurfaceId, 4);
-	if (nExportMapVersion >= 0x20000) {
+	if (nExportFileVersion >= 0x20000) {
 		file.write((char*)staticBatch.vAbsoluteCenter, 12);
 		file.write((char*)staticBatch.vRelativeCenter, 12);
 	}
@@ -143,7 +143,7 @@ void WriteTreeMeshToFile(std::ofstream& file, const tTreeMesh& treeMesh) {
 	file.write((char*)&treeMesh.nSurfaceId1Unused, 4);
 	file.write((char*)&treeMesh.nSurfaceId2, 4);
 	file.write((char*)treeMesh.fUnk, sizeof(treeMesh.fUnk));
-	if (nExportMapVersion >= 0x20002) {
+	if (bIsFOUCModel) {
 		file.write((char*)treeMesh.foucExtraData1, sizeof(treeMesh.foucExtraData1));
 		file.write((char*)treeMesh.foucExtraData2, sizeof(treeMesh.foucExtraData2));
 		file.write((char*)treeMesh.foucExtraData3, sizeof(treeMesh.foucExtraData3));
@@ -219,7 +219,7 @@ void WriteCompactMeshToFile(std::ofstream& file, tCompactMesh& mesh) {
 	file.write((char*)&mesh.nFlags, 4);
 	file.write((char*)&mesh.nGroup, 4);
 	file.write((char*)mesh.mMatrix, sizeof(mesh.mMatrix));
-	if (nExportMapVersion >= 0x20000) {
+	if (nExportFileVersion >= 0x20000) {
 		file.write((char*)&mesh.nUnk1, 4);
 		file.write((char*)&mesh.nBBoxAssocId, 4);
 	}
@@ -304,8 +304,8 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("Writing output w32 file...");
 
-	nExportMapVersion = exportMapVersion;
-	if ((nExportMapVersion >= 0x20002 || nImportMapVersion >= 0x20002) && nImportMapVersion != nExportMapVersion) {
+	nExportFileVersion = exportMapVersion;
+	if ((nExportFileVersion >= 0x20002 || nImportFileVersion >= 0x20002 || bIsFOUCModel) && nImportFileVersion != nExportFileVersion) {
 		WriteConsole("ERROR: FOUC conversions are currently not supported!");
 		return;
 	}
@@ -313,11 +313,11 @@ void WriteW32(uint32_t exportMapVersion) {
 	std::ofstream file(sFileNameNoExt + "_out.w32", std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 
-	file.write((char*)&nExportMapVersion, 4);
-	if (nExportMapVersion >= 0x20000) file.write((char*)&nSomeMapValue, 4);
+	file.write((char*)&nExportFileVersion, 4);
+	if (nExportFileVersion >= 0x20000) file.write((char*)&nSomeMapValue, 4);
 
 	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
-	if (bLoadFBX && bImportSurfacesFromFBX && nExportMapVersion < 0x20002) { // surface exports only supported for FO1 and FO2 currently
+	if (bLoadFBX && bImportSurfacesFromFBX && !bIsFOUCModel) { // surface exports only supported for FO1 and FO2 currently
 		for (auto& surface : aSurfaces) {
 			if (auto node = FindFBXNodeForSurface(&surface - &aSurfaces[0])) {
 				if (ShouldSurfaceMeshBeImported(node)) {
@@ -435,7 +435,7 @@ void WriteW32(uint32_t exportMapVersion) {
 		WriteStaticBatchToFile(file, staticBatch);
 	}
 
-	if (nExportMapVersion < 0x20002) {
+	if (!bIsFOUCModel) {
 		uint32_t unk1Count = aUnknownArray1.size();
 		file.write((char*)&unk1Count, 4);
 		for (auto &data: aUnknownArray1) {
@@ -457,7 +457,7 @@ void WriteW32(uint32_t exportMapVersion) {
 		WriteTreeMeshToFile(file, mesh);
 	}
 
-	if (nExportMapVersion >= 0x10004) {
+	if (nExportFileVersion >= 0x10004) {
 		for (int i = 0; i < 16; i++) {
 			file.write((char*)&aUnknownArray3[i], 4);
 		}
@@ -483,7 +483,7 @@ void WriteW32(uint32_t exportMapVersion) {
 
 	if (bDisableProps) {
 		uint32_t tmpCount = 0;
-		if (nExportMapVersion >= 0x20000) {
+		if (nExportFileVersion >= 0x20000) {
 			file.write((char*)&tmpCount, 4); // bbox
 			file.write((char*)&tmpCount, 4); // bbox assoc
 		}
@@ -491,7 +491,7 @@ void WriteW32(uint32_t exportMapVersion) {
 		file.write((char*)&tmpCount, 4); // compactmesh
 	}
 	else {
-		if (nExportMapVersion >= 0x20000) {
+		if (nExportFileVersion >= 0x20000) {
 			uint32_t boundingBoxCount = aBoundingBoxes.size();
 			file.write((char*)&boundingBoxCount, 4);
 			for (auto& bbox : aBoundingBoxes) {

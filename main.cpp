@@ -22,7 +22,7 @@
 void ProcessCommandlineArguments(int argc, char* argv[]) {
 	sFileName = argv[1];
 	sFileNameNoExt = sFileName;
-	if (sFileNameNoExt.ends_with(".w32") || sFileNameNoExt.ends_with(".gen")) {
+	if (sFileName.ends_with(".w32") || sFileName.ends_with(".bgm") || sFileName.ends_with(".gen")) {
 		for (int i = 0; i < 4; i++) {
 			sFileNameNoExt.pop_back();
 		}
@@ -117,13 +117,25 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	else {
-		if (!ParseW32(sFileName)) {
-			WriteConsole("Failed to load " + sFileName + "!");
+		if (sFileName.ends_with(".bgm")) {
+			if (!ParseBGM(sFileName)) {
+				WriteConsole("Failed to load " + sFileName + "!");
+			}
+			else {
+				if (bDumpIntoTextFile) WriteBGMToText();
+				if (bDumpIntoFBX) WriteToFBX();
+				//if (bDumpIntoW32) WriteBGM(bConvertToFO1 ? 0x10005 : nImportFileVersion);
+			}
 		}
 		else {
-			if (bDumpIntoTextFile) WriteW32ToText();
-			if (bDumpIntoFBX) WriteW32ToFBX();
-			if (bDumpIntoW32) WriteW32(bConvertToFO1 ? 0x10005 : nImportMapVersion);
+			if (!ParseW32(sFileName)) {
+				WriteConsole("Failed to load " + sFileName + "!");
+			}
+			else {
+				if (bDumpIntoTextFile) WriteW32ToText();
+				if (bDumpIntoFBX) WriteToFBX();
+				if (bDumpIntoW32) WriteW32(bConvertToFO1 ? 0x10005 : nImportFileVersion);
+			}
 		}
 	}
 	return 0;

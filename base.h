@@ -23,6 +23,9 @@
 std::string sFileName;
 std::string sFileNameNoExt;
 
+bool bIsBGMModel = false;
+bool bIsFOUCModel = false;
+
 void WriteConsole(const std::string& str) {
 	auto& out = std::cout;
 	out << str;
@@ -37,17 +40,18 @@ void WriteFile(const std::string& str) {
 	out.flush();
 }
 
-std::string GetMapVersion(int value) {
+std::string GetFileVersion(int value) {
 	if (value == 0x10003) return "BugBear Retro Demo (Unsupported)";
 	if (value == 0x10005) return "FlatOut 1";
-	if (value == 0x20001) return "FlatOut 2";
-	if (value == 0x20002) return "FlatOut Ultimate Carnage";
+	if (value == 0x20000) return "FlatOut 2 Car";
+	if (value == 0x20001) return "FlatOut 2 Track";
+	if (value == 0x20002) return "FlatOut Ultimate Carnage Track";
 	if (value >= 0x20000) return "Unknown FlatOut 2";
 	return "Unknown FlatOut 1";
 }
 
-std::string GetShaderName(int value, int mapVersion) {
-	if (mapVersion == 0x20002) {
+std::string GetShaderName(int value) {
+	if (bIsFOUCModel) {
 		switch (value) {
 			case 0: return "static prelit";
 			case 1: return "terrain";
@@ -193,9 +197,6 @@ enum eSurfaceReference {
 	SURFACE_REFERENCE_TREEMESH_5,
 	NUM_SURFACE_REFERENCE_TYPES
 };
-
-// fouc format stuff:
-// 26 means vertex count is reduced to 24, vertex size gets multiplied by 4
 
 struct tVertexBuffer {
 	int id;
@@ -343,8 +344,17 @@ struct tBoundingBoxMeshAssoc {
 	std::string sName;
 	int nIds[2];
 };
-int nImportMapVersion;
-int nExportMapVersion;
+struct tCarMesh {
+	uint32_t identifier;
+	std::string sName1;
+	std::string sName2;
+	uint32_t nFlags;
+	int nGroup;
+	float mMatrix[4*4];
+	std::vector<int> aModels;
+};
+int nImportFileVersion;
+int nExportFileVersion;
 int nSomeMapValue = 1; // always 1 in FO2, doesn't exist in FO1
 std::vector<tVertexBuffer> aVertexBuffers;
 std::vector<tIndexBuffer> aIndexBuffers;
@@ -361,6 +371,7 @@ std::vector<tObject> aObjects;
 std::vector<tCompactMesh> aCompactMeshes;
 std::vector<tBoundingBox> aBoundingBoxes;
 std::vector<tBoundingBoxMeshAssoc> aBoundingBoxMeshAssoc;
+std::vector<tCarMesh> aCarMeshes;
 std::vector<uint32_t> aVertexColors;
 uint32_t nCompactMeshGroupCount;
 

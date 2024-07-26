@@ -98,11 +98,11 @@ aiScene GenerateScene() {
 		if ((vBuf->flags & VERTEX_NORMAL) != 0) {
 			dest->mNormals = new aiVector3D[src.nVertexCount];
 		}
-		if ((vBuf->flags & VERTEX_COLOR) != 0 && nImportMapVersion < 0x20002 && !aVertexColors.empty()) {
+		if ((vBuf->flags & VERTEX_COLOR) != 0 && !bIsFOUCModel && !aVertexColors.empty()) {
 			dest->mColors[0] = new aiColor4D[src.nVertexCount];
 		}
 
-		if (nImportMapVersion >= 0x20002) {
+		if (bIsFOUCModel) {
 			for (int j = 0; j < src.nVertexCount; j++) {
 				auto vertices = (int16_t*)vertexData;
 
@@ -245,28 +245,30 @@ aiScene GenerateScene() {
 		}
 	}
 
-	if (auto node = new aiNode()) {
-		std::vector<int> surfaceIds;
-		for (auto& batch : aStaticBatches) {
-			if (IsSurfaceValidAndExportable(batch.nSurfaceId, true)) surfaceIds.push_back(batch.nSurfaceId);
+	if (!bIsBGMModel) {
+		if (auto node = new aiNode()) {
+			std::vector<int> surfaceIds;
+			for (auto &batch: aStaticBatches) {
+				if (IsSurfaceValidAndExportable(batch.nSurfaceId, true)) surfaceIds.push_back(batch.nSurfaceId);
+			}
+
+			node->mName = "StaticBatch";
+			scene.mRootNode->addChildren(1, &node);
+			node->mMeshes = new uint32_t[surfaceIds.size()];
+			node->mNumMeshes = surfaceIds.size();
+			int i = 0;
+			for (auto &surfaceId: surfaceIds) {
+				node->mMeshes[i++] = aSurfaces[surfaceId]._nFBXModelId;
+			}
 		}
 
-		node->mName = "StaticBatch";
-		scene.mRootNode->addChildren(1, &node);
-		node->mMeshes = new uint32_t[surfaceIds.size()];
-		node->mNumMeshes = surfaceIds.size();
-		int i = 0;
-		for (auto& surfaceId : surfaceIds) {
-			node->mMeshes[i++] = aSurfaces[surfaceId]._nFBXModelId;
-		}
-	}
-
-	if (auto node = new aiNode()) {
-		node->mName = "TreeMesh";
-		scene.mRootNode->addChildren(1, &node);
-		for (auto& treeMesh : aTreeMeshes) {
-			if (auto treeNode = CreateNodeForTreeMesh(&scene, treeMesh)) {
-				node->addChildren(1, &treeNode);
+		if (auto node = new aiNode()) {
+			node->mName = "TreeMesh";
+			scene.mRootNode->addChildren(1, &node);
+			for (auto &treeMesh: aTreeMeshes) {
+				if (auto treeNode = CreateNodeForTreeMesh(&scene, treeMesh)) {
+					node->addChildren(1, &treeNode);
+				}
 			}
 		}
 	}
@@ -282,32 +284,57 @@ aiScene GenerateScene() {
 		}
 	}
 
-	if (auto node = new aiNode()) {
-		node->mName = "CompactMesh";
-		scene.mRootNode->addChildren(1, &node);
-		for (auto& compactMesh : aCompactMeshes) {
-			auto meshNode = new aiNode();
-			meshNode->mName = compactMesh.sName1;
+	if (bIsBGMModel) {
+		if (auto node = new aiNode()) {
+			node->mName = "CarMesh";
+			scene.mRootNode->addChildren(1, &node);
+			for (auto &compactMesh: aCarMeshes) {
+				auto meshNode = new aiNode();
+				meshNode->mName = compactMesh.sName1;
+				FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
+				node->addChildren(1, &meshNode);
 
-			// assimp doesn't support fbx metadata export, sad!
-			//meshNode->mMetaData = new aiMetadata();
-			//meshNode->mMetaData->Add("nFlags", compactMesh.nFlags);
-			//meshNode->mMetaData->Add("nGroup", compactMesh.nGroup);
+				for (auto& modelId : compactMesh.aModels) {
+					auto model = aModels[modelId];
 
-			FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
-			node->addChildren(1, &meshNode);
+					auto modelNode = new aiNode();
+					modelNode->mName = model.sName;
+					meshNode->addChildren(1, &modelNode);
 
-			// not loading the damaged or lod parts here
-			if (!compactMesh.aLODMeshIds.empty()) {
-				auto model = aModels[compactMesh.aLODMeshIds[0]];
-				std::vector<int> aMeshes;
-				for (auto& surfaceId : model.aSurfaces) {
-					if (!IsSurfaceValidAndExportable(surfaceId)) continue;
-					aMeshes.push_back(aSurfaces[surfaceId]._nFBXModelId);
+					std::vector<int> aMeshes;
+					for (auto &surfaceId: model.aSurfaces) {
+						if (!IsSurfaceValidAndExportable(surfaceId)) continue;
+						aMeshes.push_back(aSurfaces[surfaceId]._nFBXModelId);
+					}
+					modelNode->mMeshes = new uint32_t[aMeshes.size()];
+					memcpy(modelNode->mMeshes, &aMeshes[0], aMeshes.size() * sizeof(uint32_t));
+					modelNode->mNumMeshes = aMeshes.size();
 				}
-				meshNode->mMeshes = new uint32_t[aMeshes.size()];
-				memcpy(meshNode->mMeshes, &aMeshes[0], aMeshes.size() * sizeof(uint32_t));
-				meshNode->mNumMeshes = aMeshes.size();
+			}
+		}
+	}
+	else {
+		if (auto node = new aiNode()) {
+			node->mName = "CompactMesh";
+			scene.mRootNode->addChildren(1, &node);
+			for (auto &compactMesh: aCompactMeshes) {
+				auto meshNode = new aiNode();
+				meshNode->mName = compactMesh.sName1;
+				FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
+				node->addChildren(1, &meshNode);
+
+				// not loading the damaged or lod parts here
+				if (!compactMesh.aLODMeshIds.empty()) {
+					auto model = aModels[compactMesh.aLODMeshIds[0]];
+					std::vector<int> aMeshes;
+					for (auto &surfaceId: model.aSurfaces) {
+						if (!IsSurfaceValidAndExportable(surfaceId)) continue;
+						aMeshes.push_back(aSurfaces[surfaceId]._nFBXModelId);
+					}
+					meshNode->mMeshes = new uint32_t[aMeshes.size()];
+					memcpy(meshNode->mMeshes, &aMeshes[0], aMeshes.size() * sizeof(uint32_t));
+					meshNode->mNumMeshes = aMeshes.size();
+				}
 			}
 		}
 	}
@@ -315,13 +342,13 @@ aiScene GenerateScene() {
 	return scene;
 }
 
-void WriteW32ToFBX() {
+void WriteToFBX() {
 	WriteConsole("Writing model file...");
 
 	auto scene = GenerateScene();
 
 	Assimp::Logger::LogSeverity severity = Assimp::Logger::VERBOSE;
-	Assimp::DefaultLogger::create("export_log.txt",severity, aiDefaultLogStream_FILE);
+	Assimp::DefaultLogger::create("export_log.txt", severity, aiDefaultLogStream_FILE);
 
 	Assimp::Exporter exporter;
 	if (exporter.Export(&scene, "fbx", sFileNameNoExt + "_out.fbx") != aiReturn_SUCCESS) {

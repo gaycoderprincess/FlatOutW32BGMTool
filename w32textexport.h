@@ -1,11 +1,4 @@
-void WriteW32ToText() {
-	WriteConsole("Writing text file...");
-
-	WriteFile(std::format("nMapVersion: 0x{:X} {}", nImportMapVersion, GetMapVersion(nImportMapVersion)));
-	if (nImportMapVersion > 0x20000) {
-		WriteFile("nSomeMapValue: " + std::to_string(nSomeMapValue));
-	}
-
+void WriteW32MaterialsToText() {
 	WriteFile("");
 	WriteFile("Materials begin");
 	WriteFile("Count: " + std::to_string(aMaterials.size()));
@@ -18,7 +11,7 @@ void WriteW32ToText() {
 			WriteFile("nUnknown1: " + std::to_string(material.v92));
 			WriteFile("nNumTextures: " + std::to_string(material.nNumTextures));
 		}
-		WriteFile("nShaderId: " + std::to_string(material.nShaderId) + " (" + GetShaderName(material.nShaderId, nImportMapVersion) + ")");
+		WriteFile("nShaderId: " + std::to_string(material.nShaderId) + " (" + GetShaderName(material.nShaderId) + ")");
 		WriteFile("nUseColormap: " + std::to_string(material.nUseColormap));
 		if (bDumpMaterialData) {
 			WriteFile("nUnknown4: " + std::to_string(material.v74));
@@ -37,7 +30,9 @@ void WriteW32ToText() {
 	}
 	WriteFile("Materials end");
 	WriteFile("");
+}
 
+void WriteW32StreamsToText() {
 	WriteFile("Streams begin");
 	uint32_t numStreams = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
 	WriteFile("Count: " + std::to_string(numStreams));
@@ -47,7 +42,7 @@ void WriteW32ToText() {
 		for (auto& buf : aVertexBuffers) {
 			if (buf.id == i) {
 				WriteFile("Vertex buffer");
-				if (nImportMapVersion >= 0x20002) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
+				if (bIsFOUCModel) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
 				WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
 				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
 				std::string uvFlagsReadable = "";
@@ -59,7 +54,7 @@ void WriteW32ToText() {
 				if ((buf.flags & VERTEX_INT16) != 0) uvFlagsReadable += "Int16 ";
 				WriteFile(std::format("nFlags: 0x{:X} {}", buf.flags, uvFlagsReadable));
 
-				if (nImportMapVersion >= 0x20002) {
+				if (bIsFOUCModel) {
 					if (bDumpFOUCOffsetedStreams && !buf._coordsAfterFOUCMult.empty()) {
 						int counter = 0;
 						std::string out;
@@ -123,7 +118,7 @@ void WriteW32ToText() {
 		for (auto& buf : aVegVertexBuffers) {
 			if (buf.id == i) {
 				WriteFile("Vegetation vertex buffer");
-				if (nImportMapVersion >= 0x20002) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
+				if (bIsFOUCModel) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
 				WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
 				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
 				if (bDumpStreams) {
@@ -145,7 +140,7 @@ void WriteW32ToText() {
 		for (auto& buf : aIndexBuffers) {
 			if (buf.id == i) {
 				WriteFile("Index buffer");
-				if (nImportMapVersion >= 0x20002) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
+				if (bIsFOUCModel) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
 				WriteFile(std::format("Index Count: {}", buf.indexCount));
 				if (bDumpStreams) {
 					for (int j = 0; j < buf.indexCount; j++) {
@@ -158,7 +153,9 @@ void WriteW32ToText() {
 	}
 	WriteFile("Streams end");
 	WriteFile("");
+}
 
+void WriteW32SurfacesToText() {
 	WriteFile("Surfaces begin");
 	WriteFile("Count: " + std::to_string(aSurfaces.size()));
 	WriteFile("");
@@ -177,7 +174,7 @@ void WriteW32ToText() {
 		WriteFile("vRelativeCenter.x: " + std::to_string(surface.vRelativeCenter[0]));
 		WriteFile("vRelativeCenter.y: " + std::to_string(surface.vRelativeCenter[1]));
 		WriteFile("vRelativeCenter.z: " + std::to_string(surface.vRelativeCenter[2]));
-		if (nImportMapVersion >= 0x20002) {
+		if (bIsFOUCModel) {
 			WriteFile("foucVertexMultiplier.x: " + std::to_string(surface.foucVertexMultiplier[0]));
 			WriteFile("foucVertexMultiplier.y: " + std::to_string(surface.foucVertexMultiplier[1]));
 			WriteFile("foucVertexMultiplier.z: " + std::to_string(surface.foucVertexMultiplier[2]));
@@ -199,7 +196,9 @@ void WriteW32ToText() {
 	}
 	WriteFile("Surfaces end");
 	WriteFile("");
+}
 
+void WriteW32StaticBatchesToText() {
 	WriteFile("Static Batches begin");
 	WriteFile("Count: " + std::to_string(aStaticBatches.size()));
 	WriteFile("");
@@ -218,7 +217,9 @@ void WriteW32ToText() {
 	}
 	WriteFile("Static Batches end");
 	WriteFile("");
+}
 
+void WriteW32UnknownArray1ToText() {
 	WriteFile("Unknown Array 1 begin");
 	WriteFile("Count: " + std::to_string(aUnknownArray1.size()));
 	WriteFile("");
@@ -228,7 +229,9 @@ void WriteW32ToText() {
 	WriteFile("");
 	WriteFile("Unknown Array 1 end");
 	WriteFile("");
+}
 
+void WriteW32UnknownArray2ToText() {
 	WriteFile("Unknown Array 2 begin");
 	WriteFile("Count: " + std::to_string(aUnknownArray2.size()));
 	WriteFile("");
@@ -244,7 +247,9 @@ void WriteW32ToText() {
 	}
 	WriteFile("Unknown Array 2 end");
 	WriteFile("");
+}
 
+void WriteW32TreeMeshesToText() {
 	WriteFile("Tree Meshes begin");
 	WriteFile("Count: " + std::to_string(aTreeMeshes.size()));
 	WriteFile("");
@@ -256,7 +261,7 @@ void WriteW32ToText() {
 		for (int j = 0; j < 19; j++) {
 			WriteFile("fUnk[" + std::to_string(j) + "]: " + std::to_string(treeMesh.fUnk[j]));
 		}
-		if (nImportMapVersion >= 0x20002) {
+		if (bIsFOUCModel) {
 			WriteFile("nMaterialId: " + std::to_string(treeMesh.foucExtraData1[0]));
 			WriteFile("foucData1[1]: " + std::to_string(treeMesh.foucExtraData1[1]));
 			WriteFile("foucData1[2]: " + std::to_string(treeMesh.foucExtraData1[2]));
@@ -295,7 +300,9 @@ void WriteW32ToText() {
 	}
 	WriteFile("Tree Meshes end");
 	WriteFile("");
+}
 
+void WriteW32UnknownArray3ToText() {
 	WriteFile("Unknown Array 3 begin");
 	WriteFile("Count: " + std::to_string(aUnknownArray3.size()));
 	WriteFile("");
@@ -305,7 +312,9 @@ void WriteW32ToText() {
 	WriteFile("");
 	WriteFile("Unknown Array 3 end");
 	WriteFile("");
+}
 
+void WriteW32ModelsToText() {
 	WriteFile("Models begin");
 	WriteFile("Count: " + std::to_string(aModels.size()));
 	WriteFile("");
@@ -327,7 +336,9 @@ void WriteW32ToText() {
 	}
 	WriteFile("Models end");
 	WriteFile("");
+}
 
+void WriteW32ObjectsToText() {
 	WriteFile("Objects begin");
 	WriteFile("Count: " + std::to_string(aObjects.size()));
 	WriteFile("");
@@ -344,7 +355,9 @@ void WriteW32ToText() {
 	}
 	WriteFile("Objects end");
 	WriteFile("");
+}
 
+void WriteW32BoundingBoxesToText() {
 	WriteFile("Bounding Boxes begin");
 	WriteFile("Count: " + std::to_string(aBoundingBoxes.size()));
 	WriteFile("");
@@ -363,7 +376,9 @@ void WriteW32ToText() {
 	}
 	WriteFile("Bounding Boxes end");
 	WriteFile("");
+}
 
+void WriteW32BoundingBoxAssocToText() {
 	WriteFile("Bounding Box Mesh Associations begin");
 	WriteFile("Count: " + std::to_string(aBoundingBoxMeshAssoc.size()));
 	WriteFile("");
@@ -375,7 +390,9 @@ void WriteW32ToText() {
 	}
 	WriteFile("Bounding Box Mesh Associations end");
 	WriteFile("");
+}
 
+void WriteW32CompactMeshesToText() {
 	WriteFile("Compact Meshes begin");
 	WriteFile("Group Count: " + std::to_string(nCompactMeshGroupCount));
 	WriteFile("Count: " + std::to_string(aCompactMeshes.size()));
@@ -390,7 +407,7 @@ void WriteW32ToText() {
 		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[4], mesh.mMatrix[5], mesh.mMatrix[6], mesh.mMatrix[7]));
 		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[8], mesh.mMatrix[9], mesh.mMatrix[10], mesh.mMatrix[11]));
 		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[12], mesh.mMatrix[13], mesh.mMatrix[14], mesh.mMatrix[15]));
-		if (nImportMapVersion >= 0x20000) {
+		if (nImportFileVersion >= 0x20000) {
 			WriteFile("nUnk1: " + std::to_string(mesh.nUnk1));
 			WriteFile("nBBoxAssocId: " + std::to_string(mesh.nBBoxAssocId));
 		}
@@ -403,12 +420,81 @@ void WriteW32ToText() {
 	}
 	WriteFile("Compact Meshes end");
 	WriteFile("");
+}
+
+void WriteBGMCarMeshesToText() {
+	WriteFile("Car Meshes begin");
+	WriteFile("Count: " + std::to_string(aCarMeshes.size()));
+	WriteFile("");
+	for (auto& mesh : aCarMeshes) {
+		WriteFile("sObjectName: " + mesh.sName1);
+		WriteFile("sModelName: " + mesh.sName2);
+		WriteFile(std::format("nFlags: 0x{:X}", mesh.nFlags));
+		WriteFile("nGroup: " + std::to_string(mesh.nGroup));
+		WriteFile("mMatrix: ");
+		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[0], mesh.mMatrix[1], mesh.mMatrix[2], mesh.mMatrix[3]));
+		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[4], mesh.mMatrix[5], mesh.mMatrix[6], mesh.mMatrix[7]));
+		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[8], mesh.mMatrix[9], mesh.mMatrix[10], mesh.mMatrix[11]));
+		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[12], mesh.mMatrix[13], mesh.mMatrix[14], mesh.mMatrix[15]));
+		WriteFile("nNumModels: " + std::to_string(mesh.aModels.size()));
+		for (auto unkValue : mesh.aModels) {
+			auto model = aModels[unkValue];
+			WriteFile(std::to_string(unkValue) + " - " + model.sName);
+		}
+		WriteFile("");
+	}
+	WriteFile("Car Meshes end");
+	WriteFile("");
+}
+
+void WriteW32ToText() {
+	WriteConsole("Writing text file...");
+
+	WriteFile(std::format("nFileVersion: 0x{:X} {}", nImportFileVersion, GetFileVersion(nImportFileVersion)));
+	if (nImportFileVersion > 0x20000) {
+		WriteFile("nSomeMapValue: " + std::to_string(nSomeMapValue));
+	}
+
+	WriteW32MaterialsToText();
+	WriteW32StreamsToText();
+	WriteW32SurfacesToText();
+	WriteW32StaticBatchesToText();
+	WriteW32UnknownArray1ToText();
+	WriteW32UnknownArray2ToText();
+	WriteW32TreeMeshesToText();
+	WriteW32UnknownArray3ToText();
+	WriteW32ModelsToText();
+	WriteW32ObjectsToText();
+	WriteW32BoundingBoxesToText();
+	WriteW32BoundingBoxAssocToText();
+	WriteW32CompactMeshesToText();
 
 	for (auto& surface : aSurfaces) {
 		if (!surface._nNumReferences) {
 			WriteConsole("WARNING: Surface " + std::to_string(&surface - &aSurfaces[0]) + " goes unused! The game will not like this!!");
 		}
 	}
+
+	WriteConsole("Text file export finished");
+}
+
+void WriteBGMToText() {
+	WriteConsole("Writing text file...");
+
+	WriteFile(std::format("nFileVersion: 0x{:X} {}", nImportFileVersion, GetFileVersion(nImportFileVersion)));
+
+	for (auto& surface : aSurfaces) {
+		if (!surface._nNumReferences) {
+			WriteConsole("WARNING: Surface " + std::to_string(&surface - &aSurfaces[0]) + " goes unused! The game will not like this!!");
+		}
+	}
+
+	WriteW32MaterialsToText();
+	WriteW32StreamsToText();
+	WriteW32SurfacesToText();
+	WriteW32ModelsToText();
+	WriteBGMCarMeshesToText();
+	WriteW32ObjectsToText();
 
 	WriteConsole("Text file export finished");
 }
