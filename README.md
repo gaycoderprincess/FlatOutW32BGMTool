@@ -22,7 +22,7 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - The file will now be analyzed and processed by the tool
 - Enjoy, nya~ :3
 
-## Arguments
+## W32 Arguments
 
 - `-export_fbx` - Exports the map into a viewable .fbx file
 - `-export_w32` - Exports the map into a .w32 file (this should yield an identical file if there are no additional arguments, if it doesn't then file a bug report!)
@@ -30,6 +30,7 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-text_streams` - Exports all vertex and index buffers into text, huge filesize and time cost!
 - `-text_materials` - Exports all material data into text, including shaders and some unknown metadata
 - `-text_streams_fouc_offseted` - Exports vertex buffers into text with their surface offsets already applied
+- `-text_streams_fouc_normalized` - Exports vertex buffers into text as normalized floating points
 - `-remove_object_dummies` - Creates a new .w32 file of the map with all objects and object dummies removed (e.g. menu cameras in FOUC)
 - `-remove_props` - Creates a new .w32 file of the map with all props removed
 - `-enable_all_props` - Creates a new .w32 file of the map with all props visible (BugBear left a lot of props hidden in each track)
@@ -40,6 +41,17 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-import_surfaces` - Imports surface meshes from an .fbx file if they have the suffix `_export` in their name, usage: `FlatOutW32Tool_gcp.exe (w32 filename) (fbx filename) -import_surfaces`
 - `-import_materials` - Imports material changes and additions if `-import_surfaces` is enabled, might introduce issues
 - `-import_deletions` - Deletes surfaces and props that have been deleted from an .fbx file, usage: `FlatOutW32Tool_gcp.exe (w32 filename) (fbx filename) -import_deletions`
+
+## BGM Arguments
+- `-export_fbx` - Exports the car into a viewable .fbx file
+- `-export_bgm` - Exports car into a .bgm file (this should yield an identical file if there are no additional arguments, if it doesn't then file a bug report!)
+- `-export_text` - Exports the car into a human-readable text file
+- `-text_streams` - Exports all vertex and index buffers into text, huge filesize and time cost!
+- `-text_materials` - Exports all material data into text, including shaders and some unknown metadata
+- `-text_streams_fouc_offseted` - Exports vertex buffers into text with their surface offsets already applied
+- `-text_streams_fouc_normalized` - Exports vertex buffers into text as normalized floating points
+- `-convert_to_fo1` - Converts the car from the Ultimate Carnge format to the FlatOut 1 format, WIP
+- `-convert_to_fo2` - Converts the car from the Ultimate Carnge format to the FlatOut 2 format, WIP
 
 ## Building
 
