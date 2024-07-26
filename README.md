@@ -2,7 +2,14 @@
 
 A tool to handle .w32 files in FlatOut games, highly WIP
 
-This tool is currently only capable of parsing and recreating the format from memory, converting FlatOut 2 tracks to FlatOut 1, and exporting tracks to .fbx (WIP)
+This tool is currently capable of:
+- Parsing and recreating the format from memory
+- Converting FlatOut 2 tracks to FlatOut 1
+- Exporting tracks to .fbx
+- Moving track props
+- Deleting track props
+- Deleting track surfaces
+- Creating a dummy track_bvh.gen
 
 Thanks to Gulbroz for their existing work on this format, it was a great jumping-off point.
 
@@ -21,8 +28,11 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-streams_fouc_offseted` - If `-export_text` is enabled, exports vertex buffers with their surface offsets already applied
 - `-remove_object_dummies` - Creates a new .w32 file of the map with all objects and object dummies removed (e.g. menu cameras in FOUC)
 - `-remove_props` - Creates a new .w32 file of the map with all props removed
+- `-enable_all_props` - Creates a new .w32 file of the map with all props visible (BugBear left a lot of props hidden in each track)
 - `-convert_to_fo1` - Creates a new .w32 file of the map that can be loaded by FlatOut 1
 - `-empty_bvh_gen` - Takes a track_bvh.gen file and generates a new one without any culling, will be required for custom maps in the future!
+- `-import_props_from_fbx` - Imports moved prop positions from an .fbx file, usage: `FlatOutW32Tool_gcp.exe (w32 filename) (fbx filename) -import_props_from_fbx`
+- `-import_deleted_surfaces_from_fbx` - Imports moved prop positions from an .fbx file, usage: `FlatOutW32Tool_gcp.exe (w32 filename) (fbx filename) -import_deleted_surfaces_from_fbx`
 
 ## Building
 
