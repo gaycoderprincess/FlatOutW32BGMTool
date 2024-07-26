@@ -13,12 +13,14 @@ void WriteW32ToText() {
 	for (auto& material : aMaterials) {
 		WriteFile("Material " + std::to_string(&material - &aMaterials[0]));
 		WriteFile("Name: " + material.sName);
+		WriteFile("nAlpha: " + std::to_string(material.nAlpha));
 		if (bDumpMaterialData) {
-			WriteFile("nAlpha: " + std::to_string(material.nAlpha));
 			WriteFile("nUnknown1: " + std::to_string(material.v92));
 			WriteFile("nNumTextures: " + std::to_string(material.nNumTextures));
-			WriteFile("nShaderId: " + std::to_string(material.nShaderId) + " (" + GetShaderName(material.nShaderId, nImportMapVersion) + ")");
-			WriteFile("nUseColormap: " + std::to_string(material.nUseColormap));
+		}
+		WriteFile("nShaderId: " + std::to_string(material.nShaderId) + " (" + GetShaderName(material.nShaderId, nImportMapVersion) + ")");
+		WriteFile("nUseColormap: " + std::to_string(material.nUseColormap));
+		if (bDumpMaterialData) {
 			WriteFile("nUnknown4: " + std::to_string(material.v74));
 			WriteFile("nUnknown5: " + std::to_string(material.v108[0]) + ", " + std::to_string(material.v108[1]) + ", " + std::to_string(material.v108[2]));
 			WriteFile("nUnknown6: " + std::to_string(material.v109[0]) + ", " + std::to_string(material.v109[1]) + ", " + std::to_string(material.v109[2]));
