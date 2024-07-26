@@ -6,7 +6,7 @@ This tool is currently capable of:
 - Parsing and recreating the format from memory
 - Converting FlatOut 2 tracks to FlatOut 1
 - Exporting tracks to .fbx
-- Editing track meshes
+- Editing track meshes (FlatOut 1 and 2 only)
 - Deleting track meshes
 - Moving track props
 - Deleting track props
