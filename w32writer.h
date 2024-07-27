@@ -266,6 +266,9 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 	}
 	vBuf.vertexSize = vertexSize;
 	vBuf.vertexCount = mesh->mNumVertices;
+	if (vBuf.vertexCount > 65535) {
+		WriteConsole("WARNING: " + (std::string)mesh->mName.C_Str() + " has more than 65535 vertices! Split the mesh or it won't render properly!");
+	}
 	if (bIsFOUCModel) {
 		vBuf.flags |= VERTEX_INT16;
 		vBuf.data = new float[mesh->mNumVertices * (vertexSize / 4)];
