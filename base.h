@@ -229,6 +229,20 @@ struct tVegVertexBuffer {
 	uint32_t vertexSize;
 	float* data;
 };
+struct tCrashDataWeights {
+	float vBasePos[3];
+	float vCrashPos[3];
+	float vBaseNormal[3];
+	float vCrashNormal[3];
+};
+struct tCrashDataSurface {
+	tVertexBuffer vBuffer;
+	std::vector<tCrashDataWeights> aCrashWeights;
+};
+struct tCrashData {
+	std::string sName;
+	std::vector<tCrashDataSurface> aSurfaces;
+};
 struct tMaterial {
 	uint32_t identifier = 0x4354414D; // MATC
 	std::string sName;
@@ -271,7 +285,9 @@ struct tSurface {
 	uint32_t nStreamId[2];
 	uint32_t nStreamOffset[2];
 
-	int _nFBXModelId;
+	tCrashDataSurface* _pCrashDataSurface = nullptr;
+	int _nFBXModelId = -1;
+	int _nFBXCrashModelId = -1;
 	int _nNumReferencesByType[NUM_SURFACE_REFERENCE_TYPES] = {};
 	int _nNumReferences = 0;
 	void RegisterReference(int type) {
@@ -320,6 +336,7 @@ struct tModel {
 	float vRadius[3];
 	float fRadius;
 	std::vector<int> aSurfaces;
+	tCrashData* _pCrashData;
 };
 struct tObject {
 	uint32_t identifier = 0x434A424F; // OBJC
@@ -377,6 +394,7 @@ std::vector<tBoundingBox> aBoundingBoxes;
 std::vector<tBoundingBoxMeshAssoc> aBoundingBoxMeshAssoc;
 std::vector<tCarMesh> aCarMeshes;
 std::vector<uint32_t> aVertexColors;
+std::vector<tCrashData> aCrashData;
 uint32_t nCompactMeshGroupCount;
 
 tVertexBuffer* FindVertexBuffer(int id) {

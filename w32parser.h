@@ -415,6 +415,13 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 	return true;
 }
 
+tCrashData* GetCrashDataForModel(const std::string& name) {
+	for (auto& crashData : aCrashData) {
+		if (crashData.sName == name + "_crash") return &crashData;
+	}
+	return nullptr;
+}
+
 bool ParseW32Models(std::ifstream& file) {
 	WriteConsole("Parsing models...");
 
@@ -428,17 +435,29 @@ bool ParseW32Models(std::ifstream& file) {
 
 		ReadFromFile(file, &model.nUnk, 4);
 		model.sName = ReadStringFromFile(file);
+		auto crashData = GetCrashDataForModel(model.sName);
 		ReadFromFile(file, model.vCenter, sizeof(model.vCenter));
 		ReadFromFile(file, model.vRadius, sizeof(model.vRadius));
 		ReadFromFile(file, &model.fRadius, 4);
 		uint32_t numSurfaces;
 		ReadFromFile(file, &numSurfaces, sizeof(numSurfaces));
+		if (crashData) {
+			if (crashData->aSurfaces.size() != numSurfaces) {
+				WriteConsole("ERROR: crash.dat mismatch, damage data will not be exported!");
+				crashData = nullptr;
+			}
+		}
+		model._pCrashData = crashData;
 		for (int j = 0; j < numSurfaces; j++) {
 			int surface;
 			ReadFromFile(file, &surface, sizeof(surface));
 			model.aSurfaces.push_back(surface);
 
 			if (surface >= aSurfaces.size()) return false;
+			if (crashData) {
+				crashData->aSurfaces[j].vBuffer.flags = aSurfaces[surface].nFlags;
+				aSurfaces[surface]._pCrashDataSurface = &crashData->aSurfaces[j];
+			}
 			aSurfaces[surface].RegisterReference(SURFACE_REFERENCE_MODEL);
 		}
 		aModels.push_back(model);
@@ -673,6 +692,12 @@ bool ParseBGM(const std::string& fileName) {
 
 	ReadFromFile(fin, &nImportFileVersion, 4);
 	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
+	else {
+		auto crashDatPath = "crash.dat";
+		if (!ParseCrashDat(crashDatPath)) {
+			WriteConsole("Failed to load " + (std::string)crashDatPath + ", damage data will not be exported");
+		}
+	}
 	bIsBGMModel = true;
 
 	if (!ParseW32Materials(fin)) return false;

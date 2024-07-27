@@ -13,6 +13,7 @@
 
 #include "base.h"
 #include "config.h"
+#include "crashdatparser.h"
 #include "w32parser.h"
 #include "w32writer.h"
 #include "w32textexport.h"
@@ -20,11 +21,21 @@
 #include "trackbvh.h"
 
 void ProcessCommandlineArguments(int argc, char* argv[]) {
+	const char* aSupportedFormats[] = {
+			".w32",
+			".bgm",
+			".car", // retro demo
+			".gen", // track_bvh.gen
+			".fbx",
+			".dat", // crash.dat
+	};
 	sFileName = argv[1];
 	sFileNameNoExt = sFileName;
-	if (sFileName.ends_with(".w32") || sFileName.ends_with(".bgm") || sFileName.ends_with(".car") || sFileName.ends_with(".gen") || sFileName.ends_with(".fbx")) {
-		for (int i = 0; i < 4; i++) {
-			sFileNameNoExt.pop_back();
+	for (auto& format : aSupportedFormats) {
+		if (sFileName.ends_with(format)) {
+			for (int i = 0; i < 4; i++) {
+				sFileNameNoExt.pop_back();
+			}
 		}
 	}
 	for (int i = 2; i < argc; i++) {
@@ -181,7 +192,13 @@ int main(int argc, char *argv[]) {
 			}
 			return 0;
 		} else {
-			if (sFileName.ends_with(".bgm") || sFileName.ends_with(".car")) {
+			if (sFileName.ends_with(".dat")) {
+				if (!ParseCrashDat(sFileName)) {
+					WriteConsole("Failed to load " + sFileName + "!");
+				} else {
+					if (bDumpIntoTextFile) WriteCrashDatToText();
+				}
+			} else if (sFileName.ends_with(".bgm") || sFileName.ends_with(".car")) {
 				if (!ParseBGM(sFileName)) {
 					WriteConsole("Failed to load " + sFileName + "!");
 				} else {

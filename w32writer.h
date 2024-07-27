@@ -431,12 +431,13 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	mat.nShaderId = 8; // car metal
 	if (mat.sName.starts_with("body")) mat.nShaderId = 5; // car body
 	if (mat.sName.starts_with("interior")) mat.nShaderId = 7; // car diffuse
+	if (mat.sName.starts_with("grille")) mat.nShaderId = 7; // car diffuse
 	if (mat.sName.starts_with("shadow")) mat.nShaderId = 13; // shadow project
 	if (mat.sName.starts_with("window")) mat.nShaderId = 6; // car window
 	if (mat.sName.starts_with("shear")) mat.nShaderId = 11; // car shear
 	if (mat.sName.starts_with("scale")) mat.nShaderId = 12; // car scale
-	if (bIsFOUCModel && mat.sName.starts_with("tire")) mat.nShaderId = 44; // car tire
-	if (bIsFOUCModel && mat.sName.starts_with("rim")) mat.nShaderId = 9; // car tire rim
+	if (mat.sName.starts_with("tire")) mat.nShaderId = bIsFOUCModel ? 44 : 7; // fo2: car diffuse, uc: car tire
+	if (mat.sName.starts_with("rim")) mat.nShaderId = 9; // fo2: car tire, uc: car tire rim
 	if (mat.sName.starts_with("terrain") || mat.sName.starts_with("groundplane")) mat.nShaderId = 7; // car diffuse
 	if (mat.sName.starts_with("light")) {
 		mat.v92 = 2;

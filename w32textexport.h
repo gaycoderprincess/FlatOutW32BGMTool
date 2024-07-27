@@ -519,3 +519,43 @@ void WriteBGMToText() {
 
 	WriteConsole("Text file export finished");
 }
+
+void WriteCrashDatToText() {
+	WriteConsole("Writing text file...");
+
+	WriteFile("Crash data begin");
+	WriteFile("Count: " + std::to_string(aCrashData.size()));
+	WriteFile("");
+	for (auto& data : aCrashData) {
+		WriteFile("sName: " + data.sName);
+		WriteFile("nNumSurfaces: " + std::to_string(data.aSurfaces.size()));
+		WriteFile("");
+		for (auto& surface : data.aSurfaces) {
+			auto& buf = surface.vBuffer;
+
+			WriteFile("Vertex buffer");
+			WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
+			WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
+			if (bDumpStreams) {
+				for (auto &weights: surface.aCrashWeights) {
+					std::string out;
+					for (int i = 0; i < 3; i++) {
+						out += std::to_string(weights.vCrashPos[i]);
+						out += " ";
+					}
+					for (int i = 0; i < 3; i++) {
+						out += std::to_string(weights.vCrashNormal[i]);
+						out += " ";
+					}
+					WriteFile(out);
+				}
+			}
+			WriteFile("");
+		}
+		WriteFile("");
+	}
+	WriteFile("Crash data end");
+	WriteFile("");
+
+	WriteConsole("Text file export finished");
+}

@@ -17,6 +17,192 @@ aiNode* CreateNodeForTreeMesh(aiScene* scene, const tTreeMesh& treeMesh) {
 	return node;
 }
 
+void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBuf, tSurface& src, uint32_t vertexOffset, tCrashDataWeights* aCrashWeights = nullptr) {
+	auto stride = vBuf->vertexSize;
+	uintptr_t vertexData = ((uintptr_t)vBuf->data) + vertexOffset;
+	uintptr_t indexData = ((uintptr_t)iBuf->data) + src.nStreamOffset[1];
+
+	uint32_t baseVertexOffset = src.nStreamOffset[0] / vBuf->vertexSize;
+
+	bool bHasNormals = (vBuf->flags & VERTEX_NORMAL) != 0;
+	if (bIsFOUCModel && (vBuf->flags & VERTEX_COLOR) != 0) bHasNormals = true;
+
+	dest->mVertices = new aiVector3D[src.nVertexCount];
+	dest->mNumVertices = src.nVertexCount;
+	dest->mFaces = new aiFace[src.nPolyCount];
+	dest->mNumFaces = src.nPolyCount;
+	dest->mTextureCoords[0] = new aiVector3D[src.nVertexCount];
+	dest->mNumUVComponents[0] = 2;
+	if ((vBuf->flags & VERTEX_UV2) != 0) {
+		dest->mTextureCoords[1] = new aiVector3D[src.nVertexCount];
+		dest->mNumUVComponents[1] = 2;
+	}
+	if (bHasNormals) {
+		dest->mNormals = new aiVector3D[src.nVertexCount];
+	}
+	if ((vBuf->flags & VERTEX_COLOR) != 0 && !bIsFOUCModel && !aVertexColors.empty()) {
+		dest->mColors[0] = new aiColor4D[src.nVertexCount];
+	}
+	if (bIsFOUCModel) {
+		for (int j = 0; j < src.nVertexCount; j++) {
+			auto vertices = (int16_t*)vertexData;
+
+			// uvs always seem to be the last 2 or 4 values in the vertex buffer
+			auto uvOffset = stride - 4;
+			if ((vBuf->flags & VERTEX_UV2) != 0) uvOffset -= 4;
+			auto uvs = (int16_t*)(vertexData + uvOffset);
+
+			dest->mVertices[j].x = vertices[0];
+			dest->mVertices[j].y = vertices[1];
+			dest->mVertices[j].z = vertices[2];
+			dest->mVertices[j].x += src.foucVertexMultiplier[0];
+			dest->mVertices[j].y += src.foucVertexMultiplier[1];
+			dest->mVertices[j].z += src.foucVertexMultiplier[2];
+			dest->mVertices[j].x *= src.foucVertexMultiplier[3];
+			dest->mVertices[j].y *= src.foucVertexMultiplier[3];
+			dest->mVertices[j].z *= -src.foucVertexMultiplier[3];
+			vertices += 3;
+
+			if (bHasNormals) {
+				vertices += 4;
+				auto int8Vertices = (uint8_t*)vertices;
+				dest->mNormals[j].z = ((int8Vertices[2] / 127.0) - 1) * -1;
+				dest->mNormals[j].y = (int8Vertices[3] / 127.0) - 1;
+				dest->mNormals[j].x = (int8Vertices[4] / 127.0) - 1;
+				vertices += 3; // 3 floats
+			}
+			if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32
+			if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
+				dest->mTextureCoords[0][j].x = uvs[0] / 2048.0;
+				dest->mTextureCoords[0][j].y = 1 - (uvs[1] / 2048.0);
+				dest->mTextureCoords[0][j].z = 0;
+			}
+			if ((vBuf->flags & VERTEX_UV2) != 0) {
+				dest->mTextureCoords[1][j].x = uvs[2] / 2048.0;
+				dest->mTextureCoords[1][j].y = 1 - (uvs[3] / 2048.0);
+				dest->mTextureCoords[1][j].z = 0;
+			}
+			vertexData += stride;
+		}
+	}
+	else {
+		for (int j = 0; j < src.nVertexCount; j++) {
+			auto vertices = (float*)vertexData;
+			if (aCrashWeights) {
+				dest->mVertices[j].x = aCrashWeights->vCrashPos[0];
+				dest->mVertices[j].y = aCrashWeights->vCrashPos[1];
+				dest->mVertices[j].z = -aCrashWeights->vCrashPos[2];
+			}
+			else {
+				dest->mVertices[j].x = vertices[0];
+				dest->mVertices[j].y = vertices[1];
+				dest->mVertices[j].z = -vertices[2];
+			}
+			vertices += 3;
+
+			if ((vBuf->flags & VERTEX_NORMAL) != 0) {
+				if (aCrashWeights) {
+					dest->mNormals[j].x = aCrashWeights->vCrashNormal[0];
+					dest->mNormals[j].y = aCrashWeights->vCrashNormal[1];
+					dest->mNormals[j].z = -aCrashWeights->vCrashNormal[2];
+				}
+				else {
+					dest->mNormals[j].x = vertices[0];
+					dest->mNormals[j].y = vertices[1];
+					dest->mNormals[j].z = -vertices[2];
+				}
+				vertices += 3; // 3 floats
+			}
+			if ((vBuf->flags & VERTEX_COLOR) != 0) {
+				if (!aVertexColors.empty()) {
+					auto vertexColorOffset = *(uint32_t*)&vertices[0];
+					if (vertexColorOffset >= 0xFF000000) {
+						auto rgb = (uint8_t*)&vertexColorOffset;
+						dest->mColors[0][j].r = rgb[0] / 255.0;
+						dest->mColors[0][j].g = rgb[1] / 255.0;
+						dest->mColors[0][j].b = rgb[2] / 255.0;
+						dest->mColors[0][j].a = 1;
+					}
+					else {
+						int id = vertexColorOffset & 0xFFFFFF;
+						if (id >= aVertexColors.size()) {
+							WriteConsole("ERROR: Vertex colors for surface " + std::to_string(&src - &aSurfaces[0]) + " out of bounds!");
+							WriteConsole(std::to_string(id) + "/" + std::to_string(aVertexColors.size()));
+							exit(0);
+						}
+						auto rgb = (uint8_t*)&aVertexColors[id];
+						dest->mColors[0][j].r = rgb[0] / 255.0;
+						dest->mColors[0][j].g = rgb[1] / 255.0;
+						dest->mColors[0][j].b = rgb[2] / 255.0;
+						dest->mColors[0][j].a = 1;
+					}
+				}
+				vertices += 1; // 1 int32
+			}
+			if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
+				dest->mTextureCoords[0][j].x = vertices[0];
+				dest->mTextureCoords[0][j].y = 1 - vertices[1];
+				dest->mTextureCoords[0][j].z = 0;
+				vertices += 2;
+			}
+			if ((vBuf->flags & VERTEX_UV2) != 0) {
+				dest->mTextureCoords[1][j].x = vertices[0];
+				dest->mTextureCoords[1][j].y = 1 - vertices[1];
+				dest->mTextureCoords[1][j].z = 0;
+				vertices += 2;
+			}
+			vertexData += stride;
+			if (aCrashWeights) aCrashWeights++;
+		}
+	}
+
+	if (src.nPolyMode == 5) {
+		bool bFlip = false;
+		for (int j = 0; j < src.nPolyCount; j++) {
+			auto tmp = (uint16_t*)indexData;
+			int indices[3] = {tmp[0], tmp[1], tmp[2]};
+			indices[0] -= baseVertexOffset;
+			indices[1] -= baseVertexOffset;
+			indices[2] -= baseVertexOffset;
+			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0])); exit(0); }
+			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1])); exit(0); }
+			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2])); exit(0); }
+			dest->mFaces[j].mIndices = new uint32_t[3];
+			if (bFlip) {
+				dest->mFaces[j].mIndices[0] = indices[0];
+				dest->mFaces[j].mIndices[1] = indices[1];
+				dest->mFaces[j].mIndices[2] = indices[2];
+			}
+			else {
+				dest->mFaces[j].mIndices[0] = indices[2];
+				dest->mFaces[j].mIndices[1] = indices[1];
+				dest->mFaces[j].mIndices[2] = indices[0];
+			}
+			dest->mFaces[j].mNumIndices = 3;
+			indexData += 2;
+			bFlip = !bFlip;
+		}
+	}
+	else {
+		for (int j = 0; j < src.nPolyCount; j++) {
+			auto tmp = (uint16_t*)indexData;
+			int indices[3] = {tmp[0], tmp[1], tmp[2]};
+			indices[0] -= baseVertexOffset;
+			indices[1] -= baseVertexOffset;
+			indices[2] -= baseVertexOffset;
+			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0])); exit(0); }
+			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1])); exit(0); }
+			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2])); exit(0); }
+			dest->mFaces[j].mIndices = new uint32_t[3];
+			dest->mFaces[j].mIndices[0] = indices[2];
+			dest->mFaces[j].mIndices[1] = indices[1];
+			dest->mFaces[j].mIndices[2] = indices[0];
+			dest->mFaces[j].mNumIndices = 3;
+			indexData += 2 * 3;
+		}
+	}
+}
+
 aiScene GenerateScene() {
 	aiScene scene;
 	scene.mRootNode = new aiNode();
@@ -55,10 +241,14 @@ aiScene GenerateScene() {
 	scene.mNumMaterials = aMaterials.size();
 
 	int numSurfaces = 0;
+	int numBaseSurfaces = 0;
 	for (auto& surface : aSurfaces) {
-		if (CanSurfaceBeExported(&surface)) numSurfaces++;
+		if (!CanSurfaceBeExported(&surface)) continue;
+		numSurfaces++;
+		numBaseSurfaces++;
+		if (surface._pCrashDataSurface) numSurfaces++;
 	}
-	WriteConsole(std::to_string(numSurfaces) + " surfaces of " + std::to_string(aSurfaces.size()) + " can be exported");
+	WriteConsole(std::to_string(numBaseSurfaces) + " surfaces of " + std::to_string(aSurfaces.size()) + " can be exported");
 
 	scene.mMeshes = new aiMesh*[numSurfaces];
 	scene.mNumMeshes = numSurfaces;
@@ -70,183 +260,21 @@ aiScene GenerateScene() {
 		int i = counter++;
 		src._nFBXModelId = i;
 
-		scene.mMeshes[i] = new aiMesh();
-
-		auto dest = scene.mMeshes[i];
+		auto dest = scene.mMeshes[i] = new aiMesh();
 		dest->mName = "Surface" + std::to_string(&src - &aSurfaces[0]);
 		dest->mMaterialIndex = src.nMaterialId;
-
 		auto vBuf = FindVertexBuffer(src.nStreamId[0]);
 		auto iBuf = FindIndexBuffer(src.nStreamId[1]);
 
-		auto stride = vBuf->vertexSize;
-		uintptr_t vertexData = ((uintptr_t)vBuf->data) + src.nStreamOffset[0];
-		uintptr_t indexData = ((uintptr_t)iBuf->data) + src.nStreamOffset[1];
+		FillFBXMeshFromSurface(dest, vBuf, iBuf, src, src.nStreamOffset[0]);
+		if (src._pCrashDataSurface) {
+			i = counter++;
+			src._nFBXCrashModelId = i;
 
-		uint32_t baseVertexOffset = src.nStreamOffset[0] / vBuf->vertexSize;
-
-		bool bHasNormals = (vBuf->flags & VERTEX_NORMAL) != 0;
-		if (bIsFOUCModel && (vBuf->flags & VERTEX_COLOR) != 0) bHasNormals = true;
-
-		dest->mVertices = new aiVector3D[src.nVertexCount];
-		dest->mNumVertices = src.nVertexCount;
-		dest->mFaces = new aiFace[src.nPolyCount];
-		dest->mNumFaces = src.nPolyCount;
-		dest->mTextureCoords[0] = new aiVector3D[src.nVertexCount];
-		dest->mNumUVComponents[0] = 2;
-		if ((vBuf->flags & VERTEX_UV2) != 0) {
-			dest->mTextureCoords[1] = new aiVector3D[src.nVertexCount];
-			dest->mNumUVComponents[1] = 2;
-		}
-		if (bHasNormals) {
-			dest->mNormals = new aiVector3D[src.nVertexCount];
-		}
-		if ((vBuf->flags & VERTEX_COLOR) != 0 && !bIsFOUCModel && !aVertexColors.empty()) {
-			dest->mColors[0] = new aiColor4D[src.nVertexCount];
-		}
-
-		if (bIsFOUCModel) {
-			for (int j = 0; j < src.nVertexCount; j++) {
-				auto vertices = (int16_t*)vertexData;
-
-				// uvs always seem to be the last 2 or 4 values in the vertex buffer
-				auto uvOffset = stride - 4;
-				if ((vBuf->flags & VERTEX_UV2) != 0) uvOffset -= 4;
-				auto uvs = (int16_t*)(vertexData + uvOffset);
-
-				dest->mVertices[j].x = vertices[0];
-				dest->mVertices[j].y = vertices[1];
-				dest->mVertices[j].z = vertices[2];
-				dest->mVertices[j].x += src.foucVertexMultiplier[0];
-				dest->mVertices[j].y += src.foucVertexMultiplier[1];
-				dest->mVertices[j].z += src.foucVertexMultiplier[2];
-				dest->mVertices[j].x *= src.foucVertexMultiplier[3];
-				dest->mVertices[j].y *= src.foucVertexMultiplier[3];
-				dest->mVertices[j].z *= -src.foucVertexMultiplier[3];
-				vertices += 3;
-
-				if (bHasNormals) {
-					vertices += 4;
-					auto int8Vertices = (uint8_t*)vertices;
-					dest->mNormals[j].z = ((int8Vertices[2] / 127.0) - 1) * -1;
-					dest->mNormals[j].y = (int8Vertices[3] / 127.0) - 1;
-					dest->mNormals[j].x = (int8Vertices[4] / 127.0) - 1;
-					vertices += 3; // 3 floats
-				}
-				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32
-				if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
-					dest->mTextureCoords[0][j].x = uvs[0] / 2048.0;
-					dest->mTextureCoords[0][j].y = 1 - (uvs[1] / 2048.0);
-					dest->mTextureCoords[0][j].z = 0;
-				}
-				if ((vBuf->flags & VERTEX_UV2) != 0) {
-					dest->mTextureCoords[1][j].x = uvs[2] / 2048.0;
-					dest->mTextureCoords[1][j].y = 1 - (uvs[3] / 2048.0);
-					dest->mTextureCoords[1][j].z = 0;
-				}
-				vertexData += stride;
-			}
-		}
-		else {
-			for (int j = 0; j < src.nVertexCount; j++) {
-				auto vertices = (float*)vertexData;
-				dest->mVertices[j].x = vertices[0];
-				dest->mVertices[j].y = vertices[1];
-				dest->mVertices[j].z = -vertices[2];
-				vertices += 3;
-
-				if ((vBuf->flags & VERTEX_NORMAL) != 0) {
-					dest->mNormals[j].x = vertices[0];
-					dest->mNormals[j].y = vertices[1];
-					dest->mNormals[j].z = -vertices[2];
-					vertices += 3; // 3 floats
-				}
-				if ((vBuf->flags & VERTEX_COLOR) != 0) {
-					if (!aVertexColors.empty()) {
-						auto vertexColorOffset = *(uint32_t*)&vertices[0];
-						if (vertexColorOffset >= 0xFF000000) {
-							auto rgb = (uint8_t*)&vertexColorOffset;
-							dest->mColors[0][j].r = rgb[0] / 255.0;
-							dest->mColors[0][j].g = rgb[1] / 255.0;
-							dest->mColors[0][j].b = rgb[2] / 255.0;
-							dest->mColors[0][j].a = 1;
-						}
-						else {
-							int id = vertexColorOffset & 0xFFFFFF;
-							if (id >= aVertexColors.size()) {
-								WriteConsole("ERROR: Vertex colors for surface " + std::to_string(&src - &aSurfaces[0]) + " out of bounds!");
-								WriteConsole(std::to_string(id) + "/" + std::to_string(aVertexColors.size()));
-								exit(0);
-							}
-							auto rgb = (uint8_t*)&aVertexColors[id];
-							dest->mColors[0][j].r = rgb[0] / 255.0;
-							dest->mColors[0][j].g = rgb[1] / 255.0;
-							dest->mColors[0][j].b = rgb[2] / 255.0;
-							dest->mColors[0][j].a = 1;
-						}
-					}
-					vertices += 1; // 1 int32
-				}
-				if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
-					dest->mTextureCoords[0][j].x = vertices[0];
-					dest->mTextureCoords[0][j].y = 1 - vertices[1];
-					dest->mTextureCoords[0][j].z = 0;
-					vertices += 2;
-				}
-				if ((vBuf->flags & VERTEX_UV2) != 0) {
-					dest->mTextureCoords[1][j].x = vertices[0];
-					dest->mTextureCoords[1][j].y = 1 - vertices[1];
-					dest->mTextureCoords[1][j].z = 0;
-					vertices += 2;
-				}
-				vertexData += stride;
-			}
-		}
-
-		if (src.nPolyMode == 5) {
-			bool bFlip = false;
-			for (int j = 0; j < src.nPolyCount; j++) {
-				auto tmp = (uint16_t*)indexData;
-				int indices[3] = {tmp[0], tmp[1], tmp[2]};
-				indices[0] -= baseVertexOffset;
-				indices[1] -= baseVertexOffset;
-				indices[2] -= baseVertexOffset;
-				if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0])); exit(0); }
-				if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1])); exit(0); }
-				if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2])); exit(0); }
-				dest->mFaces[j].mIndices = new uint32_t[3];
-				if (bFlip) {
-					dest->mFaces[j].mIndices[0] = indices[0];
-					dest->mFaces[j].mIndices[1] = indices[1];
-					dest->mFaces[j].mIndices[2] = indices[2];
-				}
-				else {
-					dest->mFaces[j].mIndices[0] = indices[2];
-					dest->mFaces[j].mIndices[1] = indices[1];
-					dest->mFaces[j].mIndices[2] = indices[0];
-				}
-				dest->mFaces[j].mNumIndices = 3;
-				indexData += 2;
-				bFlip = !bFlip;
-			}
-		}
-		else {
-			for (int j = 0; j < src.nPolyCount; j++) {
-				auto tmp = (uint16_t*)indexData;
-				int indices[3] = {tmp[0], tmp[1], tmp[2]};
-				indices[0] -= baseVertexOffset;
-				indices[1] -= baseVertexOffset;
-				indices[2] -= baseVertexOffset;
-				if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0])); exit(0); }
-				if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1])); exit(0); }
-				if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2])); exit(0); }
-				dest->mFaces[j].mIndices = new uint32_t[3];
-				dest->mFaces[j].mIndices[0] = indices[2];
-				dest->mFaces[j].mIndices[1] = indices[1];
-				dest->mFaces[j].mIndices[2] = indices[0];
-				dest->mFaces[j].mNumIndices = 3;
-				indexData += 2 * 3;
-			}
+			auto destCrash = scene.mMeshes[i] = new aiMesh();
+			destCrash->mName = "Surface" + std::to_string(&src - &aSurfaces[0]) + "_crash";
+			destCrash->mMaterialIndex = src.nMaterialId;
+			FillFBXMeshFromSurface(destCrash, &src._pCrashDataSurface->vBuffer, iBuf, src, 0, &src._pCrashDataSurface->aCrashWeights[0]);
 		}
 	}
 
@@ -309,7 +337,9 @@ aiScene GenerateScene() {
 					std::vector<int> aMeshes;
 					for (auto &surfaceId: model.aSurfaces) {
 						if (!IsSurfaceValidAndExportable(surfaceId)) continue;
-						aMeshes.push_back(aSurfaces[surfaceId]._nFBXModelId);
+						auto& surface = aSurfaces[surfaceId];
+						aMeshes.push_back(surface._nFBXModelId);
+						if (surface._nFBXCrashModelId >= 0) aMeshes.push_back(surface._nFBXCrashModelId);
 					}
 					modelNode->mMeshes = new uint32_t[aMeshes.size()];
 					memcpy(modelNode->mMeshes, &aMeshes[0], aMeshes.size() * sizeof(uint32_t));
