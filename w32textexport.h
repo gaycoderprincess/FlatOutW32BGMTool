@@ -45,7 +45,7 @@ void WriteW32StreamsToText() {
 				if (bIsFOUCModel) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
 				WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
 				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
-				std::string uvFlagsReadable = "";
+				std::string uvFlagsReadable;
 				if ((buf.flags & VERTEX_POSITION) != 0) uvFlagsReadable += "Position ";
 				if ((buf.flags & VERTEX_NORMAL) != 0) uvFlagsReadable += "Normals ";
 				if ((buf.flags & VERTEX_COLOR) != 0) uvFlagsReadable += "VertexColor ";
@@ -54,7 +54,7 @@ void WriteW32StreamsToText() {
 				if ((buf.flags & VERTEX_INT16) != 0) uvFlagsReadable += "Int16 ";
 				WriteFile(std::format("nFlags: 0x{:X} {}", buf.flags, uvFlagsReadable));
 
-				if (bIsFOUCModel) {
+				if ((buf.flags & VERTEX_INT16) != 0) {
 					if (bDumpFOUCOffsetedStreams && !buf._coordsAfterFOUCMult.empty()) {
 						int counter = 0;
 						std::string out;

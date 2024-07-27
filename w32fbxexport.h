@@ -123,9 +123,10 @@ aiScene GenerateScene() {
 				vertices += 3;
 
 				if ((vBuf->flags & VERTEX_NORMAL) != 0) {
-					dest->mNormals[j].x = vertices[0] / 32767.0;
-					dest->mNormals[j].y = vertices[1] / 32767.0;
-					dest->mNormals[j].z = -vertices[2] / 32767.0;
+					// vertices[0] seems to always be 0x0400
+					dest->mNormals[j].x = vertices[1] / 32767.0;
+					dest->mNormals[j].y = vertices[2] / 32767.0;
+					dest->mNormals[j].z = -vertices[3] / 32767.0;
 					vertices += 3; // 3 floats
 				}
 				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32

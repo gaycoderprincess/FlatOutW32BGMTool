@@ -72,7 +72,9 @@ void WriteVertexBufferToFile(std::ofstream& file, tVertexBuffer& buf) {
 			file.write((char*)buf.origDataForFOUCExport, buf.vertexCount * buf.vertexSize);
 		}
 		else {
-			file.write((char*)buf.data, buf.vertexCount * buf.vertexSize);
+			int vertexSize = buf.vertexSize;
+			if (buf.foucExtraFormat == 22) vertexSize = 32;
+			file.write((char*)buf.data, buf.vertexCount * vertexSize);
 		}
 	}
 }
@@ -253,9 +255,14 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 	tVertexBuffer vBuf;
 	vBuf.id = id;
 	vBuf.flags = flags;
+	if (bIsFOUCModel) {
+		vBuf.foucExtraFormat = 22;
+		vertexSize = 64;
+	}
 	vBuf.vertexSize = vertexSize;
 	vBuf.vertexCount = mesh->mNumVertices;
 	vBuf.data = new float[mesh->mNumVertices * (vertexSize / 4)];
+	memset(vBuf.data, 0, mesh->mNumVertices * (vertexSize / 4) * sizeof(float));
 	auto vertexData = vBuf.data;
 	for (int i = 0; i < mesh->mNumVertices; i++) {
 		auto vertices = (float*)vertexData;
@@ -310,6 +317,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 		}
 		vertexData += vertexSize / 4;
 	}
+	vBuf.vertexCount *= 2;
 	aVertexBuffers.push_back(vBuf);
 
 	tIndexBuffer iBuf;
@@ -318,7 +326,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 	iBuf.data = new uint16_t[iBuf.indexCount];
 	auto indexData = iBuf.data;
 	for (int i = 0; i < mesh->mNumFaces; i++) {
-		auto face = mesh->mFaces[i];
+		auto& face = mesh->mFaces[i];
 		if (face.mNumIndices != 3) {
 			WriteConsole("ERROR: Non-tri found in FBX mesh while exporting!");
 			continue;
@@ -370,7 +378,6 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 
 void CreateBGMSurfaceFromFBX(aiNode* node, int meshId) {
 	auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[meshId]];
-	bool bIsBodyShadow = !mesh->HasNormals() || !mesh->HasTextureCoords(0);
 
 	tSurface surface;
 	surface.nIsVegetation = 0;
@@ -481,7 +488,7 @@ void FillBGMFromFBX() {
 			}
 
 			if (model.sName.ends_with(".001")) {
-				for (int j = 0; j < 4; j++) {
+				for (int k = 0; k < 4; k++) {
 					model.sName.pop_back();
 				}
 			}
@@ -826,51 +833,6 @@ void ConvertFOUCSurfaceToFO2(tSurface& surface) {
 	aConversionIndexBuffers.push_back(newIndexBuffer);
 }
 
-/*void ConvertFOUCVertexBufferToFO2(tVertexBuffer& buf) {
-	size_t numVertexValues = 9;
-
-	auto stride = buf.vertexSize;
-	uintptr_t vertexData = (uintptr_t)buf.data;
-	auto newBuffer = new float[buf.vertexCount * numVertexValues];
-	auto newVertexData = (uintptr_t)newBuffer;
-	auto newStride = numVertexValues * 4;
-	for (int i = 0; i < buf.vertexCount; i++) {
-		auto src = (int16_t*)vertexData;
-		auto dest = (float*)newVertexData;
-
-		// uvs always seem to be the last 2 or 4 values in the vertex buffer
-		auto uvOffset = stride - 4;
-		if ((buf.flags & VERTEX_UV2) != 0) uvOffset -= 4;
-		auto uvs = (int16_t*)(vertexData + uvOffset);
-
-		dest[0] = src[0];
-		dest[1] = src[1];
-		dest[2] = src[2];
-		dest[0] *= 0.000977;
-		dest[1] *= 0.000977;
-		dest[2] *= 0.000977;
-		src += 3;
-
-		dest[3] = 0;
-		dest[4] = 1;
-		dest[5] = 0;
-
-		*(uint32_t*)&dest[6] = 0xFFFFFFFF; // vertex color
-
-		if ((buf.flags & VERTEX_COLOR) != 0) src += 9;
-		if ((buf.flags & VERTEX_UV) != 0 || (buf.flags & VERTEX_UV2) != 0) {
-			dest[7] = uvs[0] / 2048.0;
-			dest[8] = uvs[1] / 2048.0;
-		}
-		vertexData += stride;
-		newVertexData += newStride;
-	}
-	buf.foucExtraFormat = 0;
-	buf.vertexSize = numVertexValues * 4;
-	buf.data = newBuffer;
-	buf.flags = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_COLOR | VERTEX_UV;
-}*/
-
 void WriteBGM(uint32_t exportMapVersion) {
 	WriteConsole("Writing output bgm file...");
 
@@ -892,19 +854,6 @@ void WriteBGM(uint32_t exportMapVersion) {
 	}
 
 	if (bIsFOUCModel && (bConvertToFO1 || bConvertToFO2)) {
-		/*for (auto& buf : aVertexBuffers) {
-			ConvertFOUCVertexBufferToFO2(buf);
-		}
-		for (auto& surface : aSurfaces) {
-			if (surface.nFlags != 0x2242) {
-				WriteConsole("Unexpected flags value for surface! Can't convert");
-				return;
-			}
-			surface.nFlags = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_COLOR | VERTEX_UV;
-			surface.nStreamOffset[0] /= 32;
-			surface.nStreamOffset[0] *= 9 * 4;
-		}*/
-
 		for (auto& surface : aSurfaces) {
 			if (surface.nFlags != 0x2242) {
 				WriteConsole("Unexpected flags value for surface! Can't convert");
