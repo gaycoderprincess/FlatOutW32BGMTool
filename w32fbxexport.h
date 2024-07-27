@@ -131,11 +131,6 @@ aiScene GenerateScene() {
 					dest->mNormals[j].z = ((int8Vertices[2] / 127.0) - 1) * -1;
 					dest->mNormals[j].y = (int8Vertices[3] / 127.0) - 1;
 					dest->mNormals[j].x = (int8Vertices[4] / 127.0) - 1;
-
-					dest->mNormals[j].z *= -1;
-					dest->mNormals[j].y *= -1;
-					dest->mNormals[j].x *= -1;
-
 					vertices += 3; // 3 floats
 				}
 				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32
@@ -164,11 +159,6 @@ aiScene GenerateScene() {
 					dest->mNormals[j].x = vertices[0];
 					dest->mNormals[j].y = vertices[1];
 					dest->mNormals[j].z = -vertices[2];
-
-					dest->mNormals[j].z *= -1;
-					dest->mNormals[j].y *= -1;
-					dest->mNormals[j].x *= -1;
-
 					vertices += 3; // 3 floats
 				}
 				if ((vBuf->flags & VERTEX_COLOR) != 0) {
@@ -226,14 +216,14 @@ aiScene GenerateScene() {
 				if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2])); exit(0); }
 				dest->mFaces[j].mIndices = new uint32_t[3];
 				if (bFlip) {
-					dest->mFaces[j].mIndices[0] = indices[2];
-					dest->mFaces[j].mIndices[1] = indices[1];
-					dest->mFaces[j].mIndices[2] = indices[0];
-				}
-				else {
 					dest->mFaces[j].mIndices[0] = indices[0];
 					dest->mFaces[j].mIndices[1] = indices[1];
 					dest->mFaces[j].mIndices[2] = indices[2];
+				}
+				else {
+					dest->mFaces[j].mIndices[0] = indices[2];
+					dest->mFaces[j].mIndices[1] = indices[1];
+					dest->mFaces[j].mIndices[2] = indices[0];
 				}
 				dest->mFaces[j].mNumIndices = 3;
 				indexData += 2;
@@ -251,9 +241,9 @@ aiScene GenerateScene() {
 				if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1])); exit(0); }
 				if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2])); exit(0); }
 				dest->mFaces[j].mIndices = new uint32_t[3];
-				dest->mFaces[j].mIndices[0] = indices[0];
+				dest->mFaces[j].mIndices[0] = indices[2];
 				dest->mFaces[j].mIndices[1] = indices[1];
-				dest->mFaces[j].mIndices[2] = indices[2];
+				dest->mFaces[j].mIndices[2] = indices[0];
 				dest->mFaces[j].mNumIndices = 3;
 				indexData += 2 * 3;
 			}
