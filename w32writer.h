@@ -435,6 +435,9 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	if (mat.sName.starts_with("window")) mat.nShaderId = 6; // car window
 	if (mat.sName.starts_with("shear")) mat.nShaderId = 11; // car shear
 	if (mat.sName.starts_with("scale")) mat.nShaderId = 12; // car scale
+	if (bIsFOUCModel && mat.sName.starts_with("tire")) mat.nShaderId = 44; // car tire
+	if (bIsFOUCModel && mat.sName.starts_with("rim")) mat.nShaderId = 9; // car tire rim
+	if (mat.sName.starts_with("terrain") || mat.sName.starts_with("groundplane")) mat.nShaderId = 7; // car diffuse
 	if (mat.sName.starts_with("light")) {
 		mat.v92 = 2;
 		mat.nShaderId = 10; // car lights
@@ -614,7 +617,7 @@ void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("Writing output w32 file...");
 
 	nExportFileVersion = exportMapVersion;
-	if ((nExportFileVersion >= 0x20002 || nImportFileVersion >= 0x20002 || bIsFOUCModel) && nImportFileVersion != nExportFileVersion) {
+	if ((nExportFileVersion == 0x20002 || nImportFileVersion == 0x20002 || bIsFOUCModel) && nImportFileVersion != nExportFileVersion) {
 		WriteConsole("ERROR: FOUC conversions are currently not supported!");
 		return;
 	}

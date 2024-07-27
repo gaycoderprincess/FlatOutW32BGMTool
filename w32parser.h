@@ -330,7 +330,7 @@ bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 		ReadFromFile(file, &staticBatch.nSurfaceId, 4);
 
 		bool bIsSurfaceValid = staticBatch.nSurfaceId < aSurfaces.size();
-		if (nImportFileVersion < 0x20002 && !bIsSurfaceValid) return false;
+		if (nImportFileVersion != 0x20002 && !bIsSurfaceValid) return false;
 
 		if (bIsSurfaceValid) {
 			aSurfaces[staticBatch.nSurfaceId].RegisterReference(SURFACE_REFERENCE_STATICBATCH);
@@ -602,8 +602,9 @@ bool ParseW32(const std::string& fileName) {
 
 	ReadFromFile(fin, &nImportFileVersion, 4);
 	if (nImportFileVersion > 0x20000) ReadFromFile(fin, &nSomeMapValue, 4);
-	if (nImportFileVersion >= 0x20002) bIsFOUCModel = true;
-	if (nImportFileVersion < 0x20002) {
+
+	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
+	else {
 		auto vertexColorsPath = "vertexcolors_w2.w32";
 		if (!ParseVertexColors(vertexColorsPath)) {
 			WriteConsole("Failed to load " + (std::string)vertexColorsPath + ", vertex colors will not be exported");
@@ -617,7 +618,7 @@ bool ParseW32(const std::string& fileName) {
 
 	WriteConsole("Parsing tree-related data...");
 
-	if (nImportFileVersion < 0x20002) {
+	if (nImportFileVersion != 0x20002) {
 		uint32_t someCount;
 		ReadFromFile(fin, &someCount, 4);
 		for (int i = 0; i < someCount; i++) {
@@ -671,7 +672,7 @@ bool ParseBGM(const std::string& fileName) {
 	if (!fin.is_open()) return false;
 
 	ReadFromFile(fin, &nImportFileVersion, 4);
-	if (nImportFileVersion >= 0x20002) bIsFOUCModel = true;
+	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
 	bIsBGMModel = true;
 
 	if (!ParseW32Materials(fin)) return false;

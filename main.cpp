@@ -22,7 +22,7 @@
 void ProcessCommandlineArguments(int argc, char* argv[]) {
 	sFileName = argv[1];
 	sFileNameNoExt = sFileName;
-	if (sFileName.ends_with(".w32") || sFileName.ends_with(".bgm") || sFileName.ends_with(".gen") || sFileName.ends_with(".fbx")) {
+	if (sFileName.ends_with(".w32") || sFileName.ends_with(".bgm") || sFileName.ends_with(".car") || sFileName.ends_with(".gen") || sFileName.ends_with(".fbx")) {
 		for (int i = 0; i < 4; i++) {
 			sFileNameNoExt.pop_back();
 		}
@@ -179,7 +179,7 @@ int main(int argc, char *argv[]) {
 			}
 			return 0;
 		} else {
-			if (sFileName.ends_with(".bgm")) {
+			if (sFileName.ends_with(".bgm") || sFileName.ends_with(".car")) {
 				if (!ParseBGM(sFileName)) {
 					WriteConsole("Failed to load " + sFileName + "!");
 				} else {

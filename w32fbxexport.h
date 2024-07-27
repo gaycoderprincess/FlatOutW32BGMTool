@@ -131,9 +131,6 @@ aiScene GenerateScene() {
 					dest->mNormals[j].z = ((int8Vertices[2] / 127.0) - 1) * -1;
 					dest->mNormals[j].y = (int8Vertices[3] / 127.0) - 1;
 					dest->mNormals[j].x = (int8Vertices[4] / 127.0) - 1;
-					//int8Vertices[2] = (-mesh->mNormals[i].z + 1) * 127.0;
-					//int8Vertices[3] = (mesh->mNormals[i].y + 1) * 127.0;
-					//int8Vertices[4] = (mesh->mNormals[i].x + 1) * 127.0;
 					vertices += 3; // 3 floats
 				}
 				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32
