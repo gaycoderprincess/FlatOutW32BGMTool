@@ -16,7 +16,8 @@ This tool is currently capable of:
 
 Thanks to Gulbroz for their existing work on this format, it was a great jumping-off point.
 
-![custom mesh preview](https://i.imgur.com/lpQsDOl.png)
+![custom car mesh preview](https://i.imgur.com/Liwqm6v.png)
+![custom track mesh preview](https://i.imgur.com/lpQsDOl.png)
 
 ## Usage
 
