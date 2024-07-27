@@ -26,6 +26,7 @@ std::string sFileNameNoExt;
 bool bIsBGMModel = false;
 bool bIsFOUCModel = false;
 bool bIsXboxBetaModel = false;
+double fFOUCCarMultiplier = 0.000977;
 
 void WriteConsole(const std::string& str) {
 	auto& out = std::cout;
