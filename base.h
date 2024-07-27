@@ -235,9 +235,21 @@ struct tCrashDataWeights {
 	float vBaseNormal[3];
 	float vCrashNormal[3];
 };
+struct tCrashDataWeightsFOUC {
+	int16_t vBasePos[3];
+	int16_t vCrashPos[3];
+	uint8_t vBaseUnknownProllyBumpmaps[4]; // ends in FF
+	uint8_t vCrashUnknownProllyBumpmaps[4]; // ends in FF
+	uint8_t vBaseUnknownProllyBumpmaps2[4]; // ends in FF
+	uint8_t vCrashUnknownProllyBumpmaps2[4]; // ends in FF
+	uint8_t vBaseNormals[4]; // ends in FF
+	uint8_t vCrashNormals[4]; // ends in FF
+	uint16_t vBaseUVs[2]; // doesn't have a crash equivalent
+};
 struct tCrashDataSurface {
 	tVertexBuffer vBuffer;
 	std::vector<tCrashDataWeights> aCrashWeights;
+	std::vector<tCrashDataWeightsFOUC> aCrashWeightsFOUC;
 };
 struct tCrashData {
 	std::string sName;

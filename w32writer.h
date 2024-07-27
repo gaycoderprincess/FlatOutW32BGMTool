@@ -1038,12 +1038,8 @@ void WriteCrashDat(uint32_t exportMapVersion) {
 	WriteConsole("Writing output crash.dat file...");
 
 	nExportFileVersion = exportMapVersion;
-	if (bIsFOUCModel) {
-		WriteConsole("ERROR: Ultimate Carnage crash.dat is currently not supported!");
-		exit(0);
-	}
 
-	std::ofstream file(sFileNameNoExt + "_out.dat", std::ios::out | std::ios::binary );
+	std::ofstream file(sFileNameNoExt + "_out_crash.dat", std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 
 	int numModels = 0;
@@ -1086,20 +1082,33 @@ void WriteCrashDat(uint32_t exportMapVersion) {
 
 			uint32_t numVerts = baseSurface.nVertexCount;
 			file.write((char*)&numVerts, 4);
-			uint32_t numVertsBytes = baseSurface.nVertexCount * baseVBuffer->vertexSize;
-			file.write((char*)&numVertsBytes, 4);
-			file.write((char*)baseVBuffer->data, numVertsBytes);
+			if (!bIsFOUCModel) {
+				uint32_t numVertsBytes = baseSurface.nVertexCount * baseVBuffer->vertexSize;
+				file.write((char*)&numVertsBytes, 4);
+				file.write((char*)baseVBuffer->data, numVertsBytes);
+			}
 			auto baseVerts = (uintptr_t)baseVBuffer->data;
 			auto crashVerts = (uintptr_t)crashVBuffer->data;
+			if (noDamage) crashVerts = baseVerts;
 			for (int i = 0; i < numVerts; i++) {
-				// base verts, crash verts, base normals, crash normals
-				if (noDamage) {
-					file.write((char*)baseVerts, 3 * sizeof(float));
-					file.write((char*)baseVerts, 3 * sizeof(float));
-					file.write((char*)(baseVerts + 3 * sizeof(float)), 3 * sizeof(float));
-					file.write((char*)(baseVerts + 3 * sizeof(float)), 3 * sizeof(float));
+				if (bIsFOUCModel) {
+					// verts
+					file.write((char*)baseVerts, 3 * sizeof(uint16_t));
+					file.write((char*)crashVerts, 3 * sizeof(uint16_t));
+					// bumpmap related
+					file.write((char*)(baseVerts + 4 * sizeof(uint16_t)), 4);
+					file.write((char*)(crashVerts + 4 * sizeof(uint16_t)), 4);
+					// bumpmap related
+					file.write((char*)(baseVerts + 6 * sizeof(uint16_t)), 4);
+					file.write((char*)(crashVerts + 6 * sizeof(uint16_t)), 4);
+					// normals
+					file.write((char*)(baseVerts + 8 * sizeof(uint16_t)), 4);
+					file.write((char*)(crashVerts + 8 * sizeof(uint16_t)), 4);
+					// uvs, no crash variant
+					file.write((char*)(baseVerts + 12 * sizeof(uint16_t)), 4);
 				}
 				else {
+					// base verts, crash verts, base normals, crash normals
 					file.write((char*)baseVerts, 3 * sizeof(float));
 					file.write((char*)crashVerts, 3 * sizeof(float));
 					file.write((char*)(baseVerts + 3 * sizeof(float)), 3 * sizeof(float));

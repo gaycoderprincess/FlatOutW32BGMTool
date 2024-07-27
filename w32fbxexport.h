@@ -17,7 +17,7 @@ aiNode* CreateNodeForTreeMesh(aiScene* scene, const tTreeMesh& treeMesh) {
 	return node;
 }
 
-void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBuf, tSurface& src, uint32_t vertexOffset, tCrashDataWeights* aCrashWeights = nullptr) {
+void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBuf, tSurface& src, uint32_t vertexOffset, tCrashDataWeights* aCrashWeightsFO2 = nullptr, tCrashDataWeightsFOUC* aCrashWeightsFOUC = nullptr) {
 	auto stride = vBuf->vertexSize;
 	uintptr_t vertexData = ((uintptr_t)vBuf->data) + vertexOffset;
 	uintptr_t indexData = ((uintptr_t)iBuf->data) + src.nStreamOffset[1];
@@ -52,9 +52,16 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 			if ((vBuf->flags & VERTEX_UV2) != 0) uvOffset -= 4;
 			auto uvs = (int16_t*)(vertexData + uvOffset);
 
-			dest->mVertices[j].x = vertices[0];
-			dest->mVertices[j].y = vertices[1];
-			dest->mVertices[j].z = vertices[2];
+			if (aCrashWeightsFOUC) {
+				dest->mVertices[j].x = aCrashWeightsFOUC->vCrashPos[0];
+				dest->mVertices[j].y = aCrashWeightsFOUC->vCrashPos[1];
+				dest->mVertices[j].z = aCrashWeightsFOUC->vCrashPos[2];
+			}
+			else {
+				dest->mVertices[j].x = vertices[0];
+				dest->mVertices[j].y = vertices[1];
+				dest->mVertices[j].z = vertices[2];
+			}
 			dest->mVertices[j].x += src.foucVertexMultiplier[0];
 			dest->mVertices[j].y += src.foucVertexMultiplier[1];
 			dest->mVertices[j].z += src.foucVertexMultiplier[2];
@@ -66,9 +73,13 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 			if (bHasNormals) {
 				vertices += 4;
 				auto int8Vertices = (uint8_t*)vertices;
-				dest->mNormals[j].z = ((int8Vertices[2] / 127.0) - 1) * -1;
-				dest->mNormals[j].y = (int8Vertices[3] / 127.0) - 1;
-				dest->mNormals[j].x = (int8Vertices[4] / 127.0) - 1;
+				int8Vertices += 2;
+				if (aCrashWeightsFOUC) {
+					int8Vertices = aCrashWeightsFOUC->vCrashNormals;
+				}
+				dest->mNormals[j].z = ((int8Vertices[0] / 127.0) - 1) * -1;
+				dest->mNormals[j].y = (int8Vertices[1] / 127.0) - 1;
+				dest->mNormals[j].x = (int8Vertices[2] / 127.0) - 1;
 				vertices += 3; // 3 floats
 			}
 			if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32
@@ -83,15 +94,16 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 				dest->mTextureCoords[1][j].z = 0;
 			}
 			vertexData += stride;
+			if (aCrashWeightsFOUC) aCrashWeightsFOUC++;
 		}
 	}
 	else {
 		for (int j = 0; j < src.nVertexCount; j++) {
 			auto vertices = (float*)vertexData;
-			if (aCrashWeights) {
-				dest->mVertices[j].x = aCrashWeights->vCrashPos[0];
-				dest->mVertices[j].y = aCrashWeights->vCrashPos[1];
-				dest->mVertices[j].z = -aCrashWeights->vCrashPos[2];
+			if (aCrashWeightsFO2) {
+				dest->mVertices[j].x = aCrashWeightsFO2->vCrashPos[0];
+				dest->mVertices[j].y = aCrashWeightsFO2->vCrashPos[1];
+				dest->mVertices[j].z = -aCrashWeightsFO2->vCrashPos[2];
 			}
 			else {
 				dest->mVertices[j].x = vertices[0];
@@ -101,10 +113,10 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 			vertices += 3;
 
 			if ((vBuf->flags & VERTEX_NORMAL) != 0) {
-				if (aCrashWeights) {
-					dest->mNormals[j].x = aCrashWeights->vCrashNormal[0];
-					dest->mNormals[j].y = aCrashWeights->vCrashNormal[1];
-					dest->mNormals[j].z = -aCrashWeights->vCrashNormal[2];
+				if (aCrashWeightsFO2) {
+					dest->mNormals[j].x = aCrashWeightsFO2->vCrashNormal[0];
+					dest->mNormals[j].y = aCrashWeightsFO2->vCrashNormal[1];
+					dest->mNormals[j].z = -aCrashWeightsFO2->vCrashNormal[2];
 				}
 				else {
 					dest->mNormals[j].x = vertices[0];
@@ -152,7 +164,7 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 				vertices += 2;
 			}
 			vertexData += stride;
-			if (aCrashWeights) aCrashWeights++;
+			if (aCrashWeightsFO2) aCrashWeightsFO2++;
 		}
 	}
 
@@ -274,7 +286,10 @@ aiScene GenerateScene() {
 			auto destCrash = scene.mMeshes[i] = new aiMesh();
 			destCrash->mName = "Surface" + std::to_string(&src - &aSurfaces[0]) + "_crash";
 			destCrash->mMaterialIndex = src.nMaterialId;
-			FillFBXMeshFromSurface(destCrash, &src._pCrashDataSurface->vBuffer, iBuf, src, 0, &src._pCrashDataSurface->aCrashWeights[0]);
+			auto weightsFO2 = bIsFOUCModel ? nullptr : &src._pCrashDataSurface->aCrashWeights[0];
+			auto weightsFOUC = bIsFOUCModel ? &src._pCrashDataSurface->aCrashWeightsFOUC[0] : nullptr;
+			auto vBuffer = bIsFOUCModel ? vBuf : &src._pCrashDataSurface->vBuffer;
+			FillFBXMeshFromSurface(destCrash, vBuffer, iBuf, src, 0, weightsFO2, weightsFOUC);
 		}
 	}
 

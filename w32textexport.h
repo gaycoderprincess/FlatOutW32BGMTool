@@ -537,17 +537,34 @@ void WriteCrashDatToText() {
 			WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
 			WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
 			if (bDumpStreams) {
-				for (auto &weights: surface.aCrashWeights) {
-					std::string out;
-					for (int i = 0; i < 3; i++) {
-						out += std::to_string(weights.vCrashPos[i]);
-						out += " ";
+				if (bIsFOUCModel) {
+					auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(uint16_t));
+					auto data = (uint8_t*)buf.data;
+
+					size_t j = 0;
+					while (j < dataSize) {
+						std::string out;
+						for (int k = 0; k < buf.vertexSize / sizeof(uint16_t); k++) {
+							out += std::format("0x{:04X}", *(uint16_t*)&data[j]);
+							out += " ";
+							j++;
+						}
+						WriteFile(out);
 					}
-					for (int i = 0; i < 3; i++) {
-						out += std::to_string(weights.vCrashNormal[i]);
-						out += " ";
+				}
+				else {
+					for (auto& weights: surface.aCrashWeights) {
+						std::string out;
+						for (int i = 0; i < 3; i++) {
+							out += std::to_string(weights.vCrashPos[i]);
+							out += " ";
+						}
+						for (int i = 0; i < 3; i++) {
+							out += std::to_string(weights.vCrashNormal[i]);
+							out += " ";
+						}
+						WriteFile(out);
 					}
-					WriteFile(out);
 				}
 			}
 			WriteFile("");

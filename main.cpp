@@ -44,6 +44,9 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		if (!strcmp(arg, "-export_w32")) bDumpIntoW32 = true;
 		if (!strcmp(arg, "-export_bgm")) bDumpIntoBGM = true;
 		if (!strcmp(arg, "-export_text")) bDumpIntoTextFile = true;
+		if (!strcmp(arg, "-fouc_crash_dat")) {
+			bIsFOUCModel = true;
+		}
 		if (!strcmp(arg, "-create_fo1_bgm")) {
 			bCreateBGMFromFBX = true;
 			nExportFileVersion = 0x10004;

@@ -693,9 +693,12 @@ bool ParseBGM(const std::string& fileName) {
 	ReadFromFile(fin, &nImportFileVersion, 4);
 	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
 	else {
-		auto crashDatPath = "crash.dat";
+		auto crashDatPath = sFileNameNoExt + "_crash.dat";
 		if (!ParseCrashDat(crashDatPath)) {
-			WriteConsole("Failed to load " + (std::string)crashDatPath + ", damage data will not be exported");
+			crashDatPath = "crash.dat";
+			if (!ParseCrashDat(crashDatPath)) {
+				WriteConsole("Failed to load " + (std::string)crashDatPath + ", damage data will not be exported");
+			}
 		}
 	}
 	bIsBGMModel = true;
