@@ -83,10 +83,12 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		if (!strcmp(arg, "-convert_to_fo1")) {
 			bConvertToFO1 = true;
 			bDumpIntoW32 = true;
+			bDumpIntoBGM = true;
 		}
 		if (!strcmp(arg, "-convert_to_fo2")) {
 			bConvertToFO2 = true;
 			bDumpIntoW32 = true;
+			bDumpIntoBGM = true;
 		}
 		if (!strcmp(arg, "-empty_bvh_gen")) {
 			bEmptyOutTrackBVH = true;

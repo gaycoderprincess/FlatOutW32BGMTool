@@ -849,7 +849,13 @@ void ConvertFOUCSurfaceToFO2(tSurface& surface) {
 
 	uint32_t baseVertexOffset = surface.nStreamOffset[0] / vBuf->vertexSize;
 
-	size_t numVertexValues = 9;
+	uint32_t flags = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_UV;
+	uint32_t numVertexValues = 8;
+	auto material = &aMaterials[surface.nMaterialId];
+	if (material->nShaderId == 5) { // car body, has vertex colors
+		flags = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_COLOR | VERTEX_UV;
+		numVertexValues = 9;
+	}
 
 	auto newBuffer = new float[surface.nVertexCount * numVertexValues];
 	auto newVertexData = (uintptr_t)newBuffer;
@@ -874,19 +880,24 @@ void ConvertFOUCSurfaceToFO2(tSurface& surface) {
 		dest[2] *= surface.foucVertexMultiplier[3];
 		src += 3;
 
-		dest[3] = src[1] / 32768.0;
-		dest[4] = src[2] / 32768.0;
-		dest[5] = src[3] / 32768.0;
+		// normals
+		{
+			src += 4;
+			auto int8Vertices = (uint8_t*)src;
+			dest[5] = (int8Vertices[2] / 127.0) - 1;
+			dest[4] = (int8Vertices[3] / 127.0) - 1;
+			dest[3] = (int8Vertices[4] / 127.0) - 1;
+		}
 
-		*(uint32_t*)&dest[6] = 0xFFFFFFFF; // vertex color
+		if ((flags & VERTEX_COLOR) != 0) {
+			*(uint32_t*)&dest[6] = 0xFFFFFFFF; // vertex color
+			dest++;
+		}
 
-		//if ((vBuf->flags & VERTEX_NORMAL) != 0) {
-		//	vertices += 3; // 3 floats
-		//}
 		if ((vBuf->flags & VERTEX_COLOR) != 0) src += 9;
 		if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
-			dest[7] = uvs[0] / 2048.0;
-			dest[8] = uvs[1] / 2048.0;
+			dest[6] = uvs[0] / 2048.0;
+			dest[7] = uvs[1] / 2048.0;
 		}
 		//if ((vBuf->flags & VERTEX_UV2) != 0) {
 		//}
