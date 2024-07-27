@@ -1,11 +1,13 @@
 # FlatOut W32 Tool
 
-A tool to handle .w32 files in FlatOut games, WIP
+A tool to handle .w32 and .bgm files in FlatOut games, WIP
 
 This tool is currently capable of:
-- Parsing and recreating the format from memory
+- Parsing and recreating the formats from memory
+- Importing vehicle models into FlatOut 1, 2 and Ultimate Carnage
 - Converting FlatOut 2 tracks to FlatOut 1
-- Exporting tracks to .fbx
+- Converting FlatOut: Ultimate Carnage cars to FlatOut 1 and 2
+- Exporting cars and tracks to .fbx
 - Editing track meshes (FlatOut 1 and 2 only)
 - Deleting track meshes
 - Moving track props
@@ -31,6 +33,7 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-text_materials` - Exports all material data into text, including shaders and some unknown metadata
 - `-text_streams_fouc_offseted` - Exports vertex buffers into text with their surface offsets already applied
 - `-text_streams_fouc_normalized` - Exports vertex buffers into text as normalized floating points
+- `-text_streams_fouc_int8` - Exports vertex buffers into text as int8 arrays
 - `-remove_object_dummies` - Creates a new .w32 file of the map with all objects and object dummies removed (e.g. menu cameras in FOUC)
 - `-remove_props` - Creates a new .w32 file of the map with all props removed
 - `-enable_all_props` - Creates a new .w32 file of the map with all props visible (BugBear left a lot of props hidden in each track)
@@ -43,6 +46,9 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-import_deletions` - Deletes surfaces and props that have been deleted from an .fbx file, usage: `FlatOutW32Tool_gcp.exe (w32 filename) (fbx filename) -import_deletions`
 
 ## BGM Arguments
+- `-create_fo1_bgm` - Exports an .fbx into a FlatOut 1 car bgm
+- `-create_fo2_bgm` - Exports an .fbx into a FlatOut 2 car bgm
+- `-create_fouc_bgm` - Exports an .fbx into a FlatOut: Ultimate Carnage car bgm
 - `-export_fbx` - Exports the car into a viewable .fbx file
 - `-export_bgm` - Exports car into a .bgm file (this should yield an identical file if there are no additional arguments, if it doesn't then file a bug report!)
 - `-export_text` - Exports the car into a human-readable text file
@@ -50,8 +56,9 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-text_materials` - Exports all material data into text, including shaders and some unknown metadata
 - `-text_streams_fouc_offseted` - Exports vertex buffers into text with their surface offsets already applied
 - `-text_streams_fouc_normalized` - Exports vertex buffers into text as normalized floating points
-- `-convert_to_fo1` - Converts the car from the Ultimate Carnge format to the FlatOut 1 format, WIP
-- `-convert_to_fo2` - Converts the car from the Ultimate Carnge format to the FlatOut 2 format, WIP
+- `-text_streams_fouc_int8` - Exports vertex buffers into text as int8 arrays
+- `-convert_to_fo1` - Converts the car from the Ultimate Carnage format to the FlatOut 1 format, WIP
+- `-convert_to_fo2` - Converts the car from the Ultimate Carnage format to the FlatOut 2 format, WIP
 
 ## Building
 
