@@ -403,7 +403,6 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 			vertexData += vertexSize / 4;
 		}
 	}
-	aVertexBuffers.push_back(vBuf);
 
 	tIndexBuffer iBuf;
 	iBuf.id = id + 1;
@@ -421,6 +420,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 		indexData[2] = face.mIndices[0];
 		indexData += 3;
 	}
+	aVertexBuffers.push_back(vBuf);
 	aIndexBuffers.push_back(iBuf);
 }
 
@@ -465,7 +465,7 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	return mat;
 }
 
-void CreateBGMSurfaceFromFBX(aiNode* node, int meshId) {
+void CreateBGMSurfaceFromFBX(aiNode* node, int meshId, bool isCrash) {
 	auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[meshId]];
 
 	tSurface surface;
@@ -487,7 +487,8 @@ void CreateBGMSurfaceFromFBX(aiNode* node, int meshId) {
 	surface.foucVertexMultiplier[2] = 0;
 	surface.foucVertexMultiplier[3] = fFOUCCarMultiplier;
 
-	aSurfaces.push_back(surface);
+	if (isCrash) aCrashSurfaces.push_back(surface);
+	else aSurfaces.push_back(surface);
 }
 
 void FillBGMFromFBX() {
@@ -507,8 +508,6 @@ void FillBGMFromFBX() {
 	// create streams
 	for (int i = 0; i < pParsedFBXScene->mNumMeshes; i++) {
 		auto src = pParsedFBXScene->mMeshes[i];
-		WriteConsole("Exporting " + (std::string)src->mName.C_Str());
-
 		auto material = &aMaterials[src->mMaterialIndex];
 		if (bIsFOUCModel) {
 			CreateStreamsFromFBX(src, VERTEX_POSITION | VERTEX_COLOR | VERTEX_UV2, 36);
@@ -550,8 +549,8 @@ void FillBGMFromFBX() {
 				auto mesh = pParsedFBXScene->mMeshes[body001->mMeshes[k]];
 				auto meshName = (std::string)mesh->mName.C_Str();
 				if (meshName.ends_with("_crash")) {
-					model.aCrashSurfaces.push_back(aSurfaces.size());
-					CreateBGMSurfaceFromFBX(body001, k);
+					model.aCrashSurfaces.push_back(aCrashSurfaces.size());
+					CreateBGMSurfaceFromFBX(body001, k, true);
 					continue;
 				}
 
@@ -563,7 +562,7 @@ void FillBGMFromFBX() {
 				if (aabbMax[2] < mesh->mAABB.mMax.z) aabbMax[2] = mesh->mAABB.mMax.z;
 
 				model.aSurfaces.push_back(aSurfaces.size());
-				CreateBGMSurfaceFromFBX(body001, k);
+				CreateBGMSurfaceFromFBX(body001, k, false);
 			}
 			for (int k = 0; k < body001->mNumChildren; k++) {
 				auto surface = body001->mChildren[k]; // Surface1
@@ -573,8 +572,8 @@ void FillBGMFromFBX() {
 					auto mesh = pParsedFBXScene->mMeshes[surface->mMeshes[l]];
 					auto meshName = (std::string)mesh->mName.C_Str();
 					if (nodeName.ends_with("_crash") || meshName.ends_with("_crash")) {
-						model.aCrashSurfaces.push_back(aSurfaces.size());
-						CreateBGMSurfaceFromFBX(surface, l);
+						model.aCrashSurfaces.push_back(aCrashSurfaces.size());
+						CreateBGMSurfaceFromFBX(surface, l, true);
 						continue;
 					}
 					if (aabbMin[0] > mesh->mAABB.mMin.x) aabbMin[0] = mesh->mAABB.mMin.x;
@@ -585,7 +584,7 @@ void FillBGMFromFBX() {
 					if (aabbMax[2] < mesh->mAABB.mMax.z) aabbMax[2] = mesh->mAABB.mMax.z;
 
 					model.aSurfaces.push_back(aSurfaces.size());
-					CreateBGMSurfaceFromFBX(surface, l);
+					CreateBGMSurfaceFromFBX(surface, l, false);
 				}
 			}
 
@@ -1054,14 +1053,18 @@ void WriteCrashDat(uint32_t exportMapVersion) {
 
 	file.write((char*)&numModels, 4);
 	for (auto& model : aModels) {
-		file.write(model.sName.c_str(), model.sName.length() + 1);
+		if (model.aCrashSurfaces.empty()) continue;
+
+		auto name = model.sName;
+		name += "_crash";
+		file.write(name.c_str(), name.length() + 1);
 
 		uint32_t numSurfaces = model.aCrashSurfaces.size();
 		file.write((char*)&numSurfaces, 4);
 		for (auto& surfaceId : model.aCrashSurfaces) {
 			bool noDamage = false;
 			auto baseSurface = aSurfaces[model.aSurfaces[&surfaceId - &model.aCrashSurfaces[0]]];
-			auto crashSurface = aSurfaces[surfaceId];
+			auto crashSurface = aCrashSurfaces[surfaceId];
 			if (baseSurface.nVertexCount != crashSurface.nVertexCount) {
 				WriteConsole("ERROR: " + model.sName + " has damage model with a mismatching vertex count, no damage will be exported! (" +std::to_string(baseSurface.nVertexCount) + "/" + std::to_string(crashSurface.nVertexCount) + ")");
 				noDamage = true;
@@ -1106,7 +1109,6 @@ void WriteCrashDat(uint32_t exportMapVersion) {
 				baseVerts += baseVBuffer->vertexSize;
 				crashVerts += crashVBuffer->vertexSize;
 			}
-			//file.write((char*)crashVBuffer->data, numVertsBytes);
 		}
 	}
 

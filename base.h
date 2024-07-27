@@ -383,6 +383,7 @@ std::vector<tIndexBuffer> aIndexBuffers;
 std::vector<tVegVertexBuffer> aVegVertexBuffers;
 std::vector<tMaterial> aMaterials;
 std::vector<tSurface> aSurfaces;
+std::vector<tSurface> aCrashSurfaces;
 std::vector<tStaticBatch> aStaticBatches;
 std::vector<uint32_t> aUnknownArray1;
 std::vector<tUnknownStructure> aUnknownArray2;
@@ -395,6 +396,7 @@ std::vector<tBoundingBox> aBoundingBoxes;
 std::vector<tBoundingBoxMeshAssoc> aBoundingBoxMeshAssoc;
 std::vector<tCarMesh> aCarMeshes;
 std::vector<uint32_t> aVertexColors;
+//std::vector<tVertexBuffer> aCrashVertexBuffers;
 std::vector<tCrashData> aCrashData;
 uint32_t nCompactMeshGroupCount;
 
