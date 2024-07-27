@@ -63,6 +63,11 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 			bDumpFOUCNormalizedStreams = true;
 			bDumpIntoTextFile = true;
 		}
+		if (!strcmp(arg, "-text_streams_fouc_int8")) {
+			bDumpStreams = true;
+			bDumpFOUCInt8Streams = true;
+			bDumpIntoTextFile = true;
+		}
 		if (!strcmp(arg, "-remove_object_dummies")) {
 			bDisableObjects = true;
 			bDumpIntoW32 = true;

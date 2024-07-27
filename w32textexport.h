@@ -70,25 +70,41 @@ void WriteW32StreamsToText() {
 						}
 					}
 					else if (bDumpStreams) {
-						auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(uint16_t));
+						if (bDumpFOUCInt8Streams) {
+							auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(uint8_t));
+							auto data = (uint8_t*)buf.data;
+							if (buf.origDataForFOUCExport) data = (uint8_t*)buf.origDataForFOUCExport;
 
-						auto data = (uint16_t*)buf.data;
-						if (buf.origDataForFOUCExport) data = (uint16_t*)buf.origDataForFOUCExport;
-
-						size_t j = 0;
-						while (j < dataSize) {
-							std::string out;
-							for (int k = 0; k < buf.vertexSize / sizeof(uint16_t); k++) {
-								if (bDumpFOUCNormalizedStreams) {
-									out += std::to_string((*(int16_t*)&data[j]) / 32767.0);
+							size_t j = 0;
+							while (j < dataSize) {
+								std::string out;
+								for (int k = 0; k < buf.vertexSize / sizeof(uint8_t); k++) {
+									out += std::format("0x{:02X}", *(uint8_t*)&data[j]);
+									out += " ";
+									j++;
 								}
-								else {
-									out += std::format("0x{:04X}", *(uint16_t *) &data[j]);
-								}
-								out += " ";
-								j++;
+								WriteFile(out);
 							}
-							WriteFile(out);
+						}
+						else {
+							auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(uint16_t));
+							auto data = (uint16_t*)buf.data;
+							if (buf.origDataForFOUCExport) data = (uint16_t*)buf.origDataForFOUCExport;
+
+							size_t j = 0;
+							while (j < dataSize) {
+								std::string out;
+								for (int k = 0; k < buf.vertexSize / sizeof(uint16_t); k++) {
+									if (bDumpFOUCNormalizedStreams) {
+										out += std::to_string((*(int16_t *) &data[j]) / 32767.0);
+									} else {
+										out += std::format("0x{:04X}", *(uint16_t *) &data[j]);
+									}
+									out += " ";
+									j++;
+								}
+								WriteFile(out);
+							}
 						}
 					}
 				}

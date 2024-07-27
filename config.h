@@ -7,6 +7,7 @@ bool bDumpMaterialData = false;
 bool bDumpStreams = false;
 bool bDumpFOUCNormalizedStreams = false;
 bool bDumpFOUCOffsetedStreams = false;
+bool bDumpFOUCInt8Streams = false;
 
 // export options
 bool bDisableObjects = false;

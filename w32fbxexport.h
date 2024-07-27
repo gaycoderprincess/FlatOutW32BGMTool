@@ -85,6 +85,9 @@ aiScene GenerateScene() {
 
 		uint32_t baseVertexOffset = src.nStreamOffset[0] / vBuf->vertexSize;
 
+		bool bHasNormals = (vBuf->flags & VERTEX_NORMAL) != 0;
+		//if (bIsFOUCModel && (vBuf->flags & VERTEX_COLOR) != 0) bHasNormals = true;
+
 		dest->mVertices = new aiVector3D[src.nVertexCount];
 		dest->mNumVertices = src.nVertexCount;
 		dest->mFaces = new aiFace[src.nPolyCount];
@@ -95,7 +98,7 @@ aiScene GenerateScene() {
 			dest->mTextureCoords[1] = new aiVector3D[src.nVertexCount];
 			dest->mNumUVComponents[1] = 2;
 		}
-		if ((vBuf->flags & VERTEX_NORMAL) != 0) {
+		if (bHasNormals) {
 			dest->mNormals = new aiVector3D[src.nVertexCount];
 		}
 		if ((vBuf->flags & VERTEX_COLOR) != 0 && !bIsFOUCModel && !aVertexColors.empty()) {
@@ -122,11 +125,12 @@ aiScene GenerateScene() {
 				dest->mVertices[j].z *= -src.foucVertexMultiplier[3];
 				vertices += 3;
 
-				if ((vBuf->flags & VERTEX_NORMAL) != 0) {
+				if (bHasNormals) {
 					// vertices[0] seems to always be 0x0400
-					dest->mNormals[j].x = vertices[1] / 32767.0;
-					dest->mNormals[j].y = vertices[2] / 32767.0;
-					dest->mNormals[j].z = -vertices[3] / 32767.0;
+					// todo add the same FOUC int8 algorithm in reverse here!
+					dest->mNormals[j].x = vertices[4] / 32767.0;
+					dest->mNormals[j].y = vertices[5] / 32767.0;
+					dest->mNormals[j].z = -vertices[6] / 32767.0;
 					vertices += 3; // 3 floats
 				}
 				if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32

@@ -284,16 +284,24 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 					exit(0);
 				}
 
+				// scalar + bumpmap strength i believe
 				vertices[0] = 0x0400;
-				vertices[1] = mesh->mNormals[i].x * 32767.0;
-				vertices[2] = mesh->mNormals[i].y * 32767.0;
-				vertices[3] = -mesh->mNormals[i].z * 32767.0;
+				vertices[1] = 0;
+				vertices[2] = 0;
+				vertices[3] = 0;
 				vertices += 4; // 1 int, 3 floats
 
-				// no idea what the second set do
-				vertices[0] = mesh->mNormals[i].x * 32767.0;
-				vertices[1] = mesh->mNormals[i].y * 32767.0;
-				vertices[2] = -mesh->mNormals[i].z * 32767.0;
+				auto int8Vertices = (uint8_t*)vertices;
+				int8Vertices[0] = 0;
+				int8Vertices[1] = 0;
+
+				double tmp = (-mesh->mNormals[i].z + 1) * 127.0;
+				int8Vertices[2] = tmp;
+				tmp = (mesh->mNormals[i].y + 1) * 127.0;
+				int8Vertices[3] = tmp;
+				tmp = (mesh->mNormals[i].x + 1) * 127.0;
+				int8Vertices[4] = tmp;
+				int8Vertices[5] = 0;
 				vertices += 3; // 3 floats
 			}
 			if ((flags & VERTEX_COLOR) != 0) {
