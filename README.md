@@ -60,6 +60,7 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-text_streams_fouc_int8` - Exports vertex buffers into text as int8 arrays
 - `-convert_to_fo1` - Converts the car from the FlatOut 2 or Ultimate Carnage format to the FlatOut 1 format
 - `-convert_to_fo2` - Converts the car from the Ultimate Carnage format to the FlatOut 2 format
+- `-fouc_crash_dat` - Loads crash.dat in the Ultimate Carnage format, required for exporting UC car damage to .fbx!!
 
 ## Building
 
