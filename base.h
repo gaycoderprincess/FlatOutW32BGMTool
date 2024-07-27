@@ -336,6 +336,7 @@ struct tModel {
 	float vRadius[3];
 	float fRadius;
 	std::vector<int> aSurfaces;
+	std::vector<int> aCrashSurfaces;
 	tCrashData* _pCrashData;
 };
 struct tObject {

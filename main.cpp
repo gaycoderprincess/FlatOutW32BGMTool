@@ -140,14 +140,14 @@ bool ParseFBX(const std::string& fileName) {
 	uint32_t flags = 0;
 	flags |= aiProcess_CalcTangentSpace;
 	flags |= aiProcess_GenSmoothNormals;
-	flags |= aiProcess_JoinIdenticalVertices;
+	//flags |= aiProcess_JoinIdenticalVertices;
 	//flags |= aiProcess_ImproveCacheLocality;
 	//flags |= aiProcess_LimitBoneWeights;
 	//flags |= aiProcess_RemoveRedundantMaterials;
 	//flags |= aiProcess_SplitLargeMeshes;
 	flags |= aiProcess_Triangulate;
 	flags |= aiProcess_GenUVCoords;
-	flags |= aiProcess_SortByPType;
+	//flags |= aiProcess_SortByPType;
 	//flags |= aiProcess_FindDegenerates;
 	//flags |= aiProcess_FindInvalidData;
 
@@ -175,6 +175,7 @@ int main(int argc, char *argv[]) {
 
 			FillBGMFromFBX();
 			WriteBGM(nExportFileVersion);
+			WriteCrashDat(nExportFileVersion);
 		}
 	}
 	else {

@@ -548,6 +548,13 @@ void FillBGMFromFBX() {
 			for (int k = 0; k < body001->mNumMeshes; k++) {
 				// Z inversion doesn't matter here - we're calculating a radius anyway
 				auto mesh = pParsedFBXScene->mMeshes[body001->mMeshes[k]];
+				auto meshName = (std::string)mesh->mName.C_Str();
+				if (meshName.ends_with("_crash")) {
+					model.aCrashSurfaces.push_back(aSurfaces.size());
+					CreateBGMSurfaceFromFBX(body001, k);
+					continue;
+				}
+
 				if (aabbMin[0] > mesh->mAABB.mMin.x) aabbMin[0] = mesh->mAABB.mMin.x;
 				if (aabbMin[1] > mesh->mAABB.mMin.y) aabbMin[1] = mesh->mAABB.mMin.y;
 				if (aabbMin[2] > mesh->mAABB.mMin.z) aabbMin[2] = mesh->mAABB.mMin.z;
@@ -556,15 +563,20 @@ void FillBGMFromFBX() {
 				if (aabbMax[2] < mesh->mAABB.mMax.z) aabbMax[2] = mesh->mAABB.mMax.z;
 
 				model.aSurfaces.push_back(aSurfaces.size());
-
 				CreateBGMSurfaceFromFBX(body001, k);
 			}
 			for (int k = 0; k < body001->mNumChildren; k++) {
 				auto surface = body001->mChildren[k]; // Surface1
+				auto nodeName = (std::string)surface->mName.C_Str();
 				for (int l = 0; l < surface->mNumMeshes; l++) {
-
 					// Z inversion doesn't matter here - we're calculating a radius anyway
 					auto mesh = pParsedFBXScene->mMeshes[surface->mMeshes[l]];
+					auto meshName = (std::string)mesh->mName.C_Str();
+					if (nodeName.ends_with("_crash") || meshName.ends_with("_crash")) {
+						model.aCrashSurfaces.push_back(aSurfaces.size());
+						CreateBGMSurfaceFromFBX(surface, l);
+						continue;
+					}
 					if (aabbMin[0] > mesh->mAABB.mMin.x) aabbMin[0] = mesh->mAABB.mMin.x;
 					if (aabbMin[1] > mesh->mAABB.mMin.y) aabbMin[1] = mesh->mAABB.mMin.y;
 					if (aabbMin[2] > mesh->mAABB.mMin.z) aabbMin[2] = mesh->mAABB.mMin.z;
@@ -573,7 +585,6 @@ void FillBGMFromFBX() {
 					if (aabbMax[2] < mesh->mAABB.mMax.z) aabbMax[2] = mesh->mAABB.mMax.z;
 
 					model.aSurfaces.push_back(aSurfaces.size());
-
 					CreateBGMSurfaceFromFBX(surface, l);
 				}
 			}
@@ -590,6 +601,10 @@ void FillBGMFromFBX() {
 			model.vRadius[0] = std::abs(aabbMax[0] - aabbMin[0]) * 0.5;
 			model.vRadius[1] = std::abs(aabbMax[1] - aabbMin[1]) * 0.5;
 			model.vRadius[2] = std::abs(aabbMax[2] - aabbMin[2]) * 0.5;
+			if (!model.aCrashSurfaces.empty() && model.aCrashSurfaces.size() != model.aSurfaces.size()) {
+				WriteConsole("ERROR: " + model.sName + " has crash models but not for every mesh! Skipping");
+				model.aCrashSurfaces.clear();
+			}
 			// fRadius isn't required, game doesn't read it
 			carMesh.aModels.push_back(aModels.size());
 			aModels.push_back(model);
@@ -1018,4 +1033,84 @@ void WriteBGM(uint32_t exportMapVersion) {
 	file.flush();
 
 	WriteConsole("BGM export finished");
+}
+
+void WriteCrashDat(uint32_t exportMapVersion) {
+	WriteConsole("Writing output crash.dat file...");
+
+	nExportFileVersion = exportMapVersion;
+	if (bIsFOUCModel) {
+		WriteConsole("ERROR: Ultimate Carnage crash.dat is currently not supported!");
+		exit(0);
+	}
+
+	std::ofstream file(sFileNameNoExt + "_out.dat", std::ios::out | std::ios::binary );
+	if (!file.is_open()) return;
+
+	int numModels = 0;
+	for (auto& model : aModels) {
+		if (!model.aCrashSurfaces.empty()) numModels++;
+	}
+
+	file.write((char*)&numModels, 4);
+	for (auto& model : aModels) {
+		file.write(model.sName.c_str(), model.sName.length() + 1);
+
+		uint32_t numSurfaces = model.aCrashSurfaces.size();
+		file.write((char*)&numSurfaces, 4);
+		for (auto& surfaceId : model.aCrashSurfaces) {
+			bool noDamage = false;
+			auto baseSurface = aSurfaces[model.aSurfaces[&surfaceId - &model.aCrashSurfaces[0]]];
+			auto crashSurface = aSurfaces[surfaceId];
+			if (baseSurface.nVertexCount != crashSurface.nVertexCount) {
+				WriteConsole("ERROR: " + model.sName + " has damage model with a mismatching vertex count, no damage will be exported! (" +std::to_string(baseSurface.nVertexCount) + "/" + std::to_string(crashSurface.nVertexCount) + ")");
+				noDamage = true;
+			}
+			auto baseVBuffer = FindVertexBuffer(baseSurface.nStreamId[0]);
+			if (!baseVBuffer) {
+				WriteConsole("ERROR: Failed to find vertex buffer for " + model.sName);
+				exit(0);
+			}
+			auto crashVBuffer = FindVertexBuffer(crashSurface.nStreamId[0]);
+			if (!crashVBuffer) {
+				WriteConsole("ERROR: Failed to find damage vertex buffer for " + model.sName);
+				exit(0);
+			}
+			if (baseVBuffer->vertexSize != crashVBuffer->vertexSize) {
+				WriteConsole("ERROR: " + model.sName + " has damage model with a mismatching vertex size!");
+				exit(0);
+			}
+
+			uint32_t numVerts = baseSurface.nVertexCount;
+			file.write((char*)&numVerts, 4);
+			uint32_t numVertsBytes = baseSurface.nVertexCount * baseVBuffer->vertexSize;
+			file.write((char*)&numVertsBytes, 4);
+			file.write((char*)baseVBuffer->data, numVertsBytes);
+			auto baseVerts = (uintptr_t)baseVBuffer->data;
+			auto crashVerts = (uintptr_t)crashVBuffer->data;
+			for (int i = 0; i < numVerts; i++) {
+				// base verts, crash verts, base normals, crash normals
+				if (noDamage) {
+					file.write((char*)baseVerts, 3 * sizeof(float));
+					file.write((char*)baseVerts, 3 * sizeof(float));
+					file.write((char*)(baseVerts + 3 * sizeof(float)), 3 * sizeof(float));
+					file.write((char*)(baseVerts + 3 * sizeof(float)), 3 * sizeof(float));
+				}
+				else {
+					file.write((char*)baseVerts, 3 * sizeof(float));
+					file.write((char*)crashVerts, 3 * sizeof(float));
+					file.write((char*)(baseVerts + 3 * sizeof(float)), 3 * sizeof(float));
+					file.write((char*)(crashVerts + 3 * sizeof(float)), 3 * sizeof(float));
+				}
+
+				baseVerts += baseVBuffer->vertexSize;
+				crashVerts += crashVBuffer->vertexSize;
+			}
+			//file.write((char*)crashVBuffer->data, numVertsBytes);
+		}
+	}
+
+	file.flush();
+
+	WriteConsole("crash.dat export finished");
 }
