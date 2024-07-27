@@ -19,6 +19,7 @@ bool bImportSurfacesFromFBX = false;
 bool bImportSurfaceMaterialsFromFBX = false;
 bool bImportDeletionFromFBX = false;
 bool bUngroupMovedPropsFromFBX = false;
+bool bCreateBGMFromFBX = false;
 bool bLoadFBX = false;
 
 // special options

@@ -348,7 +348,7 @@ void WriteToFBX() {
 	auto scene = GenerateScene();
 
 	Assimp::Logger::LogSeverity severity = Assimp::Logger::VERBOSE;
-	Assimp::DefaultLogger::create("export_log.txt", severity, aiDefaultLogStream_FILE);
+	Assimp::DefaultLogger::create("fbx_export_log.txt", severity, aiDefaultLogStream_FILE);
 
 	Assimp::Exporter exporter;
 	if (exporter.Export(&scene, "fbx", sFileNameNoExt + "_out.fbx") != aiReturn_SUCCESS) {

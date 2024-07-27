@@ -311,7 +311,7 @@ struct tTreeMesh {
 	int foucExtraData3[4];
 };
 struct tModel {
-	uint32_t identifier; // BMOD
+	uint32_t identifier = 0x444F4D42; // BMOD
 	int nUnk;
 	std::string sName;
 	float vCenter[3];
@@ -320,14 +320,14 @@ struct tModel {
 	std::vector<int> aSurfaces;
 };
 struct tObject {
-	uint32_t identifier; // OBJC
+	uint32_t identifier = 0x434A424F; // OBJC
 	std::string sName1;
 	std::string sName2;
 	uint32_t nFlags;
 	float mMatrix[4*4];
 };
 struct tCompactMesh {
-	uint32_t identifier; // MESH
+	uint32_t identifier = 0x4853454D; // MESH
 	std::string sName1;
 	std::string sName2;
 	uint32_t nFlags;
@@ -347,7 +347,7 @@ struct tBoundingBoxMeshAssoc {
 	int nIds[2];
 };
 struct tCarMesh {
-	uint32_t identifier;
+	uint32_t identifier = 0x4853454D;
 	std::string sName1;
 	std::string sName2;
 	uint32_t nFlags;
@@ -433,6 +433,8 @@ aiNode* FindFBXNodeFromRoot(const char* name) {
 	return nullptr;
 }
 
+aiNode* GetFBXNodeForCarMeshArray() { return FindFBXNodeFromRoot("CarMesh");}
+aiNode* GetFBXNodeForObjectsArray() { return FindFBXNodeFromRoot("Objects");}
 aiNode* GetFBXNodeForCompactMeshArray() { return FindFBXNodeFromRoot("CompactMesh");}
 aiNode* GetFBXNodeForStaticBatchArray() { return FindFBXNodeFromRoot("StaticBatch"); }
 aiNode* GetFBXNodeForTreeMeshArray() { return FindFBXNodeFromRoot("TreeMesh"); }

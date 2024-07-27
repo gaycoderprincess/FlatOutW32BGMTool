@@ -265,6 +265,11 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 		vertices += 3;
 
 		if ((flags & VERTEX_NORMAL) != 0) {
+			if (!mesh->HasNormals()) {
+				WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!");
+				exit(0);
+			}
+
 			vertices[0] = mesh->mNormals[i].x;
 			vertices[1] = mesh->mNormals[i].y;
 			vertices[2] = -mesh->mNormals[i].z;
@@ -279,16 +284,26 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 				*(uint32_t*)&vertices[0] = *(uint32_t*)tmp;
 			}
 			else {
-				*(uint32_t*)&vertices[0] = 0xFFFFFFFF; // todo
+				*(uint32_t*)&vertices[0] = 0xFFFFFFFF;
 			}
 			vertices += 1; // 1 int32
 		}
 		if ((flags & VERTEX_UV) != 0 || (flags & VERTEX_UV2) != 0) {
+			if (!mesh->HasTextureCoords(0)) {
+				WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have UVs!");
+				exit(0);
+			}
+
 			vertices[0] = mesh->mTextureCoords[0][i].x;
 			vertices[1] = 1 - mesh->mTextureCoords[0][i].y;
 			vertices += 2; // 2 floats
 		}
 		if ((flags & VERTEX_UV2) != 0) {
+			if (!mesh->HasTextureCoords(1)) {
+				WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have 2 sets of UVs!");
+				exit(0);
+			}
+
 			vertices[0] = mesh->mTextureCoords[1][i].x;
 			vertices[1] = 1 - mesh->mTextureCoords[1][i].y;
 			vertices += 2; // 2 floats
@@ -298,7 +313,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 	aVertexBuffers.push_back(vBuf);
 
 	tIndexBuffer iBuf;
-	iBuf.id = id;
+	iBuf.id = id + 1;
 	iBuf.indexCount = mesh->mNumFaces * 3;
 	iBuf.data = new uint16_t[iBuf.indexCount];
 	auto indexData = iBuf.data;
@@ -314,6 +329,191 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 		indexData += 3;
 	}
 	aIndexBuffers.push_back(iBuf);
+}
+
+tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
+	tMaterial mat;
+	auto matName = fbxMaterial->GetName().C_Str();
+	mat.sName = matName;
+	mat.nShaderId = 8; // car metal
+	if (mat.sName.starts_with("body")) mat.nShaderId = 5; // car body
+	if (mat.sName.starts_with("interior")) mat.nShaderId = 7; // car diffuse
+	if (mat.sName.starts_with("shadow")) mat.nShaderId = 13; // shadow project
+	if (mat.sName.starts_with("window")) mat.nShaderId = 6; // car window
+	if (mat.sName.starts_with("shear")) mat.nShaderId = 11; // car shear
+	if (mat.sName.starts_with("scale")) mat.nShaderId = 12; // car scale
+	if (mat.sName.starts_with("light")) {
+		mat.v92 = 2;
+		mat.nShaderId = 10; // car lights
+	}
+	if (mat.sName.ends_with(".001")) {
+		for (int i = 0; i < 4; i++) {
+			mat.sName.pop_back();
+		}
+	}
+
+	mat.nNumTextures = fbxMaterial->GetTextureCount(aiTextureType_DIFFUSE);
+	if (mat.nNumTextures > 3) mat.nNumTextures = 3;
+	for (int i = 0; i < mat.nNumTextures; i++) {
+		auto texName= GetFBXTextureInFO2Style(fbxMaterial, i);
+		mat.sTextureNames[i] = texName;
+		if (texName == "lights.tga" || texName == "windows.tga" || texName == "shock.tga") {
+			mat.nAlpha = 1;
+		}
+	}
+	// shadow project has no texture
+	if (mat.sName.starts_with("shadow")) {
+		mat.sTextureNames[0] = "";
+	}
+	return mat;
+}
+
+void CreateBGMSurfaceFromFBX(aiNode* node, int meshId) {
+	auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[meshId]];
+	bool bIsBodyShadow = !mesh->HasNormals() || !mesh->HasTextureCoords(0);
+
+	tSurface surface;
+	surface.nIsVegetation = 0;
+	surface.nVertexCount = mesh->mNumVertices;
+	surface.nPolyCount = mesh->mNumFaces;
+	surface.nNumIndicesUsed = mesh->mNumFaces * 3;
+	surface.nFlags = aVertexBuffers[node->mMeshes[meshId]].flags;
+	surface.nMaterialId = mesh->mMaterialIndex;
+	surface.nNumStreamsUsed = 2;
+	surface.nPolyMode = 4;
+	surface.nStreamId[0] = node->mMeshes[meshId] * 2;
+	surface.nStreamId[1] = (node->mMeshes[meshId] * 2) + 1;
+	surface.nStreamOffset[0] = 0;
+	surface.nStreamOffset[1] = 0;
+
+	// todo!
+	surface.foucVertexMultiplier[0] = 0;
+	surface.foucVertexMultiplier[1] = 0;
+	surface.foucVertexMultiplier[2] = 0;
+	surface.foucVertexMultiplier[3] = 1;
+
+	aSurfaces.push_back(surface);
+}
+
+void FillBGMFromFBX() {
+	WriteConsole("Creating BGM data...");
+
+	WriteConsole("Creating materials...");
+
+	// create materials
+	for (int i = 0; i < pParsedFBXScene->mNumMaterials; i++) {
+		auto src = pParsedFBXScene->mMaterials[i];
+		auto material = GetCarMaterialFromFBX(src);
+		aMaterials.push_back(material);
+	}
+
+	WriteConsole("Creating streams...");
+
+	// create streams
+	for (int i = 0; i < pParsedFBXScene->mNumMeshes; i++) {
+		auto src = pParsedFBXScene->mMeshes[i];
+		WriteConsole("Exporting " + (std::string)src->mName.C_Str());
+
+		auto material = &aMaterials[src->mMaterialIndex];
+		if (material->nShaderId == 5) { // car body, has vertex colors
+			CreateStreamsFromFBX(src, VERTEX_POSITION | VERTEX_NORMAL | VERTEX_COLOR | VERTEX_UV, 36);
+		}
+		else if (material->nShaderId == 13) { // shadow project, position only
+			CreateStreamsFromFBX(src, VERTEX_POSITION, 12);
+		}
+		else { // regular meshes, only normal and uv
+			CreateStreamsFromFBX(src, VERTEX_POSITION | VERTEX_NORMAL | VERTEX_UV, 32);
+		}
+	}
+
+	WriteConsole("Creating car meshes & surfaces...");
+
+	auto carMeshArray = GetFBXNodeForCarMeshArray();
+	for (int i = 0; i < carMeshArray->mNumChildren; i++) {
+		auto bodyNode = carMeshArray->mChildren[i]; // body
+
+		tCarMesh carMesh;
+		carMesh.sName1 = bodyNode->mName.C_Str();
+		carMesh.nFlags = 0x0;
+		carMesh.nGroup = -1;
+		FBXMatrixToFO2Matrix(bodyNode->mTransformation, carMesh.mMatrix);
+
+		for (int j = 0; j < bodyNode->mNumChildren; j++) {
+			auto body001 = bodyNode->mChildren[j]; // body.001
+
+			tModel model;
+			model.sName = body001->mName.C_Str();
+
+			float aabbMin[3] = {0, 0, 0};
+			float aabbMax[3] = {0, 0, 0};
+
+			for (int k = 0; k < body001->mNumMeshes; k++) {
+				// Z inversion doesn't matter here - we're calculating a radius anyway
+				auto mesh = pParsedFBXScene->mMeshes[body001->mMeshes[k]];
+				if (aabbMin[0] > mesh->mAABB.mMin.x) aabbMin[0] = mesh->mAABB.mMin.x;
+				if (aabbMin[1] > mesh->mAABB.mMin.y) aabbMin[1] = mesh->mAABB.mMin.y;
+				if (aabbMin[2] > mesh->mAABB.mMin.z) aabbMin[2] = mesh->mAABB.mMin.z;
+				if (aabbMax[0] < mesh->mAABB.mMax.x) aabbMax[0] = mesh->mAABB.mMax.x;
+				if (aabbMax[1] < mesh->mAABB.mMax.y) aabbMax[1] = mesh->mAABB.mMax.y;
+				if (aabbMax[2] < mesh->mAABB.mMax.z) aabbMax[2] = mesh->mAABB.mMax.z;
+
+				model.aSurfaces.push_back(aSurfaces.size());
+
+				CreateBGMSurfaceFromFBX(body001, k);
+			}
+			for (int k = 0; k < body001->mNumChildren; k++) {
+				auto surface = body001->mChildren[k]; // Surface1
+				for (int l = 0; l < surface->mNumMeshes; l++) {
+
+					// Z inversion doesn't matter here - we're calculating a radius anyway
+					auto mesh = pParsedFBXScene->mMeshes[surface->mMeshes[l]];
+					if (aabbMin[0] > mesh->mAABB.mMin.x) aabbMin[0] = mesh->mAABB.mMin.x;
+					if (aabbMin[1] > mesh->mAABB.mMin.y) aabbMin[1] = mesh->mAABB.mMin.y;
+					if (aabbMin[2] > mesh->mAABB.mMin.z) aabbMin[2] = mesh->mAABB.mMin.z;
+					if (aabbMax[0] < mesh->mAABB.mMax.x) aabbMax[0] = mesh->mAABB.mMax.x;
+					if (aabbMax[1] < mesh->mAABB.mMax.y) aabbMax[1] = mesh->mAABB.mMax.y;
+					if (aabbMax[2] < mesh->mAABB.mMax.z) aabbMax[2] = mesh->mAABB.mMax.z;
+
+					model.aSurfaces.push_back(aSurfaces.size());
+
+					CreateBGMSurfaceFromFBX(surface, l);
+				}
+			}
+
+			if (model.sName.ends_with(".001")) {
+				for (int j = 0; j < 4; j++) {
+					model.sName.pop_back();
+				}
+			}
+
+			model.vCenter[0] = (aabbMax[0] + aabbMin[0]) * 0.5;
+			model.vCenter[1] = (aabbMax[1] + aabbMin[1]) * 0.5;
+			model.vCenter[2] = (aabbMax[2] + aabbMin[2]) * -0.5;
+			model.vRadius[0] = std::abs(aabbMax[0] - aabbMin[0]) * 0.5;
+			model.vRadius[1] = std::abs(aabbMax[1] - aabbMin[1]) * 0.5;
+			model.vRadius[2] = std::abs(aabbMax[2] - aabbMin[2]) * 0.5;
+			// fRadius isn't required, game doesn't read it
+			carMesh.aModels.push_back(aModels.size());
+			aModels.push_back(model);
+		}
+
+		aCarMeshes.push_back(carMesh);
+	}
+
+	WriteConsole("Creating object dummies...");
+
+	auto objectsArray = GetFBXNodeForObjectsArray();
+	for (int i = 0; i < objectsArray->mNumChildren; i++) {
+		auto objectNode = objectsArray->mChildren[i];
+
+		tObject object;
+		object.sName1 = objectNode->mName.C_Str();
+		object.nFlags = 0xE0F9;
+		FBXMatrixToFO2Matrix(objectNode->mTransformation, object.mMatrix);
+		aObjects.push_back(object);
+	}
+
+	WriteConsole("BGM data created");
 }
 
 void WriteW32(uint32_t exportMapVersion) {

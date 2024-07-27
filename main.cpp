@@ -22,7 +22,7 @@
 void ProcessCommandlineArguments(int argc, char* argv[]) {
 	sFileName = argv[1];
 	sFileNameNoExt = sFileName;
-	if (sFileName.ends_with(".w32") || sFileName.ends_with(".bgm") || sFileName.ends_with(".gen")) {
+	if (sFileName.ends_with(".w32") || sFileName.ends_with(".bgm") || sFileName.ends_with(".gen") || sFileName.ends_with(".fbx")) {
 		for (int i = 0; i < 4; i++) {
 			sFileNameNoExt.pop_back();
 		}
@@ -33,6 +33,19 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		if (!strcmp(arg, "-export_w32")) bDumpIntoW32 = true;
 		if (!strcmp(arg, "-export_bgm")) bDumpIntoBGM = true;
 		if (!strcmp(arg, "-export_text")) bDumpIntoTextFile = true;
+		if (!strcmp(arg, "-create_fo1_bgm")) {
+			bCreateBGMFromFBX = true;
+			nExportFileVersion = 0x10004;
+		}
+		if (!strcmp(arg, "-create_fo2_bgm")) {
+			bCreateBGMFromFBX = true;
+			nExportFileVersion = 0x20000;
+		}
+		if (!strcmp(arg, "-create_fouc_bgm")) {
+			bCreateBGMFromFBX = true;
+			nExportFileVersion = 0x20000;
+			bIsFOUCModel = true;
+		}
 		if (!strcmp(arg, "-text_streams")) {
 			bDumpStreams = true;
 			bDumpIntoTextFile = true;
@@ -98,10 +111,33 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 }
 
 bool ParseFBX(const std::string& fileName) {
+	if (!fileName.ends_with(".fbx")) return false;
+
 	WriteConsole("Parsing FBX...");
 
+	Assimp::Logger::LogSeverity severity = Assimp::Logger::VERBOSE;
+	Assimp::DefaultLogger::create("fbx_import_log.txt", severity, aiDefaultLogStream_FILE);
+
+	//uint32_t flags = aiProcessPreset_TargetRealtime_Quality;
+	uint32_t flags = 0;
+	flags |= aiProcess_CalcTangentSpace;
+	flags |= aiProcess_GenSmoothNormals;
+	flags |= aiProcess_JoinIdenticalVertices;
+	//flags |= aiProcess_ImproveCacheLocality;
+	//flags |= aiProcess_LimitBoneWeights;
+	//flags |= aiProcess_RemoveRedundantMaterials;
+	//flags |= aiProcess_SplitLargeMeshes;
+	flags |= aiProcess_Triangulate;
+	flags |= aiProcess_GenUVCoords;
+	flags |= aiProcess_SortByPType;
+	//flags |= aiProcess_FindDegenerates;
+	//flags |= aiProcess_FindInvalidData;
+
+	flags |= aiProcess_GenBoundingBoxes;
+
 	static Assimp::Importer importer;
-	pParsedFBXScene = importer.ReadFile(fileName.c_str(), aiProcessPreset_TargetRealtime_Quality);
+	pParsedFBXScene = importer.ReadFile(fileName.c_str(), flags);
+	if (bCreateBGMFromFBX) return pParsedFBXScene != nullptr && GetFBXNodeForCarMeshArray() && GetFBXNodeForObjectsArray();
 	return pParsedFBXScene != nullptr && GetFBXNodeForStaticBatchArray() && GetFBXNodeForTreeMeshArray() && GetFBXNodeForCompactMeshArray();
 }
 
@@ -111,45 +147,54 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	ProcessCommandlineArguments(argc, argv);
-	if (bLoadFBX) {
-		if (!ParseFBX(argv[2])) {
-			WriteConsole("Failed to load " + (std::string)argv[2] + "!");
+	if (bCreateBGMFromFBX) {
+		if (!ParseFBX(argv[1])) {
+			WriteConsole("Failed to load " + (std::string) argv[1] + "!");
 			exit(0);
 		}
 		else {
 			WriteConsole("Parsing finished");
+
+			FillBGMFromFBX();
+			WriteBGM(nExportFileVersion);
 		}
-	}
-	if (bEmptyOutTrackBVH) {
-		if (!ReadAndEmptyTrackBVH()) {
-			WriteConsole("Failed to load " + sFileName + "!");
-		}
-		return 0;
 	}
 	else {
-		if (sFileName.ends_with(".bgm")) {
-			if (!ParseBGM(sFileName)) {
-				WriteConsole("Failed to load " + sFileName + "!");
-			}
-			else {
-				if (bDumpIntoTextFile) WriteBGMToText();
-				if (bDumpIntoFBX) WriteToFBX();
-				if (bDumpIntoBGM) {
-					uint32_t version = nImportFileVersion;
-					if (bConvertToFO1) version = 0x10004;
-					if (bConvertToFO2) version = 0x20000;
-					WriteBGM(version);
-				}
+		if (bLoadFBX) {
+			if (!ParseFBX(argv[2])) {
+				WriteConsole("Failed to load " + (std::string) argv[2] + "!");
+				exit(0);
+			} else {
+				WriteConsole("Parsing finished");
 			}
 		}
-		else {
-			if (!ParseW32(sFileName)) {
+		if (bEmptyOutTrackBVH) {
+			if (!ReadAndEmptyTrackBVH()) {
 				WriteConsole("Failed to load " + sFileName + "!");
 			}
-			else {
-				if (bDumpIntoTextFile) WriteW32ToText();
-				if (bDumpIntoFBX) WriteToFBX();
-				if (bDumpIntoW32) WriteW32(bConvertToFO1 ? 0x10005 : nImportFileVersion);
+			return 0;
+		} else {
+			if (sFileName.ends_with(".bgm")) {
+				if (!ParseBGM(sFileName)) {
+					WriteConsole("Failed to load " + sFileName + "!");
+				} else {
+					if (bDumpIntoTextFile) WriteBGMToText();
+					if (bDumpIntoFBX) WriteToFBX();
+					if (bDumpIntoBGM) {
+						uint32_t version = nImportFileVersion;
+						if (bConvertToFO1) version = 0x10004;
+						if (bConvertToFO2) version = 0x20000;
+						WriteBGM(version);
+					}
+				}
+			} else {
+				if (!ParseW32(sFileName)) {
+					WriteConsole("Failed to load " + sFileName + "!");
+				} else {
+					if (bDumpIntoTextFile) WriteW32ToText();
+					if (bDumpIntoFBX) WriteToFBX();
+					if (bDumpIntoW32) WriteW32(bConvertToFO1 ? 0x10005 : nImportFileVersion);
+				}
 			}
 		}
 	}
