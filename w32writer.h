@@ -298,11 +298,19 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 				int8Vertices[0] = 0;
 				int8Vertices[1] = 0;
 
-				double tmp = (-mesh->mNormals[i].z + 1) * 127.0;
+				auto normals = mesh->mNormals[i];
+				if (normals[0] > 1.0) normals[0] = 1.0;
+				if (normals[1] > 1.0) normals[1] = 1.0;
+				if (normals[2] > 1.0) normals[2] = 1.0;
+				if (normals[0] < -1.0) normals[0] = -1.0;
+				if (normals[1] < -1.0) normals[1] = -1.0;
+				if (normals[2] < -1.0) normals[2] = -1.0;
+
+				double tmp = (-normals.z + 1) * 127.0;
 				int8Vertices[2] = tmp;
-				tmp = (mesh->mNormals[i].y + 1) * 127.0;
+				tmp = (normals.y + 1) * 127.0;
 				int8Vertices[3] = tmp;
-				tmp = (mesh->mNormals[i].x + 1) * 127.0;
+				tmp = (normals.x + 1) * 127.0;
 				int8Vertices[4] = tmp;
 				int8Vertices[5] = 0;
 				vertices += 3; // 3 floats
@@ -361,9 +369,17 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 					exit(0);
 				}
 
-				vertices[0] = mesh->mNormals[i].x;
-				vertices[1] = mesh->mNormals[i].y;
-				vertices[2] = -mesh->mNormals[i].z;
+				auto normals = mesh->mNormals[i];
+				if (normals[0] > 1.0) normals[0] = 1.0;
+				if (normals[1] > 1.0) normals[1] = 1.0;
+				if (normals[2] > 1.0) normals[2] = 1.0;
+				if (normals[0] < -1.0) normals[0] = -1.0;
+				if (normals[1] < -1.0) normals[1] = -1.0;
+				if (normals[2] < -1.0) normals[2] = -1.0;
+
+				vertices[0] = normals.x;
+				vertices[1] = normals.y;
+				vertices[2] = -normals.z;
 				vertices += 3; // 3 floats
 			}
 			if ((flags & VERTEX_COLOR) != 0) {
@@ -970,6 +986,10 @@ void WriteBGM(uint32_t exportMapVersion) {
 	}
 
 	if (bIsFOUCModel && (bConvertToFO1 || bConvertToFO2)) {
+		// todo add direct crash.dat conversion support, currently just clearing it
+		aCrashData.clear();
+		aCrashSurfaces.clear();
+
 		for (auto& surface : aSurfaces) {
 			if (surface.nFlags != 0x2242) {
 				WriteConsole("Unexpected flags value for surface! Can't convert");
