@@ -26,6 +26,7 @@ void WriteW32MaterialsToText() {
 		WriteFile("Texture 1: " + material.sTextureNames[0]);
 		WriteFile("Texture 2: " + material.sTextureNames[1]);
 		WriteFile("Texture 3: " + material.sTextureNames[2]);
+		WriteFile("Total references: " + std::to_string(material._nNumReferences));
 		WriteFile("");
 	}
 	WriteFile("Materials end");

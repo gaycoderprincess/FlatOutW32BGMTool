@@ -275,6 +275,7 @@ struct tMaterial {
 	int v102 = 0;
 	std::string sTextureNames[3];
 
+	int _nNumReferences = 0;
 	tMaterial() {
 		memset(v108, 0, sizeof(v108));
 		memset(v109, 0, sizeof(v109));

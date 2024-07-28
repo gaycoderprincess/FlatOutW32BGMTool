@@ -270,6 +270,7 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 		ReadFromFile(file, &surface.nPolyCount, 4);
 		ReadFromFile(file, &surface.nPolyMode, 4);
 		ReadFromFile(file, &surface.nNumIndicesUsed, 4);
+		aMaterials[surface.nMaterialId]._nNumReferences++;
 
 		if (bIsXboxBetaModel) {
 			uint32_t tmp;
