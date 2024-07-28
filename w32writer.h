@@ -1015,7 +1015,7 @@ void ConvertFOUCSurfaceToFO2(tSurface& surface) {
 	uint32_t flags = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_UV;
 	uint32_t numVertexValues = 8;
 	auto material = &aMaterials[surface.nMaterialId];
-	if (material->nShaderId == 5) { // car body, has vertex colors
+	if (material->nShaderId == 5 || material->nShaderId == 26) { // car body or ragdoll skin, has vertex colors
 		flags = VERTEX_POSITION | VERTEX_NORMAL | VERTEX_COLOR | VERTEX_UV;
 		numVertexValues = 9;
 	}
@@ -1050,14 +1050,14 @@ void ConvertFOUCSurfaceToFO2(tSurface& surface) {
 			dest[5] = (int8Vertices[2] / 127.0) - 1;
 			dest[4] = (int8Vertices[3] / 127.0) - 1;
 			dest[3] = (int8Vertices[4] / 127.0) - 1;
+			src += 3;
 		}
 
 		if ((flags & VERTEX_COLOR) != 0) {
-			*(uint32_t*)&dest[6] = 0xFFFFFFFF; // vertex color
-			dest++;
+			*(uint32_t*)&dest[6] = *(uint32_t*)src; // vertex color
+			dest += 1;
 		}
 
-		if ((vBuf->flags & VERTEX_COLOR) != 0) src += 9;
 		if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
 			dest[6] = uvs[0] / 2048.0;
 			dest[7] = uvs[1] / 2048.0;
