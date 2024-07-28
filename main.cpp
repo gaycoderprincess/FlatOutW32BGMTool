@@ -163,6 +163,10 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	ProcessCommandlineArguments(argc, argv);
+	if (!std::filesystem::exists(sFileName)) {
+		WriteConsole("Failed to load " + sFileName.string() + "! (File doesn't exist)");
+		exit(0);
+	}
 	if (bCreateBGMFromFBX) {
 		if (!ParseFBX()) {
 			WriteConsole("Failed to load " + sFBXFileName.string() + "!");
@@ -191,7 +195,7 @@ int main(int argc, char *argv[]) {
 			}
 			return 0;
 		} else {
-			if (sFileName.extension() == ".dat") {
+			if (sFileName.string().ends_with("crash.dat")) {
 				if (!ParseCrashDat(sFileName)) {
 					WriteConsole("Failed to load " + sFileName.string() + "!");
 				} else {
@@ -210,7 +214,7 @@ int main(int argc, char *argv[]) {
 						WriteBGM(version);
 					}
 				}
-			} else {
+			} else if (sFileName.extension() == ".w32") {
 				if (!ParseW32()) {
 					WriteConsole("Failed to load " + sFileName.string() + "!");
 				} else {
@@ -218,6 +222,8 @@ int main(int argc, char *argv[]) {
 					if (bDumpIntoFBX) WriteToFBX();
 					if (bDumpIntoW32) WriteW32(bConvertToFO1 ? 0x10005 : nImportFileVersion);
 				}
+			} else {
+				WriteConsole("Unrecognized file format for " + sFileName.string());
 			}
 		}
 	}
