@@ -486,6 +486,9 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	if (mat.sName.starts_with("shadow")) {
 		mat.sTextureNames[0] = "";
 	}
+	if (bIsFOUCModel && mat.sTextureNames[0] == "tire_01.tga") {
+		mat.sTextureNames[0] = "tire.tga";
+	}
 	return mat;
 }
 
