@@ -40,17 +40,12 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 	if (bHasNormals) {
 		dest->mNormals = new aiVector3D[src.nVertexCount];
 	}
-	if ((vBuf->flags & VERTEX_COLOR) != 0 && !bIsFOUCModel && !aVertexColors.empty()) {
+	if ((vBuf->flags & VERTEX_COLOR) != 0) {
 		dest->mColors[0] = new aiColor4D[src.nVertexCount];
 	}
 	if (bIsFOUCModel) {
 		for (int j = 0; j < src.nVertexCount; j++) {
 			auto vertices = (int16_t*)vertexData;
-
-			// uvs always seem to be the last 2 or 4 values in the vertex buffer
-			auto uvOffset = stride - 4;
-			if ((vBuf->flags & VERTEX_UV2) != 0) uvOffset -= 4;
-			auto uvs = (int16_t*)(vertexData + uvOffset);
 
 			if (aCrashWeightsFOUC) {
 				dest->mVertices[j].x = aCrashWeightsFOUC->vCrashPos[0];
@@ -82,16 +77,47 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 				dest->mNormals[j].x = (int8Vertices[2] / 127.0) - 1;
 				vertices += 3; // 3 floats
 			}
-			if ((vBuf->flags & VERTEX_COLOR) != 0) vertices += 1; // 1 int32
+			if ((vBuf->flags & VERTEX_COLOR) != 0) {
+				auto vertexColorOffset = *(uint32_t*)&vertices[0];
+				if (vertexColorOffset >= 0xFF000000 || bIsBGMModel) {
+					auto rgb = (uint8_t*)&vertexColorOffset;
+					dest->mColors[0][j].r = rgb[0] / 255.0;
+					dest->mColors[0][j].g = rgb[1] / 255.0;
+					dest->mColors[0][j].b = rgb[2] / 255.0;
+					dest->mColors[0][j].a = rgb[3] / 255.0;
+				}
+				else if (!aVertexColors.empty()) {
+					int id = vertexColorOffset & 0xFFFFFF;
+					if (id >= aVertexColors.size()) {
+						WriteConsole("ERROR: Vertex colors for surface " + std::to_string(&src - &aSurfaces[0]) + " out of bounds!");
+						WriteConsole(std::to_string(id) + "/" + std::to_string(aVertexColors.size()));
+						exit(0);
+					}
+					auto rgb = (uint8_t*)&aVertexColors[id];
+					dest->mColors[0][j].r = rgb[0] / 255.0;
+					dest->mColors[0][j].g = rgb[1] / 255.0;
+					dest->mColors[0][j].b = rgb[2] / 255.0;
+					dest->mColors[0][j].a = 1;
+				}
+				else {
+					dest->mColors[0][j].r = 1;
+					dest->mColors[0][j].g = 1;
+					dest->mColors[0][j].b = 1;
+					dest->mColors[0][j].a = 1;
+				}
+				vertices += 2; // 1 int32
+			}
 			if ((vBuf->flags & VERTEX_UV) != 0 || (vBuf->flags & VERTEX_UV2) != 0) {
-				dest->mTextureCoords[0][j].x = uvs[0] / 2048.0;
-				dest->mTextureCoords[0][j].y = 1 - (uvs[1] / 2048.0);
+				dest->mTextureCoords[0][j].x = vertices[0] / 2048.0;
+				dest->mTextureCoords[0][j].y = 1 - (vertices[1] / 2048.0);
 				dest->mTextureCoords[0][j].z = 0;
+				vertices += 2; // 2 floats
 			}
 			if ((vBuf->flags & VERTEX_UV2) != 0) {
-				dest->mTextureCoords[1][j].x = uvs[2] / 2048.0;
-				dest->mTextureCoords[1][j].y = 1 - (uvs[3] / 2048.0);
+				dest->mTextureCoords[1][j].x = vertices[2] / 2048.0;
+				dest->mTextureCoords[1][j].y = 1 - (vertices[3] / 2048.0);
 				dest->mTextureCoords[1][j].z = 0;
+				vertices += 2; // 2 floats
 			}
 			vertexData += stride;
 			if (aCrashWeightsFOUC) aCrashWeightsFOUC++;
@@ -126,28 +152,32 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 				vertices += 3; // 3 floats
 			}
 			if ((vBuf->flags & VERTEX_COLOR) != 0) {
-				if (!aVertexColors.empty()) {
-					auto vertexColorOffset = *(uint32_t*)&vertices[0];
-					if (vertexColorOffset >= 0xFF000000) {
-						auto rgb = (uint8_t*)&vertexColorOffset;
-						dest->mColors[0][j].r = rgb[0] / 255.0;
-						dest->mColors[0][j].g = rgb[1] / 255.0;
-						dest->mColors[0][j].b = rgb[2] / 255.0;
-						dest->mColors[0][j].a = 1;
+				auto vertexColorOffset = *(uint32_t*)&vertices[0];
+				if (vertexColorOffset >= 0xFF000000 || bIsBGMModel) {
+					auto rgb = (uint8_t*)&vertexColorOffset;
+					dest->mColors[0][j].r = rgb[0] / 255.0;
+					dest->mColors[0][j].g = rgb[1] / 255.0;
+					dest->mColors[0][j].b = rgb[2] / 255.0;
+					dest->mColors[0][j].a = rgb[3] / 255.0;
+				}
+				else if (!aVertexColors.empty()) {
+					int id = vertexColorOffset & 0xFFFFFF;
+					if (id >= aVertexColors.size()) {
+						WriteConsole("ERROR: Vertex colors for surface " + std::to_string(&src - &aSurfaces[0]) + " out of bounds!");
+						WriteConsole(std::to_string(id) + "/" + std::to_string(aVertexColors.size()));
+						exit(0);
 					}
-					else {
-						int id = vertexColorOffset & 0xFFFFFF;
-						if (id >= aVertexColors.size()) {
-							WriteConsole("ERROR: Vertex colors for surface " + std::to_string(&src - &aSurfaces[0]) + " out of bounds!");
-							WriteConsole(std::to_string(id) + "/" + std::to_string(aVertexColors.size()));
-							exit(0);
-						}
-						auto rgb = (uint8_t*)&aVertexColors[id];
-						dest->mColors[0][j].r = rgb[0] / 255.0;
-						dest->mColors[0][j].g = rgb[1] / 255.0;
-						dest->mColors[0][j].b = rgb[2] / 255.0;
-						dest->mColors[0][j].a = 1;
-					}
+					auto rgb = (uint8_t*)&aVertexColors[id];
+					dest->mColors[0][j].r = rgb[0] / 255.0;
+					dest->mColors[0][j].g = rgb[1] / 255.0;
+					dest->mColors[0][j].b = rgb[2] / 255.0;
+					dest->mColors[0][j].a = 1;
+				}
+				else {
+					dest->mColors[0][j].r = 1;
+					dest->mColors[0][j].g = 1;
+					dest->mColors[0][j].b = 1;
+					dest->mColors[0][j].a = 1;
 				}
 				vertices += 1; // 1 int32
 			}
@@ -155,13 +185,13 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 				dest->mTextureCoords[0][j].x = vertices[0];
 				dest->mTextureCoords[0][j].y = 1 - vertices[1];
 				dest->mTextureCoords[0][j].z = 0;
-				vertices += 2;
+				vertices += 2; // 2 floats
 			}
 			if ((vBuf->flags & VERTEX_UV2) != 0) {
 				dest->mTextureCoords[1][j].x = vertices[0];
 				dest->mTextureCoords[1][j].y = 1 - vertices[1];
 				dest->mTextureCoords[1][j].z = 0;
-				vertices += 2;
+				vertices += 2; // 2 floats
 			}
 			vertexData += stride;
 			if (aCrashWeightsFO2) aCrashWeightsFO2++;

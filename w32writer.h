@@ -336,6 +336,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 					tmp[0] = mesh->mColors[0][i].r * 255.0;
 					tmp[1] = mesh->mColors[0][i].g * 255.0;
 					tmp[2] = mesh->mColors[0][i].b * 255.0;
+					tmp[3] = mesh->mColors[0][i].a * 255.0;
 					*(uint32_t*)&vertices[0] = *(uint32_t*)tmp;
 				}
 				else {
@@ -403,6 +404,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 					tmp[0] = mesh->mColors[0][i].r * 255.0;
 					tmp[1] = mesh->mColors[0][i].g * 255.0;
 					tmp[2] = mesh->mColors[0][i].b * 255.0;
+					tmp[3] = mesh->mColors[0][i].a * 255.0;
 					*(uint32_t*)&vertices[0] = *(uint32_t*)tmp;
 				}
 				else {
@@ -460,6 +462,8 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	auto matName = fbxMaterial->GetName().C_Str();
 	mat.sName = matName;
 	mat.nShaderId = 8; // car metal
+	if (mat.sName.starts_with("male")) mat.nShaderId = 26; // skinning
+	if (mat.sName.starts_with("female")) mat.nShaderId = 26; // skinning
 	if (mat.sName.starts_with("body")) mat.nShaderId = 5; // car body
 	if (mat.sName.starts_with("interior")) mat.nShaderId = 7; // car diffuse
 	if (mat.sName.starts_with("grille")) mat.nShaderId = 7; // car diffuse
@@ -487,6 +491,9 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 		mat.sTextureNames[i] = texName;
 		if (texName == "lights.tga" || texName == "windows.tga" || texName == "shock.tga") {
 			mat.nAlpha = 1;
+		}
+		if (texName == "Sue.tga" || texName == "Jack.tga") {
+			mat.nShaderId = 26;
 		}
 	}
 	// shadow project has no texture
@@ -614,7 +621,7 @@ void FillBGMFromFBX() {
 		if (bIsFOUCModel) {
 			CreateStreamsFromFBX(src, VERTEX_POSITION | VERTEX_COLOR | VERTEX_UV2, 36);
 		}
-		else if (material->nShaderId == 5) { // car body, has vertex colors
+		else if (material->nShaderId == 5 || material->nShaderId == 26) { // car body or ragdoll skin, has vertex colors
 			CreateStreamsFromFBX(src, VERTEX_POSITION | VERTEX_NORMAL | VERTEX_COLOR | VERTEX_UV, 36);
 		}
 		else if (material->nShaderId == 13) { // shadow project, position only
