@@ -443,11 +443,11 @@ void WriteW32CompactMeshesToText() {
 	WriteFile("");
 }
 
-void WriteBGMCarMeshesToText() {
-	WriteFile("Car Meshes begin");
-	WriteFile("Count: " + std::to_string(aCarMeshes.size()));
+void WriteBGMMeshesToText() {
+	WriteFile("BGM Meshes begin");
+	WriteFile("Count: " + std::to_string(aBGMMeshes.size()));
 	WriteFile("");
-	for (auto& mesh : aCarMeshes) {
+	for (auto& mesh : aBGMMeshes) {
 		WriteFile("sObjectName: " + mesh.sName1);
 		WriteFile("sModelName: " + mesh.sName2);
 		WriteFile(std::format("nFlags: 0x{:X}", mesh.nFlags));
@@ -514,7 +514,7 @@ void WriteBGMToText() {
 	WriteW32StreamsToText();
 	WriteW32SurfacesToText();
 	WriteW32ModelsToText();
-	WriteBGMCarMeshesToText();
+	WriteBGMMeshesToText();
 	WriteW32ObjectsToText();
 
 	WriteConsole("Text file export finished");

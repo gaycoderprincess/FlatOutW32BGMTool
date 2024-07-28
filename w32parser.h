@@ -582,14 +582,14 @@ bool ParseVertexColors(const std::string& fileName) {
 	return true;
 }
 
-bool ParseBGMCarMeshes(std::ifstream& file) {
-	WriteConsole("Parsing car meshes...");
+bool ParseBGMMeshes(std::ifstream& file) {
+	WriteConsole("Parsing BGM meshes...");
 
 	uint32_t meshCount;
 	ReadFromFile(file, &meshCount, 4);
-	aCarMeshes.reserve(meshCount);
+	aBGMMeshes.reserve(meshCount);
 	for (int i = 0; i < meshCount; i++) {
-		tCarMesh mesh;
+		tBGMMesh mesh;
 		ReadFromFile(file, &mesh.identifier, 4);
 		if (mesh.identifier != 0x4853454D) return false; // "MESH"
 
@@ -605,7 +605,7 @@ bool ParseBGMCarMeshes(std::ifstream& file) {
 			ReadFromFile(file, &id, 4);
 			mesh.aModels.push_back(id);
 		}
-		aCarMeshes.push_back(mesh);
+		aBGMMeshes.push_back(mesh);
 	}
 
 	return true;
@@ -707,7 +707,7 @@ bool ParseBGM() {
 	if (!ParseW32Streams(fin)) return false;
 	if (!ParseW32Surfaces(fin, nImportFileVersion)) return false;
 	if (!ParseW32Models(fin)) return false;
-	if (!ParseBGMCarMeshes(fin)) return false;
+	if (!ParseBGMMeshes(fin)) return false;
 	if (!ParseW32Objects(fin)) return false;
 
 	WriteConsole("Parsing finished");

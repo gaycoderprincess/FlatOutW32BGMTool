@@ -241,7 +241,7 @@ void WriteCompactMeshToFile(std::ofstream& file, tCompactMesh& mesh) {
 	}
 }
 
-void WriteCarMeshToFile(std::ofstream& file, tCarMesh& mesh) {
+void WriteBGMMeshToFile(std::ofstream& file, tBGMMesh& mesh) {
 	file.write((char*)&mesh.identifier, 4);
 	file.write(mesh.sName1.c_str(), mesh.sName1.length() + 1);
 	file.write(mesh.sName2.c_str(), mesh.sName2.length() + 1);
@@ -599,17 +599,17 @@ void FillBGMFromFBX() {
 		}
 	}
 
-	WriteConsole("Creating car meshes & surfaces...");
+	WriteConsole("Creating meshes & surfaces...");
 
-	auto carMeshArray = GetFBXNodeForCarMeshArray();
-	for (int i = 0; i < carMeshArray->mNumChildren; i++) {
-		auto bodyNode = carMeshArray->mChildren[i]; // body
+	auto bgmMeshArray = GetFBXNodeForBGMMeshArray();
+	for (int i = 0; i < bgmMeshArray->mNumChildren; i++) {
+		auto bodyNode = bgmMeshArray->mChildren[i]; // body
 
-		tCarMesh carMesh;
-		carMesh.sName1 = bodyNode->mName.C_Str();
-		carMesh.nFlags = 0x0;
-		carMesh.nGroup = -1;
-		FBXMatrixToFO2Matrix(bodyNode->mTransformation, carMesh.mMatrix);
+		tBGMMesh bgmMesh;
+		bgmMesh.sName1 = bodyNode->mName.C_Str();
+		bgmMesh.nFlags = 0x0;
+		bgmMesh.nGroup = -1;
+		FBXMatrixToFO2Matrix(bodyNode->mTransformation, bgmMesh.mMatrix);
 
 		for (int j = 0; j < bodyNode->mNumChildren; j++) {
 			auto body001 = bodyNode->mChildren[j]; // body.001
@@ -681,11 +681,11 @@ void FillBGMFromFBX() {
 				model.aCrashSurfaces.clear();
 			}
 			// fRadius isn't required, game doesn't read it
-			carMesh.aModels.push_back(aModels.size());
+			bgmMesh.aModels.push_back(aModels.size());
 			aModels.push_back(model);
 		}
 
-		aCarMeshes.push_back(carMesh);
+		aBGMMeshes.push_back(bgmMesh);
 	}
 
 	WriteConsole("Creating object dummies...");
@@ -1136,10 +1136,10 @@ void WriteBGM(uint32_t exportMapVersion) {
 		WriteModelToFile(file, model);
 	}
 
-	uint32_t carMeshCount = aCarMeshes.size();
+	uint32_t carMeshCount = aBGMMeshes.size();
 	file.write((char*)&carMeshCount, 4);
-	for (auto& mesh : aCarMeshes) {
-		WriteCarMeshToFile(file, mesh);
+	for (auto& mesh : aBGMMeshes) {
+		WriteBGMMeshToFile(file, mesh);
 	}
 
 	uint32_t objectCount = aObjects.size();

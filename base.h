@@ -380,7 +380,7 @@ struct tBoundingBoxMeshAssoc {
 	std::string sName;
 	int nIds[2];
 };
-struct tCarMesh {
+struct tBGMMesh {
 	uint32_t identifier = 0x4853454D;
 	std::string sName1;
 	std::string sName2;
@@ -408,7 +408,7 @@ std::vector<tObject> aObjects;
 std::vector<tCompactMesh> aCompactMeshes;
 std::vector<tBoundingBox> aBoundingBoxes;
 std::vector<tBoundingBoxMeshAssoc> aBoundingBoxMeshAssoc;
-std::vector<tCarMesh> aCarMeshes;
+std::vector<tBGMMesh> aBGMMeshes;
 std::vector<uint32_t> aVertexColors;
 //std::vector<tVertexBuffer> aCrashVertexBuffers;
 std::vector<tCrashData> aCrashData;
@@ -470,9 +470,13 @@ aiNode* FindFBXNodeFromRoot(const char* name) {
 	return nullptr;
 }
 
-aiNode* GetFBXNodeForCarMeshArray() { return FindFBXNodeFromRoot("CarMesh");}
-aiNode* GetFBXNodeForObjectsArray() { return FindFBXNodeFromRoot("Objects");}
-aiNode* GetFBXNodeForCompactMeshArray() { return FindFBXNodeFromRoot("CompactMesh");}
+aiNode* GetFBXNodeForBGMMeshArray() {
+	auto node = FindFBXNodeFromRoot("BGMMesh");
+	if (!node) node = FindFBXNodeFromRoot("CarMesh");
+	return node;
+}
+aiNode* GetFBXNodeForObjectsArray() { return FindFBXNodeFromRoot("Objects"); }
+aiNode* GetFBXNodeForCompactMeshArray() { return FindFBXNodeFromRoot("CompactMesh"); }
 aiNode* GetFBXNodeForStaticBatchArray() { return FindFBXNodeFromRoot("StaticBatch"); }
 aiNode* GetFBXNodeForTreeMeshArray() { return FindFBXNodeFromRoot("TreeMesh"); }
 

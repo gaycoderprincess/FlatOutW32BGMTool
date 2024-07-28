@@ -334,9 +334,9 @@ aiScene GenerateScene() {
 
 	if (bIsBGMModel) {
 		if (auto node = new aiNode()) {
-			node->mName = "CarMesh";
+			node->mName = "BGMMesh";
 			scene.mRootNode->addChildren(1, &node);
-			for (auto &compactMesh: aCarMeshes) {
+			for (auto &compactMesh: aBGMMeshes) {
 				auto meshNode = new aiNode();
 				meshNode->mName = compactMesh.sName1;
 				FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
