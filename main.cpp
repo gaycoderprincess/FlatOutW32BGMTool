@@ -58,6 +58,7 @@ bool ParseFBX() {
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
 		WriteConsole("Usage: FlatOut2W32BGMTool_gcp.exe <filename>");
+		WriteConsole("Run FlatOut2W32BGMTool_gcp.exe -help for a list of arguments");
 		return 0;
 	}
 	ProcessCommandlineArguments(argc, argv);

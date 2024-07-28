@@ -186,9 +186,9 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		WriteConsole("WARNING: -ungroup_moved_props used without -import_moved_props, the argument will be ignored");
 	}
 	if (bConvertToFO2) {
-		WriteConsole("WARNING: Direct conversions from FlatOut: Ultimate Carnage to FlatOut 2 will skip crash.dat, export the model to .fbx first to keep car damage!");
+		WriteConsole("WARNING: Direct conversions from Ultimate Carnage to FlatOut 2 will skip crash.dat, export the model to .fbx first to keep car damage!");
 	}
-	
+
 	sFileName = argv[1];
 	if (bCreateBGMFromFBX) {
 		sFBXFileName = argv[1];
