@@ -8,7 +8,7 @@ This tool is currently capable of:
 - Converting FlatOut 2 tracks to FlatOut 1
 - Converting FlatOut: Ultimate Carnage cars to FlatOut 1 and 2
 - Exporting cars and tracks to .fbx
-- Editing track meshes (FlatOut 1 and 2 only)
+- Editing track meshes
 - Deleting track meshes
 - Moving track props
 - Deleting track props
