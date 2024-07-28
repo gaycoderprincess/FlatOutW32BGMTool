@@ -490,12 +490,12 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 		}
 	}
 	// shadow project has no texture
-	if (mat.sName.starts_with("shadow")) {
-		mat.sTextureNames[0] = "";
-	}
-	if (bIsFOUCModel && mat.sTextureNames[0] == "tire_01.tga") {
-		mat.sTextureNames[0] = "tire.tga";
-	}
+	if (mat.sName.starts_with("shadow")) mat.sTextureNames[0] = "";
+	// scaleshock and shearhock have no alpha
+	if (mat.sName.starts_with("scaleshock")) mat.nAlpha = 0;
+	if (mat.sName.starts_with("shearhock")) mat.nAlpha = 0;
+	// fouc tire_01 hack
+	if (bIsFOUCModel && mat.sTextureNames[0] == "tire_01.tga") mat.sTextureNames[0] = "tire.tga";
 	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId));
 	return mat;
 }
@@ -543,6 +543,28 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial) {
 	return mat;
 }
 
+int GetMaterialSortPriority(aiMaterial* mat) {
+	auto name = (std::string)mat->GetName().C_Str();
+	if (name == "light_brake") return 1;
+	if (name == "light_brake_l") return 1;
+	if (name == "light_brake_r") return 1;
+	if (name == "light_brake_b") return 2;
+	if (name == "light_brake_l_b") return 2;
+	if (name == "light_brake_r_b") return 2;
+	return 0;
+}
+
+int GetBGMMaterialID(const std::string& name) {
+	for (auto& material : aMaterials) {
+		if (material.sName == name) return &material - &aMaterials[0];
+	}
+	return 0;
+}
+
+int GetBGMMaterialID(aiMaterial* material) {
+	return GetBGMMaterialID(material->GetName().C_Str());
+}
+
 void CreateBGMSurfaceFromFBX(aiNode* node, int meshId, bool isCrash) {
 	auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[meshId]];
 
@@ -552,7 +574,7 @@ void CreateBGMSurfaceFromFBX(aiNode* node, int meshId, bool isCrash) {
 	surface.nPolyCount = mesh->mNumFaces;
 	surface.nNumIndicesUsed = mesh->mNumFaces * 3;
 	surface.nFlags = aVertexBuffers[node->mMeshes[meshId]].flags;
-	surface.nMaterialId = mesh->mMaterialIndex;
+	surface.nMaterialId = GetBGMMaterialID(pParsedFBXScene->mMaterials[mesh->mMaterialIndex]);
 	surface.nNumStreamsUsed = 2;
 	surface.nPolyMode = 4;
 	surface.nStreamId[0] = node->mMeshes[meshId] * 2;
@@ -575,8 +597,12 @@ void FillBGMFromFBX() {
 	WriteConsole("Creating materials...");
 
 	// create materials
-	for (int i = 0; i < pParsedFBXScene->mNumMaterials; i++) {
-		aMaterials.push_back(GetCarMaterialFromFBX(pParsedFBXScene->mMaterials[i]));
+	for (int j = 0; j < 3; j++) {
+		for (int i = 0; i < pParsedFBXScene->mNumMaterials; i++) {
+			auto mat = pParsedFBXScene->mMaterials[i];
+			if (GetMaterialSortPriority(mat) != j) continue;
+			aMaterials.push_back(GetCarMaterialFromFBX(pParsedFBXScene->mMaterials[i]));
+		}
 	}
 
 	WriteConsole("Creating streams...");
@@ -584,7 +610,7 @@ void FillBGMFromFBX() {
 	// create streams
 	for (int i = 0; i < pParsedFBXScene->mNumMeshes; i++) {
 		auto src = pParsedFBXScene->mMeshes[i];
-		auto material = &aMaterials[src->mMaterialIndex];
+		auto material = &aMaterials[GetBGMMaterialID(pParsedFBXScene->mMaterials[src->mMaterialIndex])];
 		if (bIsFOUCModel) {
 			CreateStreamsFromFBX(src, VERTEX_POSITION | VERTEX_COLOR | VERTEX_UV2, 36);
 		}
