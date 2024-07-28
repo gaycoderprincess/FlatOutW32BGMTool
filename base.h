@@ -487,6 +487,17 @@ aiNode* FindFBXNodeForCompactMesh(const std::string& name) {
 	return nullptr;
 }
 
+aiNode* FindFBXNodeForObject(const std::string& name) {
+	auto root = GetFBXNodeForObjectsArray();
+	if (!root) return nullptr;
+
+	for (int i = 0; i < root->mNumChildren; i++) {
+		auto node = root->mChildren[i];
+		if (!strcmp(node->mName.C_Str(), name.c_str())) return node;
+	}
+	return nullptr;
+}
+
 aiNode* FindFBXNodeForStaticBatchSurface(const std::string& name) {
 	auto root = GetFBXNodeForStaticBatchArray();
 	if (!root) return nullptr;
@@ -525,6 +536,13 @@ aiNode* FindFBXNodeForSurface(int id) {
 aiMatrix4x4 GetFullMatrixFromCompactMeshObject(aiNode* node) {
 	auto root = pParsedFBXScene->mRootNode;
 	auto compactMeshRoot = GetFBXNodeForCompactMeshArray();
+
+	return root->mTransformation * compactMeshRoot->mTransformation * node->mTransformation;
+}
+
+aiMatrix4x4 GetFullMatrixFromDummyObject(aiNode* node) {
+	auto root = pParsedFBXScene->mRootNode;
+	auto compactMeshRoot = GetFBXNodeForObjectsArray();
 
 	return root->mTransformation * compactMeshRoot->mTransformation * node->mTransformation;
 }

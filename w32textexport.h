@@ -420,7 +420,7 @@ void WriteW32CompactMeshesToText() {
 	WriteFile("");
 	for (auto& mesh : aCompactMeshes) {
 		WriteFile("sObjectName: " + mesh.sName1);
-		WriteFile("sModelName: " + mesh.sName2);
+		WriteFile("sDynamicName: " + mesh.sName2);
 		WriteFile(std::format("nFlags: 0x{:X}", mesh.nFlags));
 		WriteFile("nGroup: " + std::to_string(mesh.nGroup));
 		WriteFile("mMatrix: ");

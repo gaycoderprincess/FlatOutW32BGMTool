@@ -178,7 +178,15 @@ void WriteModelToFile(std::ofstream& file, const tModel& model) {
 	}
 }
 
-void WriteObjectToFile(std::ofstream& file, const tObject& object) {
+void WriteObjectToFile(std::ofstream& file, tObject& object) {
+	if (bImportPropsFromFBX) {
+		if (auto fbx = FindFBXNodeForObject(object.sName1)) {
+			float oldMatrix[4*4];
+			memcpy(oldMatrix, object.mMatrix, sizeof(oldMatrix));
+			FBXMatrixToFO2Matrix(GetFullMatrixFromDummyObject(fbx), object.mMatrix);
+		}
+	}
+
 	file.write((char*)&object.identifier, 4);
 	file.write(object.sName1.c_str(), object.sName1.length() + 1);
 	file.write(object.sName2.c_str(), object.sName2.length() + 1);
