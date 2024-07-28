@@ -1,6 +1,6 @@
 # FlatOut W32 & BGM Tool
 
-A tool to handle .w32 and .bgm files in FlatOut games, WIP
+A tool to handle .w32 and .bgm files in FlatOut games
 
 This tool is currently capable of:
 - Parsing and recreating the formats from memory
@@ -42,8 +42,8 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-empty_bvh_gen` - Takes a track_bvh.gen file and generates a new one without any culling, required for custom maps to not have issues!
 - `-import_moved_props` - Imports moved prop positions from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_moved_props`
 - `-ungroup_moved_props` - Ungroups moved props if `-import_moved_props` is enabled, can prevent unwanted physics behavior
+- `-import_cloned_props` - Imports new cloned props from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_cloned_props`
 - `-import_surfaces` - Imports surface meshes from an .fbx file if they have the suffix `_export` in their name, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_surfaces`
-- `-import_materials` - Imports material changes and additions if `-import_surfaces` is enabled, might introduce issues
 - `-import_deletions` - Deletes surfaces and props that have been deleted from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_deletions`
 
 ## BGM Arguments
