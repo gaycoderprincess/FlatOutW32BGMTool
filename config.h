@@ -16,6 +16,7 @@ bool bEnableAllProps = false;
 bool bConvertToFO1 = false;
 bool bConvertToFO2 = false;
 bool bImportPropsFromFBX = false;
+bool bImportClonedPropsFromFBX = false;
 bool bImportSurfacesFromFBX = false;
 bool bImportDeletionFromFBX = false;
 bool bUngroupMovedPropsFromFBX = false;

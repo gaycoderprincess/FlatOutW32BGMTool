@@ -101,6 +101,11 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 				bUngroupMovedPropsFromFBX = true;
 			}
 		}
+		if (!strcmp(arg, "-import_cloned_props")) {
+			bImportClonedPropsFromFBX = true;
+			bLoadFBX = true;
+			bDumpIntoW32 = true;
+		}
 		if (!strcmp(arg, "-import_surfaces")) {
 			bImportSurfacesFromFBX = true;
 			bLoadFBX = true;
@@ -163,7 +168,7 @@ int main(int argc, char *argv[]) {
 	}
 	ProcessCommandlineArguments(argc, argv);
 	if (!std::filesystem::exists(sFileName)) {
-		WriteConsole("Failed to load " + sFileName.string() + "! (File doesn't exist)");
+		WriteConsole("Failed to load " + std::filesystem::absolute(sFileName).string() + "! (File doesn't exist)");
 		exit(0);
 	}
 	if (bCreateBGMFromFBX) {

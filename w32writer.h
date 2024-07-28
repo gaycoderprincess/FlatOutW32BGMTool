@@ -181,8 +181,6 @@ void WriteModelToFile(std::ofstream& file, const tModel& model) {
 void WriteObjectToFile(std::ofstream& file, tObject& object) {
 	if (bImportPropsFromFBX) {
 		if (auto fbx = FindFBXNodeForObject(object.sName1)) {
-			float oldMatrix[4*4];
-			memcpy(oldMatrix, object.mMatrix, sizeof(oldMatrix));
 			FBXMatrixToFO2Matrix(GetFullMatrixFromDummyObject(fbx), object.mMatrix);
 		}
 	}
@@ -498,6 +496,7 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	if (bIsFOUCModel && mat.sTextureNames[0] == "tire_01.tga") {
 		mat.sTextureNames[0] = "tire.tga";
 	}
+	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId));
 	return mat;
 }
 
@@ -777,6 +776,13 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node) {
 	surface->nStreamId[1] = streamCount + 1;
 }
 
+tCompactMesh* GetCompactMeshByName(const std::string& name) {
+	for (auto& mesh : aCompactMeshes) {
+		if (mesh.sName1 == name) return &mesh;
+	}
+	return nullptr;
+}
+
 void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("Writing output w32 file...");
 
@@ -921,6 +927,30 @@ void WriteW32(uint32_t exportMapVersion) {
 		if (bImportDeletionFromFBX) {
 			for (auto& mesh : aCompactMeshes) {
 				if (!FindFBXNodeForCompactMesh(mesh.sName1)) compactMeshCount--;
+			}
+		}
+		if (bImportClonedPropsFromFBX) {
+			auto node = GetFBXNodeForCompactMeshArray();
+			for (int i = 0; i < node->mNumChildren; i++) {
+				auto child = node->mChildren[i];
+				if (GetCompactMeshByName(child->mName.C_Str())) continue;
+				auto tmpName = (std::string)child->mName.C_Str();
+				while (!GetCompactMeshByName(tmpName) && !tmpName.empty()) {
+					tmpName.pop_back();
+				}
+				if (tmpName.empty()) continue;
+				auto baseMesh = GetCompactMeshByName(tmpName);
+				if (!baseMesh) continue;
+				auto baseName = baseMesh->sName1; // not copying this out beforehand for the console log makes the tool crash????????
+
+				tCompactMesh newMesh = *baseMesh;
+				newMesh.nGroup = -1;
+				newMesh.sName1 = child->mName.C_Str();
+				FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(child), newMesh.mMatrix);
+				aCompactMeshes.push_back(newMesh);
+				compactMeshCount++;
+
+				WriteConsole("Cloning " + baseName + " for new prop placement " + newMesh.sName1);
 			}
 		}
 
