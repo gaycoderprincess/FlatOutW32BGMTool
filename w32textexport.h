@@ -378,38 +378,38 @@ void WriteW32ObjectsToText() {
 	WriteFile("");
 }
 
-void WriteW32BoundingBoxesToText() {
-	WriteFile("Bounding Boxes begin");
-	WriteFile("Count: " + std::to_string(aBoundingBoxes.size()));
+void WriteW32CollidableModelsToText() {
+	WriteFile("Collidable Models begin");
+	WriteFile("Count: " + std::to_string(aCollidableModels.size()));
 	WriteFile("");
-	for (auto& bbox : aBoundingBoxes) {
-		WriteFile("Model count: " + std::to_string(bbox.aModels.size()));
-		for (auto& model : bbox.aModels) {
+	for (auto& col : aCollidableModels) {
+		WriteFile("Model count: " + std::to_string(col.aModels.size()));
+		for (auto& model : col.aModels) {
 			WriteFile(std::to_string(model));
 		}
-		WriteFile("vCenter.x: " + std::to_string(bbox.vCenter[0]));
-		WriteFile("vCenter.y: " + std::to_string(bbox.vCenter[1]));
-		WriteFile("vCenter.z: " + std::to_string(bbox.vCenter[2]));
-		WriteFile("vRadius.x: " + std::to_string(bbox.vRadius[0]));
-		WriteFile("vRadius.y: " + std::to_string(bbox.vRadius[1]));
-		WriteFile("vRadius.z: " + std::to_string(bbox.vRadius[2]));
+		WriteFile("vCenter.x: " + std::to_string(col.vCenter[0]));
+		WriteFile("vCenter.y: " + std::to_string(col.vCenter[1]));
+		WriteFile("vCenter.z: " + std::to_string(col.vCenter[2]));
+		WriteFile("vRadius.x: " + std::to_string(col.vRadius[0]));
+		WriteFile("vRadius.y: " + std::to_string(col.vRadius[1]));
+		WriteFile("vRadius.z: " + std::to_string(col.vRadius[2]));
 		WriteFile("");
 	}
-	WriteFile("Bounding Boxes end");
+	WriteFile("Collidable Models end");
 	WriteFile("");
 }
 
-void WriteW32BoundingBoxAssocToText() {
-	WriteFile("Bounding Box Mesh Associations begin");
-	WriteFile("Count: " + std::to_string(aBoundingBoxMeshAssoc.size()));
+void WriteW32MeshDamageAssocToText() {
+	WriteFile("Mesh Damage Associations begin");
+	WriteFile("Count: " + std::to_string(aMeshDamageAssoc.size()));
 	WriteFile("");
-	for (auto& assoc : aBoundingBoxMeshAssoc) {
+	for (auto& assoc : aMeshDamageAssoc) {
 		WriteFile("sName: " + assoc.sName);
-		WriteFile("nIds[0]: " + std::to_string(assoc.nIds[0]));
-		WriteFile("nIds[1]: " + std::to_string(assoc.nIds[1]));
+		WriteFile("nBaseModel: " + std::to_string(assoc.nIds[0]));
+		WriteFile("nDamageModel: " + std::to_string(assoc.nIds[1]));
 		WriteFile("");
 	}
-	WriteFile("Bounding Box Mesh Associations end");
+	WriteFile("Mesh Damage Associations end");
 	WriteFile("");
 }
 
@@ -486,8 +486,8 @@ void WriteW32ToText() {
 	WriteW32UnknownArray3ToText();
 	WriteW32ModelsToText();
 	WriteW32ObjectsToText();
-	WriteW32BoundingBoxesToText();
-	WriteW32BoundingBoxAssocToText();
+	WriteW32CollidableModelsToText();
+	WriteW32MeshDamageAssocToText();
 	WriteW32CompactMeshesToText();
 
 	for (auto& surface : aSurfaces) {

@@ -192,17 +192,17 @@ void WriteObjectToFile(std::ofstream& file, tObject& object) {
 	file.write((char*)object.mMatrix, sizeof(object.mMatrix));
 }
 
-void WriteBoundingBoxToFile(std::ofstream& file, const tBoundingBox& bbox) {
-	int numModels = bbox.aModels.size();
+void WriteCollidableModelToFile(std::ofstream& file, const tCollidableModel& col) {
+	int numModels = col.aModels.size();
 	file.write((char*)&numModels, 4);
-	for (auto& model : bbox.aModels) {
+	for (auto& model : col.aModels) {
 		file.write((char*)&model, 4);
 	}
-	file.write((char*)bbox.vCenter, sizeof(bbox.vCenter));
-	file.write((char*)bbox.vRadius, sizeof(bbox.vRadius));
+	file.write((char*)col.vCenter, sizeof(col.vCenter));
+	file.write((char*)col.vRadius, sizeof(col.vRadius));
 }
 
-void WriteBoundingBoxMeshAssocToFile(std::ofstream& file, const tBoundingBoxMeshAssoc& assoc) {
+void WriteMeshDamageAssocToFile(std::ofstream& file, const tMeshDamageAssoc& assoc) {
 	file.write(assoc.sName.c_str(), assoc.sName.length() + 1);
 	file.write((char*)assoc.nIds, sizeof(assoc.nIds));
 }
@@ -943,16 +943,16 @@ void WriteW32(uint32_t exportMapVersion) {
 	}
 	else {
 		if (nExportFileVersion >= 0x20000) {
-			uint32_t boundingBoxCount = aBoundingBoxes.size();
-			file.write((char*)&boundingBoxCount, 4);
-			for (auto& bbox : aBoundingBoxes) {
-				WriteBoundingBoxToFile(file, bbox);
+			uint32_t colCount = aCollidableModels.size();
+			file.write((char*)&colCount, 4);
+			for (auto& bbox : aCollidableModels) {
+				WriteCollidableModelToFile(file, bbox);
 			}
 
-			uint32_t boundingBoxAssocCount = aBoundingBoxMeshAssoc.size();
-			file.write((char*)&boundingBoxAssocCount, 4);
-			for (auto& bboxAssoc : aBoundingBoxMeshAssoc) {
-				WriteBoundingBoxMeshAssocToFile(file, bboxAssoc);
+			uint32_t meshDamageCount = aMeshDamageAssoc.size();
+			file.write((char*)&meshDamageCount, 4);
+			for (auto& bboxAssoc : aMeshDamageAssoc) {
+				WriteMeshDamageAssocToFile(file, bboxAssoc);
 			}
 		}
 

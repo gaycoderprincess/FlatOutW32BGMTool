@@ -507,8 +507,8 @@ bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 			ReadFromFile(file, &compactMesh.nUnk1, 4);
 			ReadFromFile(file, &compactMesh.nBBoxAssocId, 4);
 
-			auto bboxAssoc = aBoundingBoxMeshAssoc[compactMesh.nBBoxAssocId];
-			auto bbox = aBoundingBoxes[bboxAssoc.nIds[0]];
+			auto bboxAssoc = aMeshDamageAssoc[compactMesh.nBBoxAssocId];
+			auto bbox = aCollidableModels[bboxAssoc.nIds[0]];
 			compactMesh.aLODMeshIds = bbox.aModels;
 		}
 		else {
@@ -526,41 +526,41 @@ bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 	return true;
 }
 
-bool ParseW32BoundingBoxes(std::ifstream& file) {
-	WriteConsole("Parsing bounding boxes...");
+bool ParseW32CollidableModels(std::ifstream& file) {
+	WriteConsole("Parsing collidable models...");
 
-	uint32_t boundingBoxCount;
-	ReadFromFile(file, &boundingBoxCount, 4);
-	aBoundingBoxes.reserve(boundingBoxCount);
-	for (int i = 0; i < boundingBoxCount; i++) {
-		tBoundingBox boundingBox;
+	uint32_t colCount;
+	ReadFromFile(file, &colCount, 4);
+	aCollidableModels.reserve(colCount);
+	for (int i = 0; i < colCount; i++) {
+		tCollidableModel collidableModel;
 
 		uint32_t modelCount;
 		ReadFromFile(file, &modelCount, 4);
 		for (int j = 0; j < modelCount; j++) {
 			uint32_t modelId;
 			ReadFromFile(file, &modelId, 4);
-			boundingBox.aModels.push_back(modelId);
+			collidableModel.aModels.push_back(modelId);
 		}
 
-		ReadFromFile(file, boundingBox.vCenter, sizeof(boundingBox.vCenter));
-		ReadFromFile(file, boundingBox.vRadius, sizeof(boundingBox.vRadius));
-		aBoundingBoxes.push_back(boundingBox);
+		ReadFromFile(file, collidableModel.vCenter, sizeof(collidableModel.vCenter));
+		ReadFromFile(file, collidableModel.vRadius, sizeof(collidableModel.vRadius));
+		aCollidableModels.push_back(collidableModel);
 	}
 	return true;
 }
 
-bool ParseW32BoundingBoxMeshAssoc(std::ifstream& file) {
-	WriteConsole("Parsing bounding box mesh associations...");
+bool ParseW32MeshDamageAssoc(std::ifstream& file) {
+	WriteConsole("Parsing mesh damage associations...");
 
 	uint32_t assocCount;
 	ReadFromFile(file, &assocCount, 4);
-	aBoundingBoxMeshAssoc.reserve(assocCount);
+	aMeshDamageAssoc.reserve(assocCount);
 	for (int i = 0; i < assocCount; i++) {
-		tBoundingBoxMeshAssoc assoc;
+		tMeshDamageAssoc assoc;
 		assoc.sName = ReadStringFromFile(file);
 		ReadFromFile(file, assoc.nIds, sizeof(assoc.nIds));
-		aBoundingBoxMeshAssoc.push_back(assoc);
+		aMeshDamageAssoc.push_back(assoc);
 	}
 	return true;
 }
@@ -672,8 +672,8 @@ bool ParseW32() {
 	if (!ParseW32Objects(fin)) return false;
 
 	if (nImportFileVersion >= 0x20000) {
-		if (!ParseW32BoundingBoxes(fin)) return false;
-		if (!ParseW32BoundingBoxMeshAssoc(fin)) return false;
+		if (!ParseW32CollidableModels(fin)) return false;
+		if (!ParseW32MeshDamageAssoc(fin)) return false;
 	}
 
 	if (!ParseW32CompactMeshes(fin, nImportFileVersion)) return false;

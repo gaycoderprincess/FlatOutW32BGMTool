@@ -371,12 +371,12 @@ struct tCompactMesh {
 	uint32_t nBBoxAssocId;
 	std::vector<int> aLODMeshIds;
 };
-struct tBoundingBox {
+struct tCollidableModel {
 	std::vector<int> aModels;
 	float vCenter[3];
 	float vRadius[3];
 };
-struct tBoundingBoxMeshAssoc {
+struct tMeshDamageAssoc {
 	std::string sName;
 	int nIds[2];
 };
@@ -406,8 +406,8 @@ std::vector<float> aUnknownArray3;
 std::vector<tModel> aModels;
 std::vector<tObject> aObjects;
 std::vector<tCompactMesh> aCompactMeshes;
-std::vector<tBoundingBox> aBoundingBoxes;
-std::vector<tBoundingBoxMeshAssoc> aBoundingBoxMeshAssoc;
+std::vector<tCollidableModel> aCollidableModels;
+std::vector<tMeshDamageAssoc> aMeshDamageAssoc;
 std::vector<tBGMMesh> aBGMMeshes;
 std::vector<uint32_t> aVertexColors;
 //std::vector<tVertexBuffer> aCrashVertexBuffers;
