@@ -206,8 +206,8 @@ bool ParseCrashDatStreams(std::ifstream& file) {
 	return true;
 }
 
-bool ParseCrashDat(const std::string& fileName) {
-	if (!fileName.ends_with(".dat")) {
+bool ParseCrashDat(const std::filesystem::path& fileName) {
+	if (fileName.extension() != ".dat") {
 		return false;
 	}
 

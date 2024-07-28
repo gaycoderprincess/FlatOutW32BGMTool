@@ -611,12 +611,12 @@ bool ParseBGMCarMeshes(std::ifstream& file) {
 	return true;
 }
 
-bool ParseW32(const std::string& fileName) {
-	if (!sFileName.ends_with(".w32")) {
+bool ParseW32() {
+	if (sFileName.extension() != ".w32") {
 		return false;
 	}
 
-	std::ifstream fin(fileName, std::ios::in | std::ios::binary );
+	std::ifstream fin(sFileName, std::ios::in | std::ios::binary );
 	if (!fin.is_open()) return false;
 
 	ReadFromFile(fin, &nImportFileVersion, 4);
@@ -624,7 +624,7 @@ bool ParseW32(const std::string& fileName) {
 
 	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
 	else {
-		auto vertexColorsPath = "vertexcolors_w2.w32";
+		auto vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
 		if (!ParseVertexColors(vertexColorsPath)) {
 			WriteConsole("Failed to load " + (std::string)vertexColorsPath + ", vertex colors will not be exported");
 		}
@@ -682,23 +682,23 @@ bool ParseW32(const std::string& fileName) {
 	return true;
 }
 
-bool ParseBGM(const std::string& fileName) {
-	if (!sFileName.ends_with(".bgm")) {
+bool ParseBGM() {
+	if (sFileName.extension() != ".bgm") {
 		return false;
 	}
 
-	std::ifstream fin(fileName, std::ios::in | std::ios::binary );
+	std::ifstream fin(sFileName, std::ios::in | std::ios::binary );
 	if (!fin.is_open()) return false;
 
 	ReadFromFile(fin, &nImportFileVersion, 4);
 	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
 	else {
-		auto crashDatPath = sFileNameNoExt + "_crash.dat";
+		// first look for modelname_crash.dat, then look for crash.dat in the folder
+		auto crashDatPath = sFileNameNoExt.string() + "_crash.dat";
+		if (!std::filesystem::exists(crashDatPath)) crashDatPath = sFileFolder.string() + "crash.dat";
+
 		if (!ParseCrashDat(crashDatPath)) {
-			crashDatPath = "crash.dat";
-			if (!ParseCrashDat(crashDatPath)) {
-				WriteConsole("Failed to load " + (std::string)crashDatPath + ", damage data will not be exported");
-			}
+			WriteConsole("Failed to load " + (std::string)crashDatPath + ", damage data will not be exported");
 		}
 	}
 	bIsBGMModel = true;

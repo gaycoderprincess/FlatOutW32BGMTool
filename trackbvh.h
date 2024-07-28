@@ -1,10 +1,10 @@
 bool ReadAndEmptyTrackBVH() {
-	if (!sFileName.ends_with(".gen")) {
+	if (sFileName.extension() != ".gen") {
 		return false;
 	}
 
 	std::ifstream fin(sFileName, std::ios::in | std::ios::binary );
-	std::ofstream fout(sFileNameNoExt + "_out.gen", std::ios::out | std::ios::binary);
+	std::ofstream fout(sFileNameNoExt.string() + "_out.gen", std::ios::out | std::ios::binary);
 	if (fin.is_open() && fout.is_open()) {
 		int header[3]; // 0 and 1 are unused, 2 is bvh count
 		ReadFromFile(fin, header, sizeof(header));

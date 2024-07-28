@@ -20,8 +20,10 @@
 #define STREAM_VERTEX_TERRAIN	(VERTEX_POSITION | VERTEX_UV2 | VERTEX_NORMAL)
 #define STREAM_VERTEX_TERRAIN2	(VERTEX_POSITION | VERTEX_UV2)
 
-std::string sFileName;
-std::string sFileNameNoExt;
+std::filesystem::path sFileName;
+std::filesystem::path sFileNameNoExt;
+std::filesystem::path sFileFolder;
+std::filesystem::path sFBXFileName;
 
 bool bIsBGMModel = false;
 bool bIsFOUCModel = false;
@@ -36,7 +38,7 @@ void WriteConsole(const std::string& str) {
 }
 
 void WriteFile(const std::string& str) {
-	static auto out = std::ofstream(sFileNameNoExt + "_log.txt");
+	static auto out = std::ofstream(sFileNameNoExt.string() + "_log.txt");
 	out << str;
 	out << "\n";
 	out.flush();

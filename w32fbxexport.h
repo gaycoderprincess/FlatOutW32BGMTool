@@ -401,7 +401,7 @@ void WriteToFBX() {
 	Assimp::DefaultLogger::create("fbx_export_log.txt", severity, aiDefaultLogStream_FILE);
 
 	Assimp::Exporter exporter;
-	if (exporter.Export(&scene, "fbx", sFileNameNoExt + "_out.fbx") != aiReturn_SUCCESS) {
+	if (exporter.Export(&scene, "fbx", sFileNameNoExt.string() + "_out.fbx") != aiReturn_SUCCESS) {
 		WriteConsole("Model export failed!");
 	}
 	else {

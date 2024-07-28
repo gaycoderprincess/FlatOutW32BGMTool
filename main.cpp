@@ -4,6 +4,7 @@
 #include <fstream>
 #include <format>
 #include <vector>
+#include <filesystem>
 #include "assimp/Importer.hpp"
 #include "assimp/Exporter.hpp"
 #include "assimp/Logger.hpp"
@@ -21,23 +22,6 @@
 #include "trackbvh.h"
 
 void ProcessCommandlineArguments(int argc, char* argv[]) {
-	const char* aSupportedFormats[] = {
-			".w32",
-			".bgm",
-			".car", // retro demo
-			".gen", // track_bvh.gen
-			".fbx",
-			".dat", // crash.dat
-	};
-	sFileName = argv[1];
-	sFileNameNoExt = sFileName;
-	for (auto& format : aSupportedFormats) {
-		if (sFileName.ends_with(format)) {
-			for (int i = 0; i < 4; i++) {
-				sFileNameNoExt.pop_back();
-			}
-		}
-	}
 	for (int i = 2; i < argc; i++) {
 		auto arg = argv[i];
 		if (!strcmp(arg, "-export_fbx")) bDumpIntoFBX = true;
@@ -129,10 +113,21 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 			bDumpIntoW32 = true;
 		}
 	}
+	sFileName = argv[1];
+	if (bCreateBGMFromFBX) {
+		sFBXFileName = argv[1];
+	}
+	else if (bLoadFBX) {
+		sFBXFileName = argv[2];
+	}
+	sFileNameNoExt = sFileName;
+	sFileNameNoExt.replace_extension("");
+	sFileFolder = sFileName;
+	sFileFolder.remove_filename();
 }
 
-bool ParseFBX(const std::string& fileName) {
-	if (!fileName.ends_with(".fbx")) return false;
+bool ParseFBX() {
+	if (sFBXFileName.extension() != ".fbx") return false;
 
 	WriteConsole("Parsing FBX...");
 
@@ -157,7 +152,7 @@ bool ParseFBX(const std::string& fileName) {
 	flags |= aiProcess_GenBoundingBoxes;
 
 	static Assimp::Importer importer;
-	pParsedFBXScene = importer.ReadFile(fileName.c_str(), flags);
+	pParsedFBXScene = importer.ReadFile(sFBXFileName.string().c_str(), flags);
 	if (bCreateBGMFromFBX) return pParsedFBXScene != nullptr && GetFBXNodeForCarMeshArray() && GetFBXNodeForObjectsArray();
 	return pParsedFBXScene != nullptr && GetFBXNodeForStaticBatchArray() && GetFBXNodeForTreeMeshArray() && GetFBXNodeForCompactMeshArray();
 }
@@ -169,8 +164,8 @@ int main(int argc, char *argv[]) {
 	}
 	ProcessCommandlineArguments(argc, argv);
 	if (bCreateBGMFromFBX) {
-		if (!ParseFBX(argv[1])) {
-			WriteConsole("Failed to load " + (std::string) argv[1] + "!");
+		if (!ParseFBX()) {
+			WriteConsole("Failed to load " + sFBXFileName.string() + "!");
 			exit(0);
 		}
 		else {
@@ -183,8 +178,8 @@ int main(int argc, char *argv[]) {
 	}
 	else {
 		if (bLoadFBX) {
-			if (!ParseFBX(argv[2])) {
-				WriteConsole("Failed to load " + (std::string) argv[2] + "!");
+			if (!ParseFBX()) {
+				WriteConsole("Failed to load " + sFBXFileName.string() + "!");
 				exit(0);
 			} else {
 				WriteConsole("Parsing finished");
@@ -192,19 +187,19 @@ int main(int argc, char *argv[]) {
 		}
 		if (bEmptyOutTrackBVH) {
 			if (!ReadAndEmptyTrackBVH()) {
-				WriteConsole("Failed to load " + sFileName + "!");
+				WriteConsole("Failed to load " + sFileName.string() + "!");
 			}
 			return 0;
 		} else {
-			if (sFileName.ends_with(".dat")) {
+			if (sFileName.extension() == ".dat") {
 				if (!ParseCrashDat(sFileName)) {
-					WriteConsole("Failed to load " + sFileName + "!");
+					WriteConsole("Failed to load " + sFileName.string() + "!");
 				} else {
 					if (bDumpIntoTextFile) WriteCrashDatToText();
 				}
-			} else if (sFileName.ends_with(".bgm") || sFileName.ends_with(".car")) {
-				if (!ParseBGM(sFileName)) {
-					WriteConsole("Failed to load " + sFileName + "!");
+			} else if (sFileName.extension() == ".bgm" || sFileName.extension() == ".car") {
+				if (!ParseBGM()) {
+					WriteConsole("Failed to load " + sFileName.string() + "!");
 				} else {
 					if (bDumpIntoTextFile) WriteBGMToText();
 					if (bDumpIntoFBX) WriteToFBX();
@@ -216,8 +211,8 @@ int main(int argc, char *argv[]) {
 					}
 				}
 			} else {
-				if (!ParseW32(sFileName)) {
-					WriteConsole("Failed to load " + sFileName + "!");
+				if (!ParseW32()) {
+					WriteConsole("Failed to load " + sFileName.string() + "!");
 				} else {
 					if (bDumpIntoTextFile) WriteW32ToText();
 					if (bDumpIntoFBX) WriteToFBX();

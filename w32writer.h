@@ -653,7 +653,7 @@ void WriteW32(uint32_t exportMapVersion) {
 		return;
 	}
 
-	std::ofstream file(sFileNameNoExt + "_out.w32", std::ios::out | std::ios::binary );
+	std::ofstream file(sFileNameNoExt.string() + "_out.w32", std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 
 	file.write((char*)&nExportFileVersion, 4);
@@ -970,7 +970,7 @@ void WriteBGM(uint32_t exportMapVersion) {
 
 	nExportFileVersion = exportMapVersion;
 
-	std::ofstream file(sFileNameNoExt + "_out.bgm", std::ios::out | std::ios::binary );
+	std::ofstream file(sFileNameNoExt.string() + "_out.bgm", std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 
 	file.write((char*)&nExportFileVersion, 4);
@@ -1059,7 +1059,7 @@ void WriteCrashDat(uint32_t exportMapVersion) {
 
 	nExportFileVersion = exportMapVersion;
 
-	std::ofstream file(sFileNameNoExt + "_out_crash.dat", std::ios::out | std::ios::binary );
+	std::ofstream file(sFileNameNoExt.string() + "_out_crash.dat", std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 
 	int numModels = 0;
