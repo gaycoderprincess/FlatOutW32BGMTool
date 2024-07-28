@@ -21,7 +21,7 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 
 ## Usage
 
-- Enter a commandline prompt, run `FlatOut2W32Tool_gcp.exe (filename)` with the arguments you'd like to use
+- Enter a commandline prompt, run `FlatOut2W32BGMTool_gcp.exe (filename)` with the arguments you'd like to use
 - The file will now be analyzed and processed by the tool
 - Enjoy, nya~ :3
 
@@ -40,11 +40,11 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-enable_all_props` - Creates a new .w32 file of the map with all props visible (BugBear left a lot of props hidden in each track)
 - `-convert_to_fo1` - Creates a new .w32 file of the map that can be loaded by FlatOut 1
 - `-empty_bvh_gen` - Takes a track_bvh.gen file and generates a new one without any culling, required for custom maps to not have issues!
-- `-import_moved_props` - Imports moved prop positions from an .fbx file, usage: `FlatOutW32Tool_gcp.exe (w32 filename) (fbx filename) -import_moved_props`
+- `-import_moved_props` - Imports moved prop positions from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_moved_props`
 - `-ungroup_moved_props` - Ungroups moved props if `-import_moved_props` is enabled, can prevent unwanted physics behavior
-- `-import_surfaces` - Imports surface meshes from an .fbx file if they have the suffix `_export` in their name, usage: `FlatOutW32Tool_gcp.exe (w32 filename) (fbx filename) -import_surfaces`
+- `-import_surfaces` - Imports surface meshes from an .fbx file if they have the suffix `_export` in their name, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_surfaces`
 - `-import_materials` - Imports material changes and additions if `-import_surfaces` is enabled, might introduce issues
-- `-import_deletions` - Deletes surfaces and props that have been deleted from an .fbx file, usage: `FlatOutW32Tool_gcp.exe (w32 filename) (fbx filename) -import_deletions`
+- `-import_deletions` - Deletes surfaces and props that have been deleted from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_deletions`
 
 ## BGM Arguments
 - `-create_fo1_bgm` - Exports an .fbx into a FlatOut 1 car bgm
