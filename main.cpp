@@ -103,9 +103,6 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 			bImportSurfacesFromFBX = true;
 			bLoadFBX = true;
 			bDumpIntoW32 = true;
-			if (!strcmp(arg, "-import_materials")) {
-				bImportSurfaceMaterialsFromFBX = true;
-			}
 		}
 		if (!strcmp(arg, "-import_deletions")) {
 			bImportDeletionFromFBX = true;
@@ -159,7 +156,7 @@ bool ParseFBX() {
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
-		WriteConsole("Usage: FlatOut2W32Tool_gcp.exe <filename>");
+		WriteConsole("Usage: FlatOut2W32BGMTool_gcp.exe <filename>");
 		return 0;
 	}
 	ProcessCommandlineArguments(argc, argv);

@@ -481,6 +481,49 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	return mat;
 }
 
+tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial) {
+	tMaterial mat;
+	auto matName = fbxMaterial->GetName().C_Str();
+	mat.sName = matName;
+	mat.nAlpha = mat.sName.starts_with("alpha") || mat.sName.starts_with("Alpha") || mat.sName.starts_with("wirefence_");
+	mat.nShaderId = 0; // static prelit
+	if (mat.sName.starts_with("dm_")) mat.nShaderId = 1; // terrain
+	if (mat.sName.starts_with("sdm_")) mat.nShaderId = 2; // terrain specular
+	if (mat.sName.starts_with("treetrunk")) mat.nShaderId = 19; // tree trunk
+	if (mat.sName.starts_with("alpha_treebranch")) mat.nShaderId = 20; // tree branch
+	if (mat.sName.starts_with("alpha_bushbranch")) mat.nShaderId = 20; // tree branch
+	if (mat.sName.starts_with("alpha_treelod")) mat.nShaderId = 21; // tree leaf
+	if (mat.sName.starts_with("alpha_treesprite")) mat.nShaderId = 21; // tree leaf
+	if (mat.sName.starts_with("alpha_bushlod")) mat.nShaderId = 21; // tree leaf
+	if (mat.sName.starts_with("alpha_bushsprite")) mat.nShaderId = 21; // tree leaf
+	if (mat.sName.ends_with(".001")) {
+		for (int i = 0; i < 4; i++) {
+			mat.sName.pop_back();
+		}
+	}
+	if (mat.sName.ends_with("_dynamic")) mat.nShaderId = 3; // dynamic diffuse
+	if (mat.sName.ends_with("_dynamic_specular")) mat.nShaderId = 4; // dynamic specular, custom suffix for manual use
+
+	mat.nNumTextures = fbxMaterial->GetTextureCount(aiTextureType_DIFFUSE);
+	if (mat.nNumTextures > 3) mat.nNumTextures = 3;
+	for (int i = 0; i < mat.nNumTextures; i++) {
+		auto texName= GetFBXTextureInFO2Style(fbxMaterial, i);
+		mat.sTextureNames[i] = texName;
+
+		if (i == 0 && texName == "colormap.tga") {
+			mat.nUseColormap = 1;
+			// hack to load colormapped textures properly when the fbx has texture2 stripped
+			if (mat.nNumTextures == 1) {
+				mat.sTextureNames[1] = mat.sName + ".tga";
+				mat.nNumTextures = 2;
+				break;
+			}
+		}
+	}
+	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId));
+	return mat;
+}
+
 void CreateBGMSurfaceFromFBX(aiNode* node, int meshId, bool isCrash) {
 	auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[meshId]];
 
@@ -514,9 +557,7 @@ void FillBGMFromFBX() {
 
 	// create materials
 	for (int i = 0; i < pParsedFBXScene->mNumMaterials; i++) {
-		auto src = pParsedFBXScene->mMaterials[i];
-		auto material = GetCarMaterialFromFBX(src);
-		aMaterials.push_back(material);
+		aMaterials.push_back(GetCarMaterialFromFBX(pParsedFBXScene->mMaterials[i]));
 	}
 
 	WriteConsole("Creating streams...");
@@ -687,38 +728,14 @@ void WriteW32(uint32_t exportMapVersion) {
 						vertexSize += 2 * sizeof(float);
 					}
 
-					// todo this seems to be broken - mMaterialIndex isn't correct here for some reason
-					if (bImportSurfaceMaterialsFromFBX) {
-						auto fbxMaterial = pParsedFBXScene->mMaterials[mesh->mMaterialIndex];
-						auto matName = fbxMaterial->GetName().C_Str();
-						auto material = FindMaterialIDByName(matName);
-						if (material < 0) {
-							material = aMaterials.size();
-							tMaterial mat;
-							mat.sName = matName;
-							mat.nAlpha = mat.sName.starts_with("alpha") || mat.sName.starts_with("Alpha");
-							mat.nNumTextures = fbxMaterial->GetTextureCount(aiTextureType_DIFFUSE);
-							if (mat.nNumTextures > 3) mat.nNumTextures = 3;
-							for (int i = 0; i < mat.nNumTextures; i++) {
-								mat.sTextureNames[i] = GetFBXTextureInFO2Style(fbxMaterial, i);
-								if (i == 0 && mat.sTextureNames[i] == "colormap.tga") {
-									mat.nShaderId = 2; // terrain specular
-									mat.nUseColormap = 1;
-
-									// hack to load colormapped textures properly when the fbx has texture2 stripped
-									if (mat.nNumTextures == 1) {
-										mat.sTextureNames[1] = mat.sName + ".tga";
-										mat.nNumTextures = 2;
-										break;
-									}
-								}
-							}
-							WriteConsole("Creating new material " + mat.sName);
-							aMaterials.push_back(mat);
-						}
-						WriteConsole("Assigning material " + aMaterials[material].sName + " to surface " + node->mName.C_Str());
-						surface.nMaterialId = material;
+					auto fbxMaterial = pParsedFBXScene->mMaterials[mesh->mMaterialIndex];
+					auto material = FindMaterialIDByName(fbxMaterial->GetName().C_Str());
+					if (material < 0) {
+						material = aMaterials.size();
+						aMaterials.push_back(GetMapMaterialFromFBX(fbxMaterial));
 					}
+					WriteConsole("Assigning material " + aMaterials[material].sName + " to surface " + node->mName.C_Str());
+					surface.nMaterialId = material;
 
 					CreateStreamsFromFBX(mesh, bufFlags, vertexSize);
 					surface.nFlags = bufFlags;
@@ -763,10 +780,11 @@ void WriteW32(uint32_t exportMapVersion) {
 	uint32_t surfaceCount = aSurfaces.size();
 	file.write((char*)&surfaceCount, 4);
 	for (auto& surface : aSurfaces) {
-		if (bImportDeletionFromFBX && !FindFBXNodeForSurface(&surface - &aSurfaces[0]) && !surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL]) {
+		if (bImportDeletionFromFBX && CanSurfaceBeExported(&surface) && !FindFBXNodeForSurface(&surface - &aSurfaces[0]) && !surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL]) {
 			surface.nPolyCount = 0;
 			surface.nVertexCount = 0;
 			surface.nNumIndicesUsed = 0;
+			WriteConsole("Deleting surface " + std::to_string(&surface - &aSurfaces[0]));
 		}
 
 		WriteSurfaceToFile(file, surface);

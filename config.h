@@ -17,7 +17,6 @@ bool bConvertToFO1 = false;
 bool bConvertToFO2 = false;
 bool bImportPropsFromFBX = false;
 bool bImportSurfacesFromFBX = false;
-bool bImportSurfaceMaterialsFromFBX = false;
 bool bImportDeletionFromFBX = false;
 bool bUngroupMovedPropsFromFBX = false;
 bool bCreateBGMFromFBX = false;
