@@ -12,6 +12,8 @@
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
 
+#include "nya_commonmath.h"
+
 #include "base.h"
 #include "config.h"
 #include "crashdatparser.h"

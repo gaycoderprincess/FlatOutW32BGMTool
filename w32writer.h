@@ -257,13 +257,15 @@ void WriteCarMeshToFile(std::ofstream& file, tCarMesh& mesh) {
 	}
 }
 
-void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
+void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, float foucOffset1 = 0, float foucOffset2 = 0, float foucOffset3 = 0, float foucOffset4 = fFOUCCarMultiplier) {
 	int id = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
 
 	if ((flags & VERTEX_UV2) != 0 && !mesh->HasTextureCoords(1)) {
 		WriteConsole("WARNING: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have 2 sets of UVs!");
 		//exit(0);
 	}
+
+	float foucOffsets[] = {foucOffset1, foucOffset2, foucOffset3, foucOffset4};
 
 	tVertexBuffer vBuf;
 	vBuf.id = id;
@@ -284,9 +286,16 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize) {
 		auto vertexData = vBuf.data;
 		for (int i = 0; i < mesh->mNumVertices; i++) {
 			auto vertices = (uint16_t*)vertexData;
-			vertices[0] = mesh->mVertices[i].x / fFOUCCarMultiplier;
-			vertices[1] = mesh->mVertices[i].y / fFOUCCarMultiplier;
-			vertices[2] = -mesh->mVertices[i].z / fFOUCCarMultiplier;
+			auto srcVerts = mesh->mVertices[i];
+			srcVerts.x /= foucOffsets[3];
+			srcVerts.y /= foucOffsets[3];
+			srcVerts.z /= foucOffsets[3];
+			srcVerts.x -= foucOffsets[0];
+			srcVerts.y -= foucOffsets[1];
+			srcVerts.z += foucOffsets[2];
+			vertices[0] = srcVerts.x;
+			vertices[1] = srcVerts.y;
+			vertices[2] = -srcVerts.z;
 			vertices += 3;
 
 			if ((flags & VERTEX_NORMAL) != 0 || bIsFOUCModel) {
@@ -696,6 +705,78 @@ void FillBGMFromFBX() {
 	WriteConsole("BGM data created");
 }
 
+void ImportSurfaceFromFBX(tSurface* surface, aiNode* node) {
+	WriteConsole("Exporting surface " + (std::string)node->mName.C_Str());
+
+	auto buf = FindVertexBuffer(surface->nStreamId[0]);
+	auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[0]];
+	uint32_t bufFlags = VERTEX_POSITION;
+	uint32_t vertexSize = 3 * sizeof(float);
+	if (bIsFOUCModel) {
+		bufFlags = 0x2242;
+		vertexSize = 32;
+	}
+	else {
+		if ((buf->flags & VERTEX_NORMAL) != 0) {
+			bufFlags += VERTEX_NORMAL;
+			vertexSize += 3 * sizeof(float);
+		}
+		if ((buf->flags & VERTEX_COLOR) != 0) {
+			bufFlags += VERTEX_COLOR;
+			vertexSize += 1 * sizeof(uint32_t);
+		}
+		if (mesh->HasTextureCoords(0) && mesh->HasTextureCoords(1)) {
+			bufFlags += VERTEX_UV2;
+			vertexSize += 4 * sizeof(float);
+		}
+		else if (mesh->HasTextureCoords(0)) {
+			bufFlags += VERTEX_UV;
+			vertexSize += 2 * sizeof(float);
+		}
+	}
+
+	auto fbxMaterial = pParsedFBXScene->mMaterials[mesh->mMaterialIndex];
+	auto material = FindMaterialIDByName(fbxMaterial->GetName().C_Str());
+	if (material < 0) {
+		material = aMaterials.size();
+		aMaterials.push_back(GetMapMaterialFromFBX(fbxMaterial));
+	}
+	WriteConsole("Assigning material " + aMaterials[material].sName + " to surface " + node->mName.C_Str());
+	surface->nMaterialId = material;
+
+	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
+	if (bIsFOUCModel) {
+		NyaVec3 vCenter;
+		NyaVec3 vRadius;
+		vCenter[0] = (mesh->mAABB.mMax.x + mesh->mAABB.mMin.x) * 0.5;
+		vCenter[1] = (mesh->mAABB.mMax.y + mesh->mAABB.mMin.y) * 0.5;
+		vCenter[2] = (mesh->mAABB.mMax.z + mesh->mAABB.mMin.z) * -0.5;
+		vRadius[0] = std::abs(mesh->mAABB.mMax.x - mesh->mAABB.mMin.x);
+		vRadius[1] = std::abs(mesh->mAABB.mMax.y - mesh->mAABB.mMin.y);
+		vRadius[2] = std::abs(mesh->mAABB.mMax.z - mesh->mAABB.mMin.z);
+
+		float fFOUCRadius = vRadius.length() / 32767;
+		NyaVec3 vFOUCCenter = vCenter / fFOUCRadius;
+		CreateStreamsFromFBX(mesh, bufFlags, vertexSize, vFOUCCenter.x, vFOUCCenter.y, vFOUCCenter.z, fFOUCRadius);
+		surface->foucVertexMultiplier[0] = vFOUCCenter[0];
+		surface->foucVertexMultiplier[1] = vFOUCCenter[1];
+		surface->foucVertexMultiplier[2] = vFOUCCenter[2];
+		surface->foucVertexMultiplier[3] = fFOUCRadius;
+	}
+	else {
+		CreateStreamsFromFBX(mesh, bufFlags, vertexSize);
+	}
+
+	surface->nFlags = bufFlags;
+	surface->nVertexCount = mesh->mNumVertices;
+	surface->nPolyCount = mesh->mNumFaces;
+	surface->nNumIndicesUsed = mesh->mNumFaces * 3;
+	surface->nPolyMode = 4;
+	surface->nStreamOffset[0] = surface->nStreamOffset[1] = 0;
+	surface->nStreamId[0] = streamCount;
+	surface->nStreamId[1] = streamCount + 1;
+}
+
 void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("Writing output w32 file...");
 
@@ -711,53 +792,11 @@ void WriteW32(uint32_t exportMapVersion) {
 	file.write((char*)&nExportFileVersion, 4);
 	if (nExportFileVersion >= 0x20000) file.write((char*)&nSomeMapValue, 4);
 
-	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
-	if (bLoadFBX && bImportSurfacesFromFBX && !bIsFOUCModel) { // surface exports only supported for FO1 and FO2 currently
+	if (bLoadFBX && bImportSurfacesFromFBX) {
 		for (auto& surface : aSurfaces) {
 			if (auto node = FindFBXNodeForSurface(&surface - &aSurfaces[0])) {
 				if (ShouldSurfaceMeshBeImported(node)) {
-					WriteConsole("Exporting surface " + (std::string)node->mName.C_Str());
-
-					auto buf = FindVertexBuffer(surface.nStreamId[0]);
-					auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[0]];
-					uint32_t bufFlags = VERTEX_POSITION;
-					uint32_t vertexSize = 3 * sizeof(float);
-					if ((buf->flags & VERTEX_NORMAL) != 0) {
-						bufFlags += VERTEX_NORMAL;
-						vertexSize += 3 * sizeof(float);
-					}
-					if ((buf->flags & VERTEX_COLOR) != 0) {
-						bufFlags += VERTEX_COLOR;
-						vertexSize += 1 * sizeof(uint32_t);
-					}
-					if (mesh->HasTextureCoords(0) && mesh->HasTextureCoords(1)) {
-						bufFlags += VERTEX_UV2;
-						vertexSize += 4 * sizeof(float);
-					}
-					else if (mesh->HasTextureCoords(0)) {
-						bufFlags += VERTEX_UV;
-						vertexSize += 2 * sizeof(float);
-					}
-
-					auto fbxMaterial = pParsedFBXScene->mMaterials[mesh->mMaterialIndex];
-					auto material = FindMaterialIDByName(fbxMaterial->GetName().C_Str());
-					if (material < 0) {
-						material = aMaterials.size();
-						aMaterials.push_back(GetMapMaterialFromFBX(fbxMaterial));
-					}
-					WriteConsole("Assigning material " + aMaterials[material].sName + " to surface " + node->mName.C_Str());
-					surface.nMaterialId = material;
-
-					CreateStreamsFromFBX(mesh, bufFlags, vertexSize);
-					surface.nFlags = bufFlags;
-					surface.nVertexCount = mesh->mNumVertices;
-					surface.nPolyCount = mesh->mNumFaces;
-					surface.nNumIndicesUsed = mesh->mNumFaces * 3;
-					surface.nPolyMode = 4;
-					surface.nStreamOffset[0] = surface.nStreamOffset[1] = 0;
-					surface.nStreamId[0] = streamCount;
-					surface.nStreamId[1] = streamCount + 1;
-					streamCount += 2;
+					ImportSurfaceFromFBX(&surface, node);
 				}
 			}
 		}
@@ -769,6 +808,7 @@ void WriteW32(uint32_t exportMapVersion) {
 		WriteMaterialToFile(file, material);
 	}
 
+	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
 	file.write((char*)&streamCount, 4);
 	for (int i = 0; i < streamCount; i++) {
 		for (auto& buf : aVertexBuffers) {
