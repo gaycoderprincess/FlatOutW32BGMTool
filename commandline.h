@@ -142,7 +142,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-remove_props", CMD_W32_RemoveProps, "Removes all dynamic props from an input map file" },
 		{ "-enable_all_props", CMD_W32_EnableAllProps, "Enables all hidden dynamic props in an input map file" },
 		{ "-empty_bvh_gen", CMD_EmptyTrackBVH, "Takes a track_bvh.gen file as the first argument and generates a new empty one, required to avoid culling issues!" },
-		{ "-empty_plant_vdb", CMD_EmptyPlantVDB, "Generates an empty plant_vdb.gen, removes grass from a map" },
+		{ "-empty_plant_vdb", CMD_EmptyPlantVDB, "Generates an empty plant_vdb.gen, removes all grass from the map" },
 
 		// map fbx import options
 		{ "-import_moved_props", CMD_W32_ImportMovedProps, "Imports moved prop positions from an .fbx, takes an .fbx file as the second argument", "FBX to W32" },
@@ -153,7 +153,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-import_and_match_all_surfaces", CMD_W32_ImportAndAutoMatchAllSurfaces, "Imports all surfaces from an .fbx and matches them up to any valid w32 surface, takes an .fbx file as the second argument" },
 		{ "-import_and_match_all_meshes", CMD_W32_ImportAndAutoMatchAllMeshesFromFBX, "Imports all meshes from an .fbx and matches them up to any valid w32 surface, takes an .fbx file as the second argument" },
 		{ "-clear_old_materials", CMD_W32_ClearOriginalMaterials, "Removes all original materials from the w32 before importing the ones from the .fbx" },
-		{ "-no_material_reuse", CMD_W32_NoMaterialReuse, "Don't use any original w32 materials, always import from the .fbx" },
+		{ "-no_material_reuse", CMD_W32_NoMaterialReuse, "Ignores all original w32 materials, instead always importing new ones from the .fbx" },
 		{ "-import_deletions", CMD_W32_ImportDeletions, "Deletes surfaces that have been deleted in an .fbx, takes an .fbx file as the second argument" },
 
 		// text options
