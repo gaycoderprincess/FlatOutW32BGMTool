@@ -60,7 +60,7 @@ Map shaders:
 - Dynamic objects with specular: `_dynamic_specular` suffix
 
 ## Advanced track creation example
-- Take the Speedbowl track (arena3a) and export it using the tool.
+- Take the Speedbowl track (arena3a, which is an ideal track as there's little to no vegetation) and export it using the tool.
 - Create an empty track_bvh.gen using `-empty_bvh_gen` and optionally an empty plant_vdb.gen using `-empty_plant_db` as described above.
 - Take your custom track model, and if it follows the exported .fbx's hierarchy (i.e. it was exported by the tool and you didn't add any non-conforming parts) then import it with:
 `FlatOutW32BGMTool_gcp.exe path/to/speedbowl/track_geom.w32 path/to/model.fbx -import_and_match_all_surfaces`
