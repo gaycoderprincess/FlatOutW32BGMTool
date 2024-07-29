@@ -28,7 +28,7 @@ std::filesystem::path sFBXFileName;
 bool bIsBGMModel = false;
 bool bIsFOUCModel = false;
 bool bIsXboxBetaModel = false;
-double fFOUCCarMultiplier = 0.000977;
+double fFOUCCarMultiplier = 0.000977; // the game seems hardcoded to use this multiplier for car BGMs
 
 void WriteConsole(const std::string& str) {
 	auto& out = std::cout;

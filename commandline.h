@@ -2,7 +2,6 @@ void CMD_ExportFBX() { bDumpIntoFBX = true; }
 void CMD_ExportW32() { bDumpIntoW32 = true; }
 void CMD_ExportBGM() { bDumpIntoBGM = true; }
 void CMD_ExportText() { bDumpIntoTextFile = true; }
-void CMD_SetFOUCModel() { bIsFOUCModel = true; }
 void CMD_ExportBGM_FO1() {
 	bCreateBGMFromFBX = true;
 	nExportFileVersion = 0x10004;
@@ -98,9 +97,6 @@ tCommandlineArgument aArguments[] = {
 		// export formats
 		{ "-export_fbx", CMD_ExportFBX, "Exports the input file into an .fbx model", "Export formats" },
 		{ "-export_text", CMD_ExportText, "Exports the input file into a text dump" },
-
-		// import bgm versions
-		{ "-fouc_crash_dat", CMD_SetFOUCModel, "Load crash.dat in the Ultimate Carnage format", "Import formats" },
 
 		// export bgm versions
 		{ "-create_fo1_bgm", CMD_ExportBGM_FO1, "Creates a FlatOut 1 .bgm from an input .fbx file", "FBX to BGM" },

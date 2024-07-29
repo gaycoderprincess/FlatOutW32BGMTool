@@ -94,13 +94,7 @@ int main(int argc, char *argv[]) {
 			}
 			return 0;
 		} else {
-			if (sFileName.string().ends_with("crash.dat")) {
-				if (!ParseCrashDat(sFileName)) {
-					WriteConsole("Failed to load " + sFileName.string() + "!");
-				} else {
-					if (bDumpIntoTextFile) WriteCrashDatToText();
-				}
-			} else if (sFileName.extension() == ".bgm" || sFileName.extension() == ".car") {
+			if (sFileName.extension() == ".bgm" || sFileName.extension() == ".car") {
 				if (!ParseBGM()) {
 					WriteConsole("Failed to load " + sFileName.string() + "!");
 				} else {

@@ -1,5 +1,5 @@
-bool ParseW32Materials(std::ifstream& file) {
-	WriteConsole("Parsing materials...");
+bool ParseW32Materials(std::ifstream& file, bool print = true) {
+	if (print) WriteConsole("Parsing materials...");
 
 	uint32_t numMaterials;
 	ReadFromFile(file, &numMaterials, 4);
@@ -683,10 +683,45 @@ bool ParseW32() {
 	return true;
 }
 
+// read the first stream to see if it has FOUC flags, it should usually be the vertex buffer
+void PreParseW32Streams(std::ifstream& file) {
+	uint32_t numStreams;
+	ReadFromFile(file, &numStreams, 4);
+	int dataType;
+	ReadFromFile(file, &dataType, 4);
+	if (dataType == 1) {
+		tVertexBuffer buf;
+		ReadFromFile(file, &buf.foucExtraFormat, 4);
+		if (buf.foucExtraFormat > 0) bIsFOUCModel = true;
+	}
+	else if (dataType == 2) {
+		tIndexBuffer buf;
+		ReadFromFile(file, &buf.foucExtraFormat, 4);
+		if (buf.foucExtraFormat > 0) bIsFOUCModel = true;
+	}
+	else if (dataType == 4 || dataType == 5) {
+		bIsXboxBetaModel = true;
+	}
+}
+
+void PreParseBGMForFileVersion() {
+	std::ifstream fin(sFileName, std::ios::in | std::ios::binary );
+	if (!fin.is_open()) return;
+
+	ReadFromFile(fin, &nImportFileVersion, 4);
+	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
+	bIsBGMModel = true;
+
+	if (!ParseW32Materials(fin, false)) return;
+	PreParseW32Streams(fin);
+}
+
 bool ParseBGM() {
 	if (sFileName.extension() != ".bgm") {
 		return false;
 	}
+
+	PreParseBGMForFileVersion();
 
 	std::ifstream fin(sFileName, std::ios::in | std::ios::binary );
 	if (!fin.is_open()) return false;

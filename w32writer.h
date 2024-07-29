@@ -574,6 +574,7 @@ int GetBGMMaterialID(aiMaterial* material) {
 
 void CreateBGMSurfaceFromFBX(aiNode* node, int meshId, bool isCrash) {
 	auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[meshId]];
+	int fbxMeshId = node->mMeshes[meshId];
 
 	tSurface surface;
 	surface.nIsVegetation = 0;
@@ -584,8 +585,8 @@ void CreateBGMSurfaceFromFBX(aiNode* node, int meshId, bool isCrash) {
 	surface.nMaterialId = GetBGMMaterialID(pParsedFBXScene->mMaterials[mesh->mMaterialIndex]);
 	surface.nNumStreamsUsed = 2;
 	surface.nPolyMode = 4;
-	surface.nStreamId[0] = node->mMeshes[meshId] * 2;
-	surface.nStreamId[1] = (node->mMeshes[meshId] * 2) + 1;
+	surface.nStreamId[0] = fbxMeshId * 2;
+	surface.nStreamId[1] = (fbxMeshId * 2) + 1;
 	surface.nStreamOffset[0] = 0;
 	surface.nStreamOffset[1] = 0;
 

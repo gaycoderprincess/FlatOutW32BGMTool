@@ -518,62 +518,57 @@ void WriteBGMToText() {
 	WriteBGMMeshesToText();
 	WriteW32ObjectsToText();
 
-	WriteConsole("Text file export finished");
-}
-
-void WriteCrashDatToText() {
-	WriteConsole("Writing text file...");
-
-	WriteFile("Crash data begin");
-	WriteFile("Count: " + std::to_string(aCrashData.size()));
-	WriteFile("");
-	for (auto& data : aCrashData) {
-		WriteFile("sName: " + data.sName);
-		WriteFile("nNumSurfaces: " + std::to_string(data.aSurfaces.size()));
+	if (!aCrashData.empty()) {
+		WriteFile("Crash data begin");
+		WriteFile("Count: " + std::to_string(aCrashData.size()));
 		WriteFile("");
-		for (auto& surface : data.aSurfaces) {
-			auto& buf = surface.vBuffer;
+		for (auto& crashData: aCrashData) {
+			WriteFile("sName: " + crashData.sName);
+			WriteFile("nNumSurfaces: " + std::to_string(crashData.aSurfaces.size()));
+			WriteFile("");
+			for (auto& surface: crashData.aSurfaces) {
+				auto& buf = surface.vBuffer;
 
-			WriteFile("Vertex buffer");
-			WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
-			WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
-			if (bDumpStreams) {
-				if (bIsFOUCModel) {
-					auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(uint16_t));
-					auto data = (uint8_t*)buf.data;
+				WriteFile("Vertex buffer");
+				WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
+				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
+				if (bDumpStreams) {
+					if (bIsFOUCModel) {
+						auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(uint16_t));
+						auto data = (uint8_t*)buf.data;
 
-					size_t j = 0;
-					while (j < dataSize) {
-						std::string out;
-						for (int k = 0; k < buf.vertexSize / sizeof(uint16_t); k++) {
-							out += std::format("0x{:04X}", *(uint16_t*)&data[j]);
-							out += " ";
-							j++;
+						size_t j = 0;
+						while (j < dataSize) {
+							std::string out;
+							for (int k = 0; k < buf.vertexSize / sizeof(uint16_t); k++) {
+								out += std::format("0x{:04X}", *(uint16_t*)&data[j]);
+								out += " ";
+								j++;
+							}
+							WriteFile(out);
 						}
-						WriteFile(out);
+					} else {
+						for (auto& weights: surface.aCrashWeights) {
+							std::string out;
+							for (int i = 0; i < 3; i++) {
+								out += std::to_string(weights.vCrashPos[i]);
+								out += " ";
+							}
+							for (int i = 0; i < 3; i++) {
+								out += std::to_string(weights.vCrashNormal[i]);
+								out += " ";
+							}
+							WriteFile(out);
+						}
 					}
 				}
-				else {
-					for (auto& weights: surface.aCrashWeights) {
-						std::string out;
-						for (int i = 0; i < 3; i++) {
-							out += std::to_string(weights.vCrashPos[i]);
-							out += " ";
-						}
-						for (int i = 0; i < 3; i++) {
-							out += std::to_string(weights.vCrashNormal[i]);
-							out += " ";
-						}
-						WriteFile(out);
-					}
-				}
+				WriteFile("");
 			}
 			WriteFile("");
 		}
+		WriteFile("Crash data end");
 		WriteFile("");
 	}
-	WriteFile("Crash data end");
-	WriteFile("");
 
 	WriteConsole("Text file export finished");
 }
