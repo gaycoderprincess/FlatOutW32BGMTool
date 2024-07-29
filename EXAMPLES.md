@@ -20,7 +20,7 @@ When exporting them back, use these settings:
 - Edit the .fbx and make your desired changes and additions
 - Enter `FlatOutW32BGMTool_gcp.exe path/to/track_geom.w32 path/to/model.fbx -import_all_surfaces -import_moved_props -import_cloned_props` into a commandline prompt
 - Enter `FlatOutW32BGMTool_gcp.exe path/to/track_bvh.gen -empty_bvh_gen` into a commandline prompt
-- If you need to remove grass or trees, enter `FlatOutW32BGMTool_gcp.exe -empty_plant_db` into a commandline prompt
+- If you need to remove grass or other vegetation, enter `FlatOutW32BGMTool_gcp.exe -empty_plant_db` into a commandline prompt
 - Copy the new .w32 and .gen files, rename them and put them into the game files.
 
 ## Converting a vehicle between games
