@@ -2,6 +2,8 @@
 
 A tool to handle .w32 and .bgm files in FlatOut games
 
+For a quick guide on how to get started with the tool, check out the [examples & tips](https://github.com/gaycoderprincess/FlatOutW32BGMTool/blob/main/EXAMPLES.md).
+
 This tool is currently capable of:
 - Parsing and recreating the formats from memory
 - Importing vehicle models into FlatOut 1, 2 and Ultimate Carnage
