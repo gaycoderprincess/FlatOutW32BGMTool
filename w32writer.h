@@ -526,12 +526,12 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial) {
 	if (mat.sName.starts_with("alpha_bushlod")) mat.nShaderId = 21; // tree leaf
 	if (mat.sName.starts_with("alpha_bushsprite")) mat.nShaderId = 21; // tree leaf
 	if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 25; // puddle : water
-	if (mat.sName.starts_with("water")) mat.nShaderId = bIsFOUCModel ? 45 : 25; // puddle : water
 	if (mat.sName.ends_with(".001")) {
 		for (int i = 0; i < 4; i++) {
 			mat.sName.pop_back();
 		}
 	}
+	if (mat.sName == "water") mat.nShaderId = bIsFOUCModel ? 45 : 25; // puddle : water
 	if (mat.sName.ends_with("_dynamic")) mat.nShaderId = 3; // dynamic diffuse
 	if (mat.sName.ends_with("_dynamic_specular")) mat.nShaderId = 4; // dynamic specular, custom suffix for manual use
 
