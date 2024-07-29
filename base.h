@@ -592,17 +592,6 @@ void FBXMatrixToFO2Matrix(const aiMatrix4x4& src, float* dest) {
 	dest[15] = src.d4;
 }
 
-bool ShouldSurfaceMeshBeImported(aiNode* node) {
-	if (!node) return false;
-	auto name = (std::string)node->mName.C_Str();
-	if (!name.ends_with("_export")) return false;
-	if (node->mNumMeshes != 1) {
-		WriteConsole("ERROR: Surface " + name + " has more than one mesh or material!");
-		return false;
-	}
-	return true;
-}
-
 int FindMaterialIDByName(const std::string& name) {
 	for (auto& material : aMaterials) {
 		if (material.sName == name) return &material - &aMaterials[0];

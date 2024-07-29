@@ -80,6 +80,19 @@ void CMD_W32_ImportSurfaces() {
 	bLoadFBX = true;
 	bDumpIntoW32 = true;
 }
+void CMD_W32_ImportAllSurfaces() {
+	bImportSurfacesFromFBX = true;
+	bImportAllSurfacesFromFBX = true;
+	bLoadFBX = true;
+	bDumpIntoW32 = true;
+}
+void CMD_W32_ImportAndAutoMatchAllSurfaces() {
+	bImportSurfacesFromFBX = true;
+	bImportAllSurfacesFromFBX = true;
+	bImportAndAutoMatchAllSurfacesFromFBX = true;
+	bLoadFBX = true;
+	bDumpIntoW32 = true;
+}
 void CMD_W32_ImportDeletions() {
 	bImportDeletionFromFBX = true;
 	bLoadFBX = true;
@@ -118,6 +131,8 @@ tCommandlineArgument aArguments[] = {
 		{ "-ungroup_moved_props", CMD_W32_UngroupMovedProps, "Ungroups props that have been moved via -import_moved_props, fixes some physics behavior" },
 		{ "-import_cloned_props", CMD_W32_ImportClonedProps, "Imports new cloned props from an .fbx, takes an .fbx file as the second argument" },
 		{ "-import_surfaces", CMD_W32_ImportSurfaces, "Imports modified surfaces from an .fbx if they have the '_export' suffix, takes an .fbx file as the second argument" },
+		{ "-import_all_surfaces", CMD_W32_ImportAllSurfaces, "Imports all modified surfaces from an .fbx, takes an .fbx file as the second argument" },
+		{ "-import_and_match_all_surfaces", CMD_W32_ImportAndAutoMatchAllSurfaces, "Imports all surfaces from an .fbx and matches them up to any valid w32 surface, takes an .fbx file as the second argument" },
 		{ "-import_deletions", CMD_W32_ImportDeletions, "Deletes surfaces that have been deleted in an .fbx, takes an .fbx file as the second argument" },
 
 		// text options
