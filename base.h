@@ -152,6 +152,14 @@ std::string GetShaderName(int value) {
 			case 31: return "vertex color static (dummy? same as vertexcolor)";
 			case 32: return "car window damaged";
 			case 33: return "skin shadow";
+			case 34: return "reflecting window shader (static)";
+			case 35: return "reflecting window shader (dynamic)";
+			case 36: return "@deprecated: old STATIC_SPECULAR, same as #35 - STATIC_WINDOW";
+			case 37: return "skybox";
+			case 38: return "ghost body";
+			case 39: return "static nonlit";
+			case 40: return "dynamic nonlit";
+			case 41: return "racemap";
 			default: return "UNKNOWN";
 		}
 	}

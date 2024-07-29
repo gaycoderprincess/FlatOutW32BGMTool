@@ -114,8 +114,8 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 				vertices += 2; // 2 floats
 			}
 			if ((vBuf->flags & VERTEX_UV2) != 0) {
-				dest->mTextureCoords[1][j].x = vertices[2] / 2048.0;
-				dest->mTextureCoords[1][j].y = 1 - (vertices[3] / 2048.0);
+				dest->mTextureCoords[1][j].x = vertices[0] / 2048.0;
+				dest->mTextureCoords[1][j].y = 1 - (vertices[1] / 2048.0);
 				dest->mTextureCoords[1][j].z = 0;
 				vertices += 2; // 2 floats
 			}

@@ -190,7 +190,7 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 	}
 
 	// do dummy checks and then process the input filename
-	if (!bDumpIntoW32 && !bDumpIntoBGM && !bDumpIntoFBX && !bDumpIntoTextFile && !bCreateBGMFromFBX) {
+	if (!bDumpIntoW32 && !bDumpIntoBGM && !bDumpIntoFBX && !bDumpIntoTextFile && !bCreateBGMFromFBX && !bEmptyOutTrackBVH) {
 		WriteConsole("WARNING: No export output specified, the tool will not generate any files!");
 	}
 	if (bUngroupMovedPropsFromFBX && !bImportPropsFromFBX) {

@@ -522,6 +522,7 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial) {
 	if (mat.sName.starts_with("alpha_treesprite")) mat.nShaderId = 21; // tree leaf
 	if (mat.sName.starts_with("alpha_bushlod")) mat.nShaderId = 21; // tree leaf
 	if (mat.sName.starts_with("alpha_bushsprite")) mat.nShaderId = 21; // tree leaf
+	if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 25; // puddle : water
 	if (mat.sName.ends_with(".001")) {
 		for (int i = 0; i < 4; i++) {
 			mat.sName.pop_back();
@@ -749,30 +750,6 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel) {
 
 	auto buf = FindVertexBuffer(surface->nStreamId[0]);
 	auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[0]];
-	uint32_t bufFlags = VERTEX_POSITION;
-	uint32_t vertexSize = 3 * sizeof(float);
-	if (bIsFOUCModel) {
-		bufFlags = 0x2242;
-		vertexSize = 32;
-	}
-	else {
-		if ((buf->flags & VERTEX_NORMAL) != 0) {
-			bufFlags += VERTEX_NORMAL;
-			vertexSize += 3 * sizeof(float);
-		}
-		if ((buf->flags & VERTEX_COLOR) != 0) {
-			bufFlags += VERTEX_COLOR;
-			vertexSize += 1 * sizeof(uint32_t);
-		}
-		if (mesh->HasTextureCoords(0) && mesh->HasTextureCoords(1)) {
-			bufFlags += VERTEX_UV2;
-			vertexSize += 4 * sizeof(float);
-		}
-		else if (mesh->HasTextureCoords(0)) {
-			bufFlags += VERTEX_UV;
-			vertexSize += 2 * sizeof(float);
-		}
-	}
 
 	auto fbxMaterial = pParsedFBXScene->mMaterials[mesh->mMaterialIndex];
 	auto material = FindMaterialIDByName(fbxMaterial->GetName().C_Str());
@@ -786,6 +763,41 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel) {
 	}
 	WriteConsole("Assigning material " + aMaterials[material].sName + " to " + node->mName.C_Str());
 	surface->nMaterialId = material;
+
+	uint32_t bufFlags;
+	uint32_t vertexSize;
+	if (bIsFOUCModel) {
+		bufFlags = 0x2242;
+		vertexSize = 32;
+	}
+	else {
+		auto mat = aMaterials[surface->nMaterialId];
+		if (mat.nShaderId == 1) { // terrain
+			// DoubleUVMap
+			bufFlags = 0x202;
+			vertexSize = 28;
+		}
+		else if (mat.nShaderId == 2) { // terrain specular
+			// Normals + DoubleUVMap
+			bufFlags = 0x212;
+			vertexSize = 40;
+		}
+		else if (mat.nShaderId == 34) { // reflecting window shader (static)
+			// Normals + VertexColor + UVMap
+			bufFlags = 0x152;
+			vertexSize = 36;
+		}
+		else if (mat.nShaderId == 8 || mat.nShaderId == 9) { // dynamic diffuse, dynamic specular
+			// Normals + UVMap
+			bufFlags = 0x112;
+			vertexSize = 32;
+		}
+		else {
+			// VertexColor + UVMap
+			bufFlags = 0x142;
+			vertexSize = 24;
+		}
+	}
 
 	NyaVec3 vCenter;
 	NyaVec3 vRadius;
@@ -871,8 +883,12 @@ void WriteW32(uint32_t exportMapVersion) {
 
 	if (bImportSurfacesFromFBX) {
 		if (bImportAndAutoMatchAllSurfacesFromFBX) {
+			auto materialsBackup = aMaterials;
+			aMaterials.clear();
+
 			for (int i = 0; i < 9999; i++) {
 				if (auto node = FindFBXNodeForSurface(i)) {
+					if (node->mNumMeshes <= 0) continue;
 					aUnorderedSurfaceImports.push_back(node);
 				}
 			}
@@ -881,6 +897,7 @@ void WriteW32(uint32_t exportMapVersion) {
 			int matchupId = 0;
 			for (auto& surface: aSurfaces) {
 				if (surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL] > 0) continue;
+				if (surface.nNumStreamsUsed != 2) continue;
 
 				if (matchupId >= aUnorderedSurfaceImports.size()) {
 					DeleteSurfaceByEmptying(&surface);
@@ -894,10 +911,15 @@ void WriteW32(uint32_t exportMapVersion) {
 			if (matchupId < aUnorderedSurfaceImports.size()) {
 				WriteConsole("WARNING: The W32 only has " + std::to_string(matchupId) + " usable surfaces but the FBX has " + std::to_string(aUnorderedSurfaceImports.size()) + ", Some FBX surfaces will be skipped!");
 			}
+
+			for (int i = aMaterials.size(); i < materialsBackup.size(); i++) {
+				aMaterials.push_back(materialsBackup[i]);
+			}
 		}
 		else {
 			for (auto& surface: aSurfaces) {
 				if (auto node = FindFBXNodeForSurface(&surface - &aSurfaces[0])) {
+					if (node->mNumMeshes <= 0) continue;
 					if (ShouldSurfaceMeshBeImported(node)) {
 						ImportSurfaceFromFBX(&surface, node, surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL] <= 0);
 					}
@@ -1060,6 +1082,7 @@ void WriteW32(uint32_t exportMapVersion) {
 	if (bImportSurfacesFromFBX && !bImportAndAutoMatchAllSurfacesFromFBX) {
 		for (int i = aSurfaces.size(); i < 9999; i++) {
 			if (auto node = FindFBXNodeForSurface(i)) {
+				if (node->mNumMeshes <= 0) continue;
 				WriteConsole("WARNING: Found " + (std::string)node->mName.C_Str() + " but no such surface exists in the w32! Ignoring...");
 			}
 		}
