@@ -21,7 +21,7 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 
 ## Usage
 
-- Enter a commandline prompt, run `FlatOut2W32BGMTool_gcp.exe (filename)` with the arguments you'd like to use
+- Enter a commandline prompt, run `FlatOutW32BGMTool_gcp.exe (filename)` with the arguments you'd like to use
 - The file will now be analyzed and processed by the tool
 - Enjoy, nya~ :3
 
@@ -44,6 +44,9 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-ungroup_moved_props` - Ungroups moved props if `-import_moved_props` is enabled, can prevent unwanted physics behavior
 - `-import_cloned_props` - Imports new cloned props from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_cloned_props`
 - `-import_surfaces` - Imports surface meshes from an .fbx file if they have the suffix `_export` in their name, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_surfaces`
+- `-import_all_surfaces` - Imports all surface meshes from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_all_surfaces`
+- `-import_and_match_all_surfaces` - Imports all surface meshes from an .fbx file and matches them up to any valid w32 surface, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_and_match_all_surfaces`
+- `-clear_old_materials` - Removes all original materials from the w32 before importing the ones from the .fbx, has no effect unless `-import_and_match_all_surfaces` is enabled
 - `-import_deletions` - Deletes surfaces and props that have been deleted from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_deletions`
 
 ## BGM Arguments
@@ -60,7 +63,6 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-text_streams_fouc_int8` - Exports vertex buffers into text as int8 arrays
 - `-convert_to_fo1` - Converts the car from the FlatOut 2 or Ultimate Carnage format to the FlatOut 1 format
 - `-convert_to_fo2` - Converts the car from the Ultimate Carnage format to the FlatOut 2 format
-- `-fouc_crash_dat` - Loads crash.dat in the Ultimate Carnage format, required for exporting UC car damage to .fbx!!
 
 ## Building
 
