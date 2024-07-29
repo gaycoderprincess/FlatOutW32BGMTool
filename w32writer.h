@@ -275,7 +275,8 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 	vBuf.vertexSize = vertexSize;
 	vBuf.vertexCount = mesh->mNumVertices;
 	if (vBuf.vertexCount > 65535) {
-		WriteConsole("WARNING: " + (std::string)mesh->mName.C_Str() + " has more than 65535 vertices! Split the mesh or it won't render properly!");
+		WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " has more than 65535 vertices! Split the mesh!");
+		exit(0);
 	}
 	if (bIsFOUCModel) {
 		vBuf.flags |= VERTEX_INT16;
@@ -525,6 +526,7 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial) {
 	if (mat.sName.starts_with("alpha_bushlod")) mat.nShaderId = 21; // tree leaf
 	if (mat.sName.starts_with("alpha_bushsprite")) mat.nShaderId = 21; // tree leaf
 	if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 25; // puddle : water
+	if (mat.sName.starts_with("water")) mat.nShaderId = bIsFOUCModel ? 45 : 25; // puddle : water
 	if (mat.sName.ends_with(".001")) {
 		for (int i = 0; i < 4; i++) {
 			mat.sName.pop_back();
@@ -749,18 +751,19 @@ void FillBGMFromFBX() {
 	WriteConsole("BGM data created");
 }
 
-void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel) {
+void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, aiMesh* mesh) {
 	WriteConsole("Exporting " + (std::string)node->mName.C_Str() + " into surface " + std::to_string(surface - &aSurfaces[0]));
 
-	auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[0]];
+	if (!mesh) mesh = pParsedFBXScene->mMeshes[node->mMeshes[0]];
 	auto fbxMaterial = pParsedFBXScene->mMaterials[mesh->mMaterialIndex];
-	auto material = FindMaterialIDByName(fbxMaterial->GetName().C_Str());
+	auto material = FindMaterialIDByName(fbxMaterial->GetName().C_Str(), bNoMaterialReuse);
 	if (material < 0) {
 		material = aMaterials.size();
 		auto newMat = GetMapMaterialFromFBX(fbxMaterial);
 		if (isStaticModel) {
 			if (newMat.nShaderId == 3 || newMat.nShaderId == 4) newMat.nShaderId = 0; // dynamic diffuse || dynamic specular -> static prelit
 		}
+		newMat._bIsCustom = true;
 		aMaterials.push_back(newMat);
 	}
 	WriteConsole("Assigning material " + aMaterials[material].sName + " to " + node->mName.C_Str());
@@ -859,6 +862,11 @@ bool ShouldSurfaceMeshBeImported(aiNode* node) {
 }
 
 std::vector<aiNode*> aUnorderedSurfaceImports;
+struct tMeshNodeAssoc {
+	aiNode* node;
+	aiMesh* mesh;
+};
+std::vector<tMeshNodeAssoc> aUnorderedMeshImports;
 
 void DeleteSurfaceByEmptying(tSurface* surface) {
 	surface->nPolyCount = 0;
@@ -866,6 +874,16 @@ void DeleteSurfaceByEmptying(tSurface* surface) {
 	surface->nNumIndicesUsed = 0;
 	surface->foucVertexMultiplier[3] = 0;
 	WriteConsole("Deleting surface " + std::to_string(surface - &aSurfaces[0]));
+}
+
+void WalkFBXTreeForMeshes(aiNode* node) {
+	for (int i = 0; i < node->mNumMeshes; i++) {
+		aUnorderedMeshImports.push_back({node, pParsedFBXScene->mMeshes[node->mMeshes[i]]});
+	}
+
+	for (int i = 0; i < node->mNumChildren; i++) {
+		WalkFBXTreeForMeshes(node->mChildren[i]);
+	}
 }
 
 void WriteW32(uint32_t exportMapVersion) {
@@ -884,7 +902,41 @@ void WriteW32(uint32_t exportMapVersion) {
 	if (nExportFileVersion >= 0x20000) file.write((char*)&nSomeMapValue, 4);
 
 	if (bImportSurfacesFromFBX) {
-		if (bImportAndAutoMatchAllSurfacesFromFBX) {
+		if (bImportAndAutoMatchAllMeshesFromFBX) {
+			auto materialsBackup = aMaterials;
+
+			// FO1 can't handle too many materials, clear them first
+			if (nExportFileVersion < 0x20000 || bClearOriginalMaterials) aMaterials.clear();
+
+			WalkFBXTreeForMeshes(pParsedFBXScene->mRootNode);
+
+			// match up fbx meshes and delete every leftover non-prop w32 surface
+			int matchupId = 0;
+			for (auto& surface: aSurfaces) {
+				if (surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL] > 0) continue;
+				if (surface.nNumStreamsUsed != 2) continue;
+
+				if (matchupId >= aUnorderedMeshImports.size()) {
+					DeleteSurfaceByEmptying(&surface);
+				}
+				else {
+					auto data = aUnorderedMeshImports[matchupId];
+					ImportSurfaceFromFBX(&surface, data.node, true, data.mesh);
+					matchupId++;
+				}
+			}
+
+			if (matchupId < aUnorderedMeshImports.size()) {
+				WriteConsole("WARNING: The W32 only has " + std::to_string(matchupId) + " usable surfaces but the FBX has " + std::to_string(aUnorderedSurfaceImports.size()) + ", Some FBX surfaces will be skipped!");
+			}
+
+			if (nExportFileVersion < 0x20000 || bClearOriginalMaterials) {
+				for (int i = aMaterials.size(); i < materialsBackup.size(); i++) {
+					aMaterials.push_back(materialsBackup[i]);
+				}
+			}
+		}
+		else if (bImportAndAutoMatchAllSurfacesFromFBX) {
 			auto materialsBackup = aMaterials;
 
 			// FO1 can't handle too many materials, clear them first
@@ -907,7 +959,7 @@ void WriteW32(uint32_t exportMapVersion) {
 					DeleteSurfaceByEmptying(&surface);
 				}
 				else {
-					ImportSurfaceFromFBX(&surface, aUnorderedSurfaceImports[matchupId], true);
+					ImportSurfaceFromFBX(&surface, aUnorderedSurfaceImports[matchupId], true, nullptr);
 					matchupId++;
 				}
 			}
@@ -927,7 +979,7 @@ void WriteW32(uint32_t exportMapVersion) {
 				if (auto node = FindFBXNodeForSurface(&surface - &aSurfaces[0])) {
 					if (node->mNumMeshes <= 0) continue;
 					if (ShouldSurfaceMeshBeImported(node)) {
-						ImportSurfaceFromFBX(&surface, node, surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL] <= 0);
+						ImportSurfaceFromFBX(&surface, node, surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL] <= 0, nullptr);
 					}
 				}
 			}

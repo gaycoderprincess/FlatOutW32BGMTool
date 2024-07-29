@@ -284,6 +284,7 @@ struct tMaterial {
 	std::string sTextureNames[3];
 
 	int _nNumReferences = 0;
+	bool _bIsCustom = false;
 	tMaterial() {
 		memset(v108, 0, sizeof(v108));
 		memset(v109, 0, sizeof(v109));
@@ -600,8 +601,9 @@ void FBXMatrixToFO2Matrix(const aiMatrix4x4& src, float* dest) {
 	dest[15] = src.d4;
 }
 
-int FindMaterialIDByName(const std::string& name) {
+int FindMaterialIDByName(const std::string& name, bool customOnly) {
 	for (auto& material : aMaterials) {
+		if (!material._bIsCustom && customOnly) continue;
 		if (material.sName == name) return &material - &aMaterials[0];
 	}
 	return -1;

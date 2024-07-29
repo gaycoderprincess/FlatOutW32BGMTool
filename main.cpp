@@ -51,6 +51,7 @@ bool ParseFBX() {
 
 	static Assimp::Importer importer;
 	pParsedFBXScene = importer.ReadFile(sFBXFileName.string().c_str(), flags);
+	if (bImportAndAutoMatchAllMeshesFromFBX) return pParsedFBXScene != nullptr;
 	if (bCreateBGMFromFBX) return pParsedFBXScene != nullptr && GetFBXNodeForBGMMeshArray() && GetFBXNodeForObjectsArray();
 	return pParsedFBXScene != nullptr && GetFBXNodeForStaticBatchArray() && GetFBXNodeForTreeMeshArray() && GetFBXNodeForCompactMeshArray();
 }

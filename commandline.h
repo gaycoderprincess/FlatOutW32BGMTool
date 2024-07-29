@@ -93,8 +93,19 @@ void CMD_W32_ImportAndAutoMatchAllSurfaces() {
 	bLoadFBX = true;
 	bDumpIntoW32 = true;
 }
+void CMD_W32_ImportAndAutoMatchAllMeshesFromFBX() {
+	bImportSurfacesFromFBX = true;
+	bImportAllSurfacesFromFBX = true;
+	bImportAndAutoMatchAllSurfacesFromFBX = true;
+	bImportAndAutoMatchAllMeshesFromFBX = true;
+	bLoadFBX = true;
+	bDumpIntoW32 = true;
+}
 void CMD_W32_ClearOriginalMaterials() {
 	bClearOriginalMaterials = true;
+}
+void CMD_W32_NoMaterialReuse() {
+	bNoMaterialReuse = true;
 }
 void CMD_W32_ImportDeletions() {
 	bImportDeletionFromFBX = true;
@@ -136,7 +147,9 @@ tCommandlineArgument aArguments[] = {
 		{ "-import_surfaces", CMD_W32_ImportSurfaces, "Imports modified surfaces from an .fbx if they have the '_export' suffix, takes an .fbx file as the second argument" },
 		{ "-import_all_surfaces", CMD_W32_ImportAllSurfaces, "Imports all modified surfaces from an .fbx, takes an .fbx file as the second argument" },
 		{ "-import_and_match_all_surfaces", CMD_W32_ImportAndAutoMatchAllSurfaces, "Imports all surfaces from an .fbx and matches them up to any valid w32 surface, takes an .fbx file as the second argument" },
+		{ "-import_and_match_all_meshes", CMD_W32_ImportAndAutoMatchAllMeshesFromFBX, "Imports all meshes from an .fbx and matches them up to any valid w32 surface, takes an .fbx file as the second argument" },
 		{ "-clear_old_materials", CMD_W32_ClearOriginalMaterials, "Removes all original materials from the w32 before importing the ones from the .fbx" },
+		{ "-no_material_reuse", CMD_W32_NoMaterialReuse, "Don't use any original w32 materials, always import from the .fbx" },
 		{ "-import_deletions", CMD_W32_ImportDeletions, "Deletes surfaces that have been deleted in an .fbx, takes an .fbx file as the second argument" },
 
 		// text options
