@@ -21,6 +21,7 @@ bool bImportSurfacesFromFBX = false;
 bool bImportAllSurfacesFromFBX = false;
 bool bImportAndAutoMatchAllSurfacesFromFBX = false;
 bool bImportDeletionFromFBX = false;
+bool bClearOriginalMaterials = false;
 bool bUngroupMovedPropsFromFBX = false;
 bool bCreateBGMFromFBX = false;
 bool bLoadFBX = false;

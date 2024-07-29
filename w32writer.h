@@ -404,7 +404,8 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 					tmp[0] = mesh->mColors[0][i].r * 255.0;
 					tmp[1] = mesh->mColors[0][i].g * 255.0;
 					tmp[2] = mesh->mColors[0][i].b * 255.0;
-					tmp[3] = mesh->mColors[0][i].a * 255.0;
+					if (bIsBGMModel) tmp[3] = mesh->mColors[0][i].a * 255.0;
+					else tmp[3] = 255; // terrain vertex color uses a lookup table if it's not 255, this would be BAD
 					*(uint32_t*)&vertices[0] = *(uint32_t*)tmp;
 				}
 				else {
@@ -514,6 +515,7 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial) {
 	mat.nAlpha = mat.sName.starts_with("alpha") || mat.sName.starts_with("Alpha") || mat.sName.starts_with("wirefence_");
 	mat.nShaderId = 0; // static prelit
 	if (mat.sName.starts_with("dm_")) mat.nShaderId = 1; // terrain
+	if (mat.sName.starts_with("terrain_")) mat.nShaderId = 1; // terrain
 	if (mat.sName.starts_with("sdm_")) mat.nShaderId = 2; // terrain specular
 	if (mat.sName.starts_with("treetrunk")) mat.nShaderId = 19; // tree trunk
 	if (mat.sName.starts_with("alpha_treebranch")) mat.nShaderId = 20; // tree branch
@@ -537,11 +539,13 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial) {
 		auto texName = GetFBXTextureInFO2Style(fbxMaterial, i);
 		mat.sTextureNames[i] = texName;
 
-		if (i == 0 && texName == "colormap.tga") {
+		if (i == 0 && (texName == "colormap.tga" || texName == "Colormap.tga")) {
 			mat.nUseColormap = 1;
+
 			// hack to load colormapped textures properly when the fbx has texture2 stripped
 			if (mat.nNumTextures == 1) {
 				mat.sTextureNames[1] = mat.sName + ".tga";
+				if (mat.sTextureNames[1].starts_with("terrain_")) mat.sTextureNames[1] = "dm_" + mat.sTextureNames[1];
 				mat.nNumTextures = 2;
 				break;
 			}
@@ -748,9 +752,7 @@ void FillBGMFromFBX() {
 void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel) {
 	WriteConsole("Exporting " + (std::string)node->mName.C_Str() + " into surface " + std::to_string(surface - &aSurfaces[0]));
 
-	auto buf = FindVertexBuffer(surface->nStreamId[0]);
 	auto mesh = pParsedFBXScene->mMeshes[node->mMeshes[0]];
-
 	auto fbxMaterial = pParsedFBXScene->mMaterials[mesh->mMaterialIndex];
 	auto material = FindMaterialIDByName(fbxMaterial->GetName().C_Str());
 	if (material < 0) {
@@ -782,12 +784,12 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel) {
 			bufFlags = 0x212;
 			vertexSize = 40;
 		}
-		else if (mat.nShaderId == 34) { // reflecting window shader (static)
+		else if (mat.nShaderId == 34 || mat.nShaderId == 36) { // reflecting window shader (static)
 			// Normals + VertexColor + UVMap
 			bufFlags = 0x152;
 			vertexSize = 36;
 		}
-		else if (mat.nShaderId == 8 || mat.nShaderId == 9) { // dynamic diffuse, dynamic specular
+		else if (mat.nShaderId == 3 || mat.nShaderId == 4) { // dynamic diffuse, dynamic specular
 			// Normals + UVMap
 			bufFlags = 0x112;
 			vertexSize = 32;
@@ -884,7 +886,9 @@ void WriteW32(uint32_t exportMapVersion) {
 	if (bImportSurfacesFromFBX) {
 		if (bImportAndAutoMatchAllSurfacesFromFBX) {
 			auto materialsBackup = aMaterials;
-			aMaterials.clear();
+
+			// FO1 can't handle too many materials, clear them first
+			if (nExportFileVersion < 0x20000 || bClearOriginalMaterials) aMaterials.clear();
 
 			for (int i = 0; i < 9999; i++) {
 				if (auto node = FindFBXNodeForSurface(i)) {
@@ -912,8 +916,10 @@ void WriteW32(uint32_t exportMapVersion) {
 				WriteConsole("WARNING: The W32 only has " + std::to_string(matchupId) + " usable surfaces but the FBX has " + std::to_string(aUnorderedSurfaceImports.size()) + ", Some FBX surfaces will be skipped!");
 			}
 
-			for (int i = aMaterials.size(); i < materialsBackup.size(); i++) {
-				aMaterials.push_back(materialsBackup[i]);
+			if (nExportFileVersion < 0x20000 || bClearOriginalMaterials) {
+				for (int i = aMaterials.size(); i < materialsBackup.size(); i++) {
+					aMaterials.push_back(materialsBackup[i]);
+				}
 			}
 		}
 		else {
