@@ -22,6 +22,7 @@
 #include "w32textexport.h"
 #include "w32fbxexport.h"
 #include "trackbvh.h"
+#include "plants.h"
 #include "commandline.h"
 
 bool ParseFBX() {
@@ -66,6 +67,9 @@ int main(int argc, char *argv[]) {
 	if (!std::filesystem::exists(sFileName)) {
 		WriteConsole("Failed to load " + std::filesystem::absolute(sFileName).string() + "! (File doesn't exist)");
 		exit(0);
+	}
+	if (bCreateEmptyPlantVDB) {
+		WriteEmptyPlantVDB();
 	}
 	if (bCreateBGMFromFBX) {
 		if (!ParseFBX()) {

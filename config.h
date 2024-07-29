@@ -30,3 +30,4 @@ bool bLoadFBX = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;
+bool bCreateEmptyPlantVDB = false;

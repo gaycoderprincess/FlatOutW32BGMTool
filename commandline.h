@@ -62,6 +62,9 @@ void CMD_ConvertToFO2() {
 void CMD_EmptyTrackBVH() {
 	bEmptyOutTrackBVH = true;
 }
+void CMD_EmptyPlantVDB() {
+	bCreateEmptyPlantVDB = true;
+}
 void CMD_W32_ImportMovedProps() {
 	bImportPropsFromFBX = true;
 	bLoadFBX = true;
@@ -139,6 +142,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-remove_props", CMD_W32_RemoveProps, "Removes all dynamic props from an input map file" },
 		{ "-enable_all_props", CMD_W32_EnableAllProps, "Enables all hidden dynamic props in an input map file" },
 		{ "-empty_bvh_gen", CMD_EmptyTrackBVH, "Takes a track_bvh.gen file as the first argument and generates a new empty one, required to avoid culling issues!" },
+		{ "-empty_plant_vdb", CMD_EmptyPlantVDB, "Generates an empty plant_vdb.gen, removes grass from a map" },
 
 		// map fbx import options
 		{ "-import_moved_props", CMD_W32_ImportMovedProps, "Imports moved prop positions from an .fbx, takes an .fbx file as the second argument", "FBX to W32" },
