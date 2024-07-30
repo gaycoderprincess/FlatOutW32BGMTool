@@ -14,6 +14,7 @@ This tool is currently capable of:
 - Deleting track meshes
 - Moving track props
 - Deleting track props
+- Adding new track props
 - Creating a dummy track_bvh.gen
 
 Thanks to Gulbroz for their existing work on this format, it was a great jumping-off point.
@@ -41,14 +42,22 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-remove_props` - Creates a new .w32 file of the map with all props removed
 - `-enable_all_props` - Creates a new .w32 file of the map with all props visible (BugBear left a lot of props hidden in each track)
 - `-convert_to_fo1` - Creates a new .w32 file of the map that can be loaded by FlatOut 1
+- `-skip_hidden_props_a` - Only exports the props from track variant A into the .fbx file
+- `-skip_hidden_props_b` - Only exports the props from track variant B into the .fbx file
+- `-skip_hidden_props_c` - Only exports the props from track variant C into the .fbx file
 - `-empty_bvh_gen` - Takes a track_bvh.gen file and generates a new one without any culling, required for custom maps to not have issues!
+- `-empty_plant_vdb` - Generates an empty plant_vdb.gen, removes all grass from the map
 - `-import_moved_props` - Imports moved prop positions from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_moved_props`
 - `-ungroup_moved_props` - Ungroups moved props if `-import_moved_props` is enabled, can prevent unwanted physics behavior
 - `-import_cloned_props` - Imports new cloned props from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_cloned_props`
+- `-import_all_props` - Imports all props from an .fbx file and deletes the original w32 ones, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_all_props`
+- `-import_all_object_dummies` - Imports all object dummies from an .fbx file and deletes the original w32 ones, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_all_object_dummies`
 - `-import_surfaces` - Imports surface meshes from an .fbx file if they have the suffix `_export` in their name, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_surfaces`
 - `-import_all_surfaces` - Imports all surface meshes from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_all_surfaces`
 - `-import_and_match_all_surfaces` - Imports all surface meshes from an .fbx file and matches them up to any valid w32 surface, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_and_match_all_surfaces`
+- `-import_and_match_all_meshes` - Imports all meshes from an .fbx file and matches them up to any valid w32 surface, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_and_match_all_meshes`
 - `-clear_old_materials` - Removes all original materials from the w32 before importing the ones from the .fbx, has no effect unless `-import_and_match_all_surfaces` is enabled
+- `-no_material_reuse` - Makes imported meshes not use any original w32 materials, instead always importing new ones from the .fbx
 - `-import_deletions` - Deletes surfaces and props that have been deleted from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_deletions`
 
 ## BGM Arguments
@@ -65,6 +74,10 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-text_streams_fouc_int8` - Exports vertex buffers into text as int8 arrays
 - `-convert_to_fo1` - Converts the car from the FlatOut 2 or Ultimate Carnage format to the FlatOut 1 format
 - `-convert_to_fo2` - Converts the car from the Ultimate Carnage format to the FlatOut 2 format
+
+## Other Arguments
+- `-log_warnings_only` - Only prints errors and warnings into the console
+- `-log_errors_only` - Only prints errors into the console
 
 ## Building
 
