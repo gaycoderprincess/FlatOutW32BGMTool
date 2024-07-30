@@ -225,8 +225,8 @@ void WriteW32StaticBatchesToText() {
 	WriteFile("Count: " + std::to_string(aStaticBatches.size()));
 	WriteFile("");
 	for (auto& staticBatch : aStaticBatches) {
-		WriteFile("nCenterId1: " + std::to_string(staticBatch.nCenterId1));
-		WriteFile("nCenterId2: " + std::to_string(staticBatch.nCenterId2));
+		WriteFile("nId1: " + std::to_string(staticBatch.nId1));
+		WriteFile("nId2: " + std::to_string(staticBatch.nId2));
 		WriteFile("nSurfaceId: " + std::to_string(staticBatch.nSurfaceId));
 		WriteFile("nUnk: " + std::to_string(staticBatch.nUnk));
 		WriteFile("vAbsoluteCenter.x: " + std::to_string(staticBatch.vAbsoluteCenter[0]));

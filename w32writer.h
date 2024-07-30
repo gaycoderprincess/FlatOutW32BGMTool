@@ -128,8 +128,8 @@ void WriteSurfaceToFile(std::ofstream& file, tSurface& surface) {
 }
 
 void WriteStaticBatchToFile(std::ofstream& file, const tStaticBatch& staticBatch) {
-	file.write((char*)&staticBatch.nCenterId1, 4);
-	file.write((char*)&staticBatch.nCenterId2, 4);
+	file.write((char*)&staticBatch.nId1, 4);
+	file.write((char*)&staticBatch.nId2, 4);
 	file.write((char*)&staticBatch.nSurfaceId, 4);
 	if (nExportFileVersion >= 0x20000) {
 		file.write((char*)staticBatch.vAbsoluteCenter, 12);
@@ -1172,6 +1172,23 @@ void WriteW32(uint32_t exportMapVersion) {
 		}
 	}
 
+	if (bDisableObjects) {
+		aObjects.clear();
+	}
+
+	if (bImportAllObjectsFromFBX) {
+		aObjects.clear();
+		auto node = GetFBXNodeForObjectsArray();
+		for (int i = 0; i < node->mNumChildren; i++) {
+			auto prop = node->mChildren[i];
+			tObject object;
+			object.sName1 = prop->mName.C_Str();
+			object.nFlags = 0xE0F9;
+			FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(prop), object.mMatrix);
+			aObjects.push_back(object);
+		}
+	}
+
 	if (bImportAllPropsFromFBX) {
 		aMeshDamageAssoc.clear();
 		aCollidableModels.clear();
@@ -1186,7 +1203,7 @@ void WriteW32(uint32_t exportMapVersion) {
 				mesh.sName2 = GetPropDynamicObjectByName(mesh.sName1);
 				FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(prop), mesh.mMatrix);
 				mesh.nGroup = -1;
-				mesh.nFlags = 0x2000;
+				mesh.nFlags = 0xE000;
 				mesh.nUnk1 = 1;
 				mesh.aLODMeshIds.push_back(model - &aModels[0]);
 				mesh.nDamageAssocId = aMeshDamageAssoc.size();
@@ -1292,16 +1309,10 @@ void WriteW32(uint32_t exportMapVersion) {
 		WriteModelToFile(file, model);
 	}
 
-	if (bDisableObjects) {
-		uint32_t tmpCount = 0;
-		file.write((char*)&tmpCount, 4); // objects
-	}
-	else {
-		uint32_t objectCount = aObjects.size();
-		file.write((char*)&objectCount, 4);
-		for (auto& object : aObjects) {
-			WriteObjectToFile(file, object);
-		}
+	uint32_t objectCount = aObjects.size();
+	file.write((char*)&objectCount, 4);
+	for (auto& object : aObjects) {
+		WriteObjectToFile(file, object);
 	}
 
 	if (bDisableProps) {

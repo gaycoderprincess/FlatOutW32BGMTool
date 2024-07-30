@@ -331,8 +331,8 @@ struct tSurface {
 	}
 };
 struct tStaticBatch {
-	uint32_t nCenterId1;
-	uint32_t nCenterId2;
+	uint32_t nId1;
+	uint32_t nId2;
 	uint32_t nSurfaceId;
 	uint32_t nUnk = 0; // seems to always be 0
 	float vAbsoluteCenter[3] = { 0, 0, 0 };

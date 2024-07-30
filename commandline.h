@@ -45,8 +45,17 @@ void CMD_W32_RemoveProps() {
 	bDisableProps = true;
 	bDumpIntoW32 = true;
 }
-void CMD_W32_FBXSkipHiddenProps() {
+void CMD_W32_FBXSkipHiddenPropsA() {
 	bFBXSkipHiddenProps = true;
+	nFBXSkipHiddenPropsFlag = 0x2000;
+}
+void CMD_W32_FBXSkipHiddenPropsB() {
+	bFBXSkipHiddenProps = true;
+	nFBXSkipHiddenPropsFlag = 0x4000;
+}
+void CMD_W32_FBXSkipHiddenPropsC() {
+	bFBXSkipHiddenProps = true;
+	nFBXSkipHiddenPropsFlag = 0x8000;
 }
 void CMD_W32_EnableAllProps() {
 	bEnableAllProps = true;
@@ -83,6 +92,11 @@ void CMD_W32_ImportClonedProps() {
 }
 void CMD_W32_ImportAllProps() {
 	bImportAllPropsFromFBX = true;
+	bLoadFBX = true;
+	bDumpIntoW32 = true;
+}
+void CMD_W32_ImportAllObjects() {
+	bImportAllObjectsFromFBX = true;
 	bLoadFBX = true;
 	bDumpIntoW32 = true;
 }
@@ -154,7 +168,9 @@ tCommandlineArgument aArguments[] = {
 		// static map options
 		{ "-remove_object_dummies", CMD_W32_RemoveObjectDummies, "Removes all object dummies from an input map file", "W32 editing" },
 		{ "-remove_props", CMD_W32_RemoveProps, "Removes all dynamic props from an input map file" },
-		{ "-skip_hidden_props", CMD_W32_FBXSkipHiddenProps, "Doesn't export hidden props into the .fbx file" },
+		{ "-skip_hidden_props_a", CMD_W32_FBXSkipHiddenPropsA, "Only exports the props from track variant A into the .fbx file" },
+		{ "-skip_hidden_props_b", CMD_W32_FBXSkipHiddenPropsB, "Only exports the props from track variant B into the .fbx file" },
+		{ "-skip_hidden_props_c", CMD_W32_FBXSkipHiddenPropsC, "Only exports the props from track variant C into the .fbx file" },
 		{ "-enable_all_props", CMD_W32_EnableAllProps, "Enables all hidden dynamic props in an input map file" },
 		{ "-empty_bvh_gen", CMD_EmptyTrackBVH, "Takes a track_bvh.gen file as the first argument and generates a new empty one, required to avoid culling issues!" },
 		{ "-empty_plant_vdb", CMD_EmptyPlantVDB, "Generates an empty plant_vdb.gen, removes all grass from the map" },
@@ -164,6 +180,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-ungroup_moved_props", CMD_W32_UngroupMovedProps, "Ungroups props that have been moved via -import_moved_props, fixes some physics behavior" },
 		{ "-import_cloned_props", CMD_W32_ImportClonedProps, "Imports new cloned props from an .fbx, takes an .fbx file as the second argument" },
 		{ "-import_all_props", CMD_W32_ImportAllProps, "Imports all props from an .fbx and deletes the original w32 ones, takes an .fbx file as the second argument" },
+		{ "-import_all_object_dummies", CMD_W32_ImportAllObjects, "Imports all object dummies from an .fbx and deletes the original w32 ones, takes an .fbx file as the second argument" },
 		{ "-import_surfaces", CMD_W32_ImportSurfaces, "Imports modified surfaces from an .fbx if they have the '_export' suffix, takes an .fbx file as the second argument" },
 		{ "-import_all_surfaces", CMD_W32_ImportAllSurfaces, "Imports all modified surfaces from an .fbx, takes an .fbx file as the second argument" },
 		{ "-import_and_match_all_surfaces", CMD_W32_ImportAndAutoMatchAllSurfaces, "Imports all surfaces from an .fbx and matches them up to any valid w32 surface, takes an .fbx file as the second argument" },

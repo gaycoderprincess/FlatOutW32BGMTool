@@ -9,6 +9,7 @@ bool bDumpFOUCNormalizedStreams = false;
 bool bDumpFOUCOffsetedStreams = false;
 bool bDumpFOUCInt8Streams = false;
 bool bFBXSkipHiddenProps = false;
+int nFBXSkipHiddenPropsFlag;
 
 // export options
 bool bDisableObjects = false;
@@ -19,6 +20,7 @@ bool bConvertToFO2 = false;
 bool bImportPropsFromFBX = false;
 bool bImportClonedPropsFromFBX = false;
 bool bImportAllPropsFromFBX = false;
+bool bImportAllObjectsFromFBX = false;
 bool bImportSurfacesFromFBX = false;
 bool bImportAllSurfacesFromFBX = false;
 bool bImportAndAutoMatchAllSurfacesFromFBX = false;

@@ -326,8 +326,8 @@ bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 	aStaticBatches.reserve(numStaticBatches);
 	for (int i = 0; i < numStaticBatches; i++) {
 		tStaticBatch staticBatch;
-		ReadFromFile(file, &staticBatch.nCenterId1, 4);
-		ReadFromFile(file, &staticBatch.nCenterId2, 4);
+		ReadFromFile(file, &staticBatch.nId1, 4);
+		ReadFromFile(file, &staticBatch.nId2, 4);
 		ReadFromFile(file, &staticBatch.nSurfaceId, 4);
 
 		bool bIsSurfaceValid = staticBatch.nSurfaceId < aSurfaces.size();
