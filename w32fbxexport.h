@@ -378,7 +378,7 @@ aiScene GenerateScene() {
 			scene.mRootNode->addChildren(1, &node);
 			for (auto &compactMesh: aCompactMeshes) {
 				if (compactMesh.nFlags == 0x8000 && bFBXSkipHiddenProps) continue;
-				
+
 				auto meshNode = new aiNode();
 				meshNode->mName = compactMesh.sName1;
 				FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);

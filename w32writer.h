@@ -1006,6 +1006,11 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("dyn_electricpole")) return "wood_electricpole";
 		if (propName.starts_with("dyn_car_")) return "metal_car";
 		if (propName.starts_with("dyn_trashbag")) return "plastic_light";
+		if (propName.starts_with("dyn_parasol")) return "plastic_light";
+		if (propName.starts_with("dyn_sunscreen")) return "plastic_light";
+		if (propName.starts_with("dyn_gasbottle")) return "exploding_gasbottle";
+		if (propName.starts_with("dyn_roadblock_")) return "metal_light";
+		if (propName.find("shelter") != std::string::npos) return "metal_medium";
 	}
 	else {
 		if (propName.starts_with("dyn_streetlight")) return "metal_streetlight";
@@ -1033,6 +1038,11 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("dyn_electricpole")) return "wood_electricpole_tilt";
 		if (propName.starts_with("dyn_car_")) return "metal_car_roadrunner";
 		if (propName.starts_with("dyn_trashbag")) return "plastic_trashbag";
+		if (propName.starts_with("dyn_parasol")) return "wood_market_parasol_top";
+		if (propName.starts_with("dyn_sunscreen")) return "wood_market_marquee";
+		if (propName.starts_with("dyn_gasbottle")) return "metal_gasbottle_medium";
+		if (propName.starts_with("dyn_roadblock_")) return "metal_fence_leg_light";
+		if (propName.find("shelter") != std::string::npos) return "metal_motel_roof_medium";
 	}
 	if (propName.starts_with("dyn_concrete_block")) return "rock_obstacle";
 	if (propName.starts_with("dyn_scaffold")) return "metal_light";
@@ -1041,6 +1051,7 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 	if (propName.starts_with("dyn_barrel")) return "metal_light";
 	if (propName.starts_with("dyn_tire")) return "rubber_tire";
 	if (propName.starts_with("dyn_cone")) return "rubber_cone";
+	WriteConsole("WARNING: Prop " + propName + " has unrecognized prefix, defaulting to metal_light", LOG_MINOR_WARNINGS);
 	return "metal_light";
 }
 
@@ -1142,8 +1153,15 @@ void WriteW32(uint32_t exportMapVersion) {
 				col.aModels.push_back(model - &aModels[0]);
 				aCollidableModels.push_back(col);
 
-				WriteConsole("Successfully created new prop " + mesh.sName1 + " with properties from " + mesh.sName2, LOG_ALL);
+				WriteConsole("Created new prop " + mesh.sName1 + " with properties from " + mesh.sName2, LOG_ALL);
 			}
+		}
+	}
+
+	if (bImportAndAutoMatchAllSurfacesFromFBX || bImportAndAutoMatchAllMeshesFromFBX) {
+		for (auto& surface : aSurfaces) {
+			if (!bImportAllPropsFromFBX && surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL] > 0) continue;
+			if (!surface._bIsReplacedMapSurface) DeleteSurfaceByEmptying(&surface);
 		}
 	}
 
