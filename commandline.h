@@ -45,6 +45,10 @@ void CMD_W32_RemoveProps() {
 	bDisableProps = true;
 	bDumpIntoW32 = true;
 }
+void CMD_W32_FBXSkipHiddenProps() {
+	bFBXSkipHiddenProps = true;
+	bDumpIntoW32 = true;
+}
 void CMD_W32_EnableAllProps() {
 	bEnableAllProps = true;
 	bDumpIntoW32 = true;
@@ -151,6 +155,7 @@ tCommandlineArgument aArguments[] = {
 		// static map options
 		{ "-remove_object_dummies", CMD_W32_RemoveObjectDummies, "Removes all object dummies from an input map file", "W32 editing" },
 		{ "-remove_props", CMD_W32_RemoveProps, "Removes all dynamic props from an input map file" },
+		{ "-skip_hidden_props", CMD_W32_FBXSkipHiddenProps, "Doesn't export hidden props into the .fbx file" },
 		{ "-enable_all_props", CMD_W32_EnableAllProps, "Enables all hidden dynamic props in an input map file" },
 		{ "-empty_bvh_gen", CMD_EmptyTrackBVH, "Takes a track_bvh.gen file as the first argument and generates a new empty one, required to avoid culling issues!" },
 		{ "-empty_plant_vdb", CMD_EmptyPlantVDB, "Generates an empty plant_vdb.gen, removes all grass from the map" },

@@ -8,6 +8,7 @@ bool bDumpStreams = false;
 bool bDumpFOUCNormalizedStreams = false;
 bool bDumpFOUCOffsetedStreams = false;
 bool bDumpFOUCInt8Streams = false;
+bool bFBXSkipHiddenProps = false;
 
 // export options
 bool bDisableObjects = false;

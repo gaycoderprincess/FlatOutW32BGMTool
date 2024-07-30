@@ -834,7 +834,7 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 			fFOUCRadius = fFOUCBGMScaleMultiplier;
 			vFOUCCenter = {0, 0, 0};
 		}
-		
+
 		CreateStreamsFromFBX(mesh, bufFlags, vertexSize, vFOUCCenter.x, vFOUCCenter.y, vFOUCCenter.z, fFOUCRadius);
 		surface->foucVertexMultiplier[0] = vFOUCCenter[0];
 		surface->foucVertexMultiplier[1] = vFOUCCenter[1];
@@ -979,6 +979,71 @@ tModel* CreateModelFromMesh(aiNode* node) {
 	return &aModels[aModels.size() - 1];
 }
 
+std::string GetPropDynamicObjectByName(const std::string& propName) {
+	if (nExportFileVersion >= 0x20000) {
+		if (propName.starts_with("dyn_streetlight")) return "metal_trafficlightpole";
+		if (propName.ends_with("traffictraficlightpole_")) return "metal_trafficlightpole";
+		if (propName.starts_with("dyn_traficlightpole") && propName.ends_with("lights_")) return "metal_light";
+		if (propName.starts_with("dyn_parkingmeter")) return "metal_light";
+		if (propName.find("ladder") != std::string::npos) return "metal_medium";
+		if (propName.starts_with("dyn_cardboardbox")) return "wood_light";
+		if (propName.starts_with("dyn_tent_table")) return "wood_light";
+		if (propName.find("bench") != std::string::npos) return "wood_light";
+		if (propName.starts_with("dyn_marketsign")) return "wood_light";
+		if (propName.starts_with("dyn_markettable")) return "wood_light";
+		if (propName.starts_with("dyn_woodbox")) return "wood_light";
+		if (propName.starts_with("dyn_fruit")) return "rubber_cone";
+		if (propName.starts_with("dyn_chair")) return "plastic_light";
+		if (propName.starts_with("dyn_trashcan")) return "metal_medium";
+		if (propName.starts_with("dyn_vendingmachine")) return "metal_heavy";
+		if (propName.starts_with("obj_barn")) return "wood_obstacle";
+		if (propName.find("rustplate") != std::string::npos) return "wood_light";
+		if (propName.find("_pole_") != std::string::npos) return "wood_obstacle";
+		if (propName.find("gaspump") != std::string::npos) return "explosive_gaspump";
+		if (propName.find("_tank_") != std::string::npos) return "metal_watertank";
+		if (propName.starts_with("dyna_watertankhut")) return "metal_medium";
+		if (propName.starts_with("dyn_fence")) return "fence_wood";
+		if (propName.starts_with("dyn_electricpole")) return "wood_electricpole";
+		if (propName.starts_with("dyn_car_")) return "metal_car";
+		if (propName.starts_with("dyn_trashbag")) return "plastic_light";
+	}
+	else {
+		if (propName.starts_with("dyn_streetlight")) return "metal_streetlight";
+		if (propName.ends_with("traffictraficlightpole_")) return "metal_streetlight";
+		if (propName.starts_with("dyn_traficlightpole") && propName.ends_with("lights_")) return "metal_streetlight_box";
+		if (propName.starts_with("dyn_parkingmeter")) return "metal_parkingmeter";
+		if (propName.find("ladder") != std::string::npos) return "metal_ladder_medium";
+		if (propName.starts_with("dyn_cardboardbox")) return "wood_market_cardboardbox_medium";
+		if (propName.starts_with("dyn_tent_table")) return "wood_table";
+		if (propName.find("bench") != std::string::npos) return "wood_bench";
+		if (propName.starts_with("dyn_marketsign")) return "wood_market_sign_pole";
+		if (propName.starts_with("dyn_markettable")) return "wood_market_table_top";
+		if (propName.starts_with("dyn_woodbox")) return "wood_market_fruitholder";
+		if (propName.starts_with("dyn_fruit")) return "wood_market_fruit_medium";
+		if (propName.starts_with("dyn_chair")) return "wood_market_chair";
+		if (propName.starts_with("dyn_trashcan")) return "metal_trashcan_medium";
+		if (propName.starts_with("dyn_vendingmachine")) return "metal_vendingmachine";
+		if (propName.starts_with("obj_barn")) return "wood_board_small";
+		if (propName.find("rustplate") != std::string::npos) return "wood_plank_light";
+		if (propName.find("_pole_") != std::string::npos) return "wood_pole_tall";
+		if (propName.find("gaspump") != std::string::npos) return "metal_gas_pump";
+		if (propName.find("_tank_") != std::string::npos) return "metal_watertank";
+		if (propName.starts_with("dyna_watertankhut")) return "metal_watertank_leg";
+		if (propName.starts_with("dyn_fence")) return "wood_board_small";
+		if (propName.starts_with("dyn_electricpole")) return "wood_electricpole_tilt";
+		if (propName.starts_with("dyn_car_")) return "metal_car_roadrunner";
+		if (propName.starts_with("dyn_trashbag")) return "plastic_trashbag";
+	}
+	if (propName.starts_with("dyn_concrete_block")) return "rock_obstacle";
+	if (propName.starts_with("dyn_scaffold")) return "metal_light";
+	if (propName.starts_with("dyn_trackside_advert")) return "metal_light";
+	if (propName.starts_with("box")) return "metal_light";
+	if (propName.starts_with("dyn_barrel")) return "metal_light";
+	if (propName.starts_with("dyn_tire")) return "rubber_tire";
+	if (propName.starts_with("dyn_cone")) return "rubber_cone";
+	return "metal_light";
+}
+
 void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("Writing output w32 file...", LOG_ALWAYS);
 
@@ -1056,7 +1121,7 @@ void WriteW32(uint32_t exportMapVersion) {
 			if (auto model = CreateModelFromMesh(prop)) {
 				tCompactMesh mesh;
 				mesh.sName1 = prop->mName.C_Str();
-				mesh.sName2 = "rubber_cone";
+				mesh.sName2 = GetPropDynamicObjectByName(mesh.sName1);
 				FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(prop), mesh.mMatrix);
 				mesh.nGroup = -1;
 				mesh.nFlags = 0x2000;
