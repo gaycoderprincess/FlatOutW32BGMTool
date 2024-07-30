@@ -60,14 +60,9 @@ Map shaders:
 - Dynamic objects with specular: `_dynamic_specular` suffix
 
 ## Advanced track creation example
-- Take the Speedbowl track (arena3a, which is an ideal track as there's little to no vegetation) and export it using the tool.
+- Take the Speedbowl track (arena3a, which is an ideal track as there's little to no vegetation) and export it using the tool. (If you're confident, then making a raceable copy of Stunt2A works even better)
 - Create an empty track_bvh.gen using `-empty_bvh_gen` and optionally an empty plant_vdb.gen using `-empty_plant_db` as described above.
 - Take your custom track model, and if it follows the exported .fbx's hierarchy (i.e. it was exported by the tool and you didn't add any non-conforming parts) then import it with:
-`FlatOutW32BGMTool_gcp.exe path/to/speedbowl/track_geom.w32 path/to/model.fbx -import_and_match_all_surfaces`
+`FlatOutW32BGMTool_gcp.exe path/to/speedbowl/track_geom.w32 path/to/model.fbx -import_and_match_all_surfaces -import_all_props`
 - If it doesn't follow that hierarchy (i.e. it's a custom model you created or took from somewhere) then import it with:
-`FlatOutW32BGMTool_gcp.exe path/to/speedbowl/track_geom.w32 path/to/model.fbx -import_and_match_all_meshes`
-- If you do not wish to have dynamic props on the map, add `-remove_props` to the command.
-- If you do wish to have props, first re-export the track with `FlatOutW32BGMTool_gcp.exe path/to/speedbowl/track_geom_out.w32 -export_fbx`
-- Then move and copy-paste the dummies contained within CompactMesh as you like.
-- Afterwards, re-import the track again using `FlatOutW32BGMTool_gcp.exe path/to/speedbowl/track_geom_out.w32 path/to/model.fbx -import_moved_props -ungroup_moved_props -import_cloned_props` (this will not affect the track's visual mesh, only the prop placements!)
-- If you wish to have edited prop models as well, do your changes to the prop meshes in the existing hierarchy and then add `-import_surfaces` to the above command.
+`FlatOutW32BGMTool_gcp.exe path/to/speedbowl/track_geom.w32 path/to/model.fbx -import_and_match_all_meshes -remove_props`
