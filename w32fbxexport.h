@@ -377,7 +377,7 @@ aiScene GenerateScene() {
 			node->mName = "CompactMesh";
 			scene.mRootNode->addChildren(1, &node);
 			for (auto &compactMesh: aCompactMeshes) {
-				if (compactMesh.nFlags == 0x8000 && bFBXSkipHiddenProps) continue;
+				if ((compactMesh.nFlags == 0x8000 || compactMesh.nFlags == 0x4000) && bFBXSkipHiddenProps) continue;
 
 				auto meshNode = new aiNode();
 				meshNode->mName = compactMesh.sName1;

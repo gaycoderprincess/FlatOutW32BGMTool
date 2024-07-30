@@ -529,6 +529,7 @@ aiNode* FindFBXNodeForStaticBatchSurface(const std::string& name) {
 
 	for (int i = 0; i < root->mNumChildren; i++) {
 		auto node = root->mChildren[i];
+		if (node->mNumChildren == 0 && node->mNumMeshes == 0) continue;
 		if (!strcmp(node->mName.C_Str(), name.c_str())) return node;
 	}
 	return nullptr;
@@ -542,6 +543,7 @@ aiNode* FindFBXNodeForTreeMeshSurface(const std::string& name) {
 		auto node = root->mChildren[i];
 		for (int j = 0; j < node->mNumChildren; j++) {
 			auto node2 = node->mChildren[j];
+			if (node2->mNumChildren == 0 && node2->mNumMeshes == 0) continue;
 			if (!strcmp(node2->mName.C_Str(), name.c_str())) return node2;
 		}
 	}

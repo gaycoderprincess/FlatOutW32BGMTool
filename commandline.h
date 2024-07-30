@@ -47,7 +47,6 @@ void CMD_W32_RemoveProps() {
 }
 void CMD_W32_FBXSkipHiddenProps() {
 	bFBXSkipHiddenProps = true;
-	bDumpIntoW32 = true;
 }
 void CMD_W32_EnableAllProps() {
 	bEnableAllProps = true;
