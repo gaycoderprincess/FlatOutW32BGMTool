@@ -17,6 +17,7 @@ bool bConvertToFO1 = false;
 bool bConvertToFO2 = false;
 bool bImportPropsFromFBX = false;
 bool bImportClonedPropsFromFBX = false;
+bool bImportAllPropsFromFBX = false;
 bool bImportSurfacesFromFBX = false;
 bool bImportAllSurfacesFromFBX = false;
 bool bImportAndAutoMatchAllSurfacesFromFBX = false;

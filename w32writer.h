@@ -62,9 +62,9 @@ void WriteVertexBufferToFile(std::ofstream& file, tVertexBuffer& buf) {
 		}
 
 		if (numWritten != buf.vertexCount * (buf.vertexSize / 4)) {
-			WriteConsole("Write mismatch!");
-			WriteConsole(std::to_string(buf.vertexCount * (buf.vertexSize / 4)));
-			WriteConsole(std::to_string(numWritten));
+			WriteConsole("Write mismatch!", LOG_ERRORS);
+			WriteConsole(std::to_string(buf.vertexCount * (buf.vertexSize / 4)), LOG_ERRORS);
+			WriteConsole(std::to_string(numWritten), LOG_ERRORS);
 		}
 	}
 	else {
@@ -230,7 +230,7 @@ void WriteCompactMeshToFile(std::ofstream& file, tCompactMesh& mesh) {
 	file.write((char*)mesh.mMatrix, sizeof(mesh.mMatrix));
 	if (nExportFileVersion >= 0x20000) {
 		file.write((char*)&mesh.nUnk1, 4);
-		file.write((char*)&mesh.nBBoxAssocId, 4);
+		file.write((char*)&mesh.nDamageAssocId, 4);
 	}
 	else {
 		int numLODs = mesh.aLODMeshIds.size();
@@ -255,11 +255,11 @@ void WriteBGMMeshToFile(std::ofstream& file, tBGMMesh& mesh) {
 	}
 }
 
-void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, float foucOffset1 = 0, float foucOffset2 = 0, float foucOffset3 = 0, float foucOffset4 = fFOUCCarMultiplier) {
+void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, float foucOffset1 = 0, float foucOffset2 = 0, float foucOffset3 = 0, float foucOffset4 = fFOUCBGMScaleMultiplier) {
 	int id = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
 
 	if ((flags & VERTEX_UV2) != 0 && !mesh->HasTextureCoords(1)) {
-		WriteConsole("WARNING: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have 2 sets of UVs!");
+		WriteConsole("WARNING: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have 2 sets of UVs!", LOG_MINOR_WARNINGS);
 		//exit(0);
 	}
 
@@ -275,7 +275,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 	vBuf.vertexSize = vertexSize;
 	vBuf.vertexCount = mesh->mNumVertices;
 	if (vBuf.vertexCount > 65535) {
-		WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " has more than 65535 vertices! Split the mesh!");
+		WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " has more than 65535 vertices! Split the mesh!", LOG_ERRORS);
 		exit(0);
 	}
 	if (bIsFOUCModel) {
@@ -299,7 +299,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 
 			if ((flags & VERTEX_NORMAL) != 0 || bIsFOUCModel) {
 				if (!mesh->HasNormals()) {
-					WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!");
+					WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!", LOG_ERRORS);
 					exit(0);
 				}
 
@@ -347,7 +347,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			}
 			if ((flags & VERTEX_UV) != 0 || (flags & VERTEX_UV2) != 0) {
 				if (!mesh->HasTextureCoords(0)) {
-					WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have UVs!");
+					WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have UVs!", LOG_ERRORS);
 					exit(0);
 				}
 
@@ -382,7 +382,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 
 			if ((flags & VERTEX_NORMAL) != 0) {
 				if (!mesh->HasNormals()) {
-					WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!");
+					WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!", LOG_ERRORS);
 					exit(0);
 				}
 
@@ -416,7 +416,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			}
 			if ((flags & VERTEX_UV) != 0 || (flags & VERTEX_UV2) != 0) {
 				if (!mesh->HasTextureCoords(0)) {
-					WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have UVs!");
+					WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have UVs!", LOG_ERRORS);
 					exit(0);
 				}
 
@@ -447,7 +447,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 	for (int i = 0; i < mesh->mNumFaces; i++) {
 		auto& face = mesh->mFaces[i];
 		if (face.mNumIndices != 3) {
-			WriteConsole("ERROR: Non-tri found in FBX mesh while exporting!");
+			WriteConsole("ERROR: Non-tri found in FBX mesh while exporting!", LOG_ERRORS);
 			continue;
 		}
 		indexData[0] = face.mIndices[2];
@@ -476,6 +476,14 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	if (mat.sName.starts_with("tire")) mat.nShaderId = bIsFOUCModel ? 44 : 7; // fo2: car diffuse, uc: car tire
 	if (mat.sName.starts_with("rim")) mat.nShaderId = 9; // fo2: car tire, uc: car tire rim
 	if (mat.sName.starts_with("terrain") || mat.sName.starts_with("groundplane")) mat.nShaderId = 7; // car diffuse
+	if (mat.sName.starts_with("massdoubler_texture")) mat.nShaderId = 3; // dynamic diffuse
+	if (mat.sName.starts_with("bomb_texture")) mat.nShaderId = 3; // dynamic diffuse
+	if (mat.sName.starts_with("powerarmour_texture")) mat.nShaderId = 3; // dynamic diffuse
+	if (mat.sName.starts_with("scoredoubler_texture")) mat.nShaderId = 3; // dynamic diffuse
+	if (mat.sName.starts_with("infinitro_texture")) mat.nShaderId = 3; // dynamic diffuse
+	if (mat.sName.starts_with("repair_texture")) mat.nShaderId = 3; // dynamic diffuse
+	if (mat.sName.starts_with("powerram_texture")) mat.nShaderId = 3; // dynamic diffuse
+	if (mat.sName.starts_with("massdoubler_texture")) mat.nShaderId = 3; // dynamic diffuse
 	if (mat.sName.starts_with("light")) {
 		mat.v92 = 2;
 		mat.nShaderId = 10; // car lights
@@ -505,35 +513,44 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	if (mat.sName.starts_with("shearhock")) mat.nAlpha = 0;
 	// fouc tire_01 hack
 	if (bIsFOUCModel && mat.sTextureNames[0] == "tire_01.tga") mat.sTextureNames[0] = "tire.tga";
-	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId));
+	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId), LOG_ALL);
 	return mat;
 }
 
-tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial) {
+tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel) {
 	tMaterial mat;
 	auto matName = fbxMaterial->GetName().C_Str();
 	mat.sName = matName;
 	mat.nAlpha = mat.sName.starts_with("alpha") || mat.sName.starts_with("Alpha") || mat.sName.starts_with("wirefence_");
-	mat.nShaderId = 0; // static prelit
-	if (mat.sName.starts_with("dm_")) mat.nShaderId = 1; // terrain
-	if (mat.sName.starts_with("terrain_")) mat.nShaderId = 1; // terrain
-	if (mat.sName.starts_with("sdm_")) mat.nShaderId = 2; // terrain specular
-	if (mat.sName.starts_with("treetrunk")) mat.nShaderId = 19; // tree trunk
-	if (mat.sName.starts_with("alpha_treebranch")) mat.nShaderId = 20; // tree branch
-	if (mat.sName.starts_with("alpha_bushbranch")) mat.nShaderId = 20; // tree branch
-	if (mat.sName.starts_with("alpha_treelod")) mat.nShaderId = 21; // tree leaf
-	if (mat.sName.starts_with("alpha_treesprite")) mat.nShaderId = 21; // tree leaf
-	if (mat.sName.starts_with("alpha_bushlod")) mat.nShaderId = 21; // tree leaf
-	if (mat.sName.starts_with("alpha_bushsprite")) mat.nShaderId = 21; // tree leaf
-	if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 25; // puddle : water
-	if (mat.sName.ends_with(".001")) {
-		for (int i = 0; i < 4; i++) {
-			mat.sName.pop_back();
+	if (isStaticModel) {
+		mat.nShaderId = 0; // static prelit
+		if (mat.sName.starts_with("dm_")) mat.nShaderId = 1; // terrain
+		if (mat.sName.starts_with("terrain_")) mat.nShaderId = 1; // terrain
+		if (mat.sName.starts_with("sdm_")) mat.nShaderId = 2; // terrain specular
+		if (mat.sName.starts_with("treetrunk")) mat.nShaderId = 19; // tree trunk
+		if (mat.sName.starts_with("alpha_treebranch")) mat.nShaderId = 20; // tree branch
+		if (mat.sName.starts_with("alpha_bushbranch")) mat.nShaderId = 20; // tree branch
+		if (mat.sName.starts_with("alpha_treelod")) mat.nShaderId = 21; // tree leaf
+		if (mat.sName.starts_with("alpha_treesprite")) mat.nShaderId = 21; // tree leaf
+		if (mat.sName.starts_with("alpha_bushlod")) mat.nShaderId = 21; // tree leaf
+		if (mat.sName.starts_with("alpha_bushsprite")) mat.nShaderId = 21; // tree leaf
+		if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 25; // puddle : water
+		if (mat.sName.ends_with(".001")) {
+			for (int i = 0; i < 4; i++) {
+				mat.sName.pop_back();
+			}
 		}
+		if (mat.sName == "water") mat.nShaderId = bIsFOUCModel ? 45 : 25; // puddle : water
 	}
-	if (mat.sName == "water") mat.nShaderId = bIsFOUCModel ? 45 : 25; // puddle : water
-	if (mat.sName.ends_with("_dynamic")) mat.nShaderId = 3; // dynamic diffuse
-	if (mat.sName.ends_with("_dynamic_specular")) mat.nShaderId = 4; // dynamic specular, custom suffix for manual use
+	else {
+		mat.nShaderId = 3; // dynamic diffuse
+		if (mat.sName.ends_with(".001")) {
+			for (int i = 0; i < 4; i++) {
+				mat.sName.pop_back();
+			}
+		}
+		if (mat.sName.ends_with("_dynamic_specular")) mat.nShaderId = 4; // dynamic specular, custom suffix for manual use
+	}
 
 	mat.nNumTextures = fbxMaterial->GetTextureCount(aiTextureType_DIFFUSE);
 	if (mat.nNumTextures > 3) mat.nNumTextures = 3;
@@ -559,7 +576,7 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial) {
 		if (mat.nShaderId == 20) mat.nShaderId = 0;
 		if (mat.nShaderId == 21) mat.nShaderId = 0;
 	}
-	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId));
+	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId), LOG_ALL);
 	return mat;
 }
 
@@ -606,16 +623,16 @@ void CreateBGMSurfaceFromFBX(aiNode* node, int meshId, bool isCrash) {
 	surface.foucVertexMultiplier[0] = 0;
 	surface.foucVertexMultiplier[1] = 0;
 	surface.foucVertexMultiplier[2] = 0;
-	surface.foucVertexMultiplier[3] = fFOUCCarMultiplier;
+	surface.foucVertexMultiplier[3] = fFOUCBGMScaleMultiplier;
 
 	if (isCrash) aCrashSurfaces.push_back(surface);
 	else aSurfaces.push_back(surface);
 }
 
 void FillBGMFromFBX() {
-	WriteConsole("Creating BGM data...");
+	WriteConsole("Creating BGM data...", LOG_ALWAYS);
 
-	WriteConsole("Creating materials...");
+	WriteConsole("Creating materials...", LOG_ALWAYS);
 
 	// create materials
 	for (int j = 0; j < 3; j++) {
@@ -626,7 +643,7 @@ void FillBGMFromFBX() {
 		}
 	}
 
-	WriteConsole("Creating streams...");
+	WriteConsole("Creating streams...", LOG_ALWAYS);
 
 	// create streams
 	for (int i = 0; i < pParsedFBXScene->mNumMeshes; i++) {
@@ -646,7 +663,7 @@ void FillBGMFromFBX() {
 		}
 	}
 
-	WriteConsole("Creating meshes & surfaces...");
+	WriteConsole("Creating meshes & surfaces...", LOG_ALWAYS);
 
 	auto bgmMeshArray = GetFBXNodeForBGMMeshArray();
 	for (int i = 0; i < bgmMeshArray->mNumChildren; i++) {
@@ -724,7 +741,7 @@ void FillBGMFromFBX() {
 			model.vRadius[1] = std::abs(aabbMax[1] - aabbMin[1]) * 0.5;
 			model.vRadius[2] = std::abs(aabbMax[2] - aabbMin[2]) * 0.5;
 			if (!model.aCrashSurfaces.empty() && model.aCrashSurfaces.size() != model.aSurfaces.size()) {
-				WriteConsole("ERROR: " + model.sName + " has crash models but not for every mesh! Skipping");
+				WriteConsole("ERROR: " + model.sName + " has crash models but not for every mesh! Skipping", LOG_ERRORS);
 				model.aCrashSurfaces.clear();
 			}
 			// fRadius isn't required, game doesn't read it
@@ -735,7 +752,7 @@ void FillBGMFromFBX() {
 		aBGMMeshes.push_back(bgmMesh);
 	}
 
-	WriteConsole("Creating object dummies...");
+	WriteConsole("Creating object dummies...", LOG_ALWAYS);
 
 	auto objectsArray = GetFBXNodeForObjectsArray();
 	for (int i = 0; i < objectsArray->mNumChildren; i++) {
@@ -748,25 +765,21 @@ void FillBGMFromFBX() {
 		aObjects.push_back(object);
 	}
 
-	WriteConsole("BGM data created");
+	WriteConsole("BGM data created", LOG_ALWAYS);
 }
 
 void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, aiMesh* mesh) {
-	WriteConsole("Exporting " + (std::string)node->mName.C_Str() + " into surface " + std::to_string(surface - &aSurfaces[0]));
+	WriteConsole("Exporting " + (std::string)node->mName.C_Str() + " into surface " + std::to_string(surface - &aSurfaces[0]), LOG_ALL);
 
-	if (!mesh) mesh = pParsedFBXScene->mMeshes[node->mMeshes[0]];
 	auto fbxMaterial = pParsedFBXScene->mMaterials[mesh->mMaterialIndex];
 	auto material = FindMaterialIDByName(fbxMaterial->GetName().C_Str(), bNoMaterialReuse);
 	if (material < 0) {
 		material = aMaterials.size();
-		auto newMat = GetMapMaterialFromFBX(fbxMaterial);
-		if (isStaticModel) {
-			if (newMat.nShaderId == 3 || newMat.nShaderId == 4) newMat.nShaderId = 0; // dynamic diffuse || dynamic specular -> static prelit
-		}
+		auto newMat = GetMapMaterialFromFBX(fbxMaterial, isStaticModel);
 		newMat._bIsCustom = true;
 		aMaterials.push_back(newMat);
 	}
-	WriteConsole("Assigning material " + aMaterials[material].sName + " to " + node->mName.C_Str());
+	WriteConsole("Assigning material " + aMaterials[material].sName + " to " + node->mName.C_Str(), LOG_ALL);
 	surface->nMaterialId = material;
 
 	uint32_t bufFlags;
@@ -817,6 +830,11 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 	if (bIsFOUCModel) {
 		float fFOUCRadius = vRadius.length() / 32767;
 		NyaVec3 vFOUCCenter = vCenter / fFOUCRadius;
+		if (!isStaticModel) {
+			fFOUCRadius = fFOUCBGMScaleMultiplier;
+			vFOUCCenter = {0, 0, 0};
+		}
+		
 		CreateStreamsFromFBX(mesh, bufFlags, vertexSize, vFOUCCenter.x, vFOUCCenter.y, vFOUCCenter.z, fFOUCRadius);
 		surface->foucVertexMultiplier[0] = vFOUCCenter[0];
 		surface->foucVertexMultiplier[1] = vFOUCCenter[1];
@@ -841,6 +859,8 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 	surface->nStreamOffset[0] = surface->nStreamOffset[1] = 0;
 	surface->nStreamId[0] = streamCount;
 	surface->nStreamId[1] = streamCount + 1;
+	surface->_bIsReplacedMapSurface = true;
+	surface->_pReplacedMapSurfaceMesh = mesh;
 }
 
 tCompactMesh* GetCompactMeshByName(const std::string& name) {
@@ -855,13 +875,12 @@ bool ShouldSurfaceMeshBeImported(aiNode* node) {
 	auto name = (std::string)node->mName.C_Str();
 	if (!bImportAllSurfacesFromFBX && !name.ends_with("_export")) return false;
 	if (node->mNumMeshes != 1) {
-		WriteConsole("ERROR: " + name + " has more than one mesh or material!");
+		WriteConsole("ERROR: " + name + " has more than one mesh or material!", LOG_ERRORS);
 		return false;
 	}
 	return true;
 }
 
-std::vector<aiNode*> aUnorderedSurfaceImports;
 struct tMeshNodeAssoc {
 	aiNode* node;
 	aiMesh* mesh;
@@ -873,7 +892,26 @@ void DeleteSurfaceByEmptying(tSurface* surface) {
 	surface->nVertexCount = 0;
 	surface->nNumIndicesUsed = 0;
 	surface->foucVertexMultiplier[3] = 0;
-	WriteConsole("Deleting surface " + std::to_string(surface - &aSurfaces[0]));
+	surface->_bIsReplacedMapSurface = true;
+	surface->_pReplacedMapSurfaceMesh = nullptr;
+	WriteConsole("Deleting surface " + std::to_string(surface - &aSurfaces[0]), LOG_ALL);
+}
+
+tSurface* ReplaceNextAvailableSurface(aiNode* node, aiMesh* mesh, bool allowModelSurfaces) {
+	for (auto& surface: aSurfaces) {
+		if (!surface._bIsReplacedMapSurface) continue;
+		if (surface._pReplacedMapSurfaceMesh == mesh) return &surface;
+	}
+
+	for (auto& surface: aSurfaces) {
+		if (!allowModelSurfaces && surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL] > 0) continue;
+		if (surface.nNumStreamsUsed != 2) continue;
+		if (surface._bIsReplacedMapSurface) continue;
+
+		ImportSurfaceFromFBX(&surface, node, !allowModelSurfaces, mesh);
+		return &surface;
+	}
+	return nullptr;
 }
 
 void WalkFBXTreeForMeshes(aiNode* node) {
@@ -886,12 +924,67 @@ void WalkFBXTreeForMeshes(aiNode* node) {
 	}
 }
 
+tModel* CreateModelFromMesh(aiNode* node) {
+	std::vector<aiMesh*> aMeshes;
+	for (int i = 0; i < node->mNumMeshes; i++) {
+		aMeshes.push_back(pParsedFBXScene->mMeshes[node->mMeshes[i]]);
+	}
+	for (int i = 0; i < node->mNumChildren; i++) {
+		auto child = node->mChildren[i];
+		for (int j = 0; j < child->mNumMeshes; j++) {
+			aMeshes.push_back(pParsedFBXScene->mMeshes[child->mMeshes[j]]);
+		}
+	}
+	if (aMeshes.empty()) {
+		WriteConsole("WARNING: Prop " + (std::string)node->mName.C_Str() + " has no meshes! Ignoring...", LOG_WARNINGS);
+		return nullptr;
+	}
+
+	aiAABB aabb;
+
+	std::vector<tSurface*> surfaces;
+	for (auto& mesh : aMeshes) {
+		aabb.mMin.x = std::min(aabb.mMin.x, mesh->mAABB.mMin.x);
+		aabb.mMin.y = std::min(aabb.mMin.y, mesh->mAABB.mMin.y);
+		aabb.mMin.z = std::min(aabb.mMin.z, mesh->mAABB.mMin.z);
+		aabb.mMax.x = std::max(aabb.mMax.x, mesh->mAABB.mMax.x);
+		aabb.mMax.y = std::max(aabb.mMax.y, mesh->mAABB.mMax.y);
+		aabb.mMax.z = std::max(aabb.mMax.z, mesh->mAABB.mMax.z);
+
+		auto surface = ReplaceNextAvailableSurface(node, mesh, true);
+		if (!surface) continue;
+		surfaces.push_back(surface);
+	}
+	if (surfaces.empty()) {
+		WriteConsole("WARNING: The W32 doesn't have any surfaces left for prop " + (std::string)node->mName.C_Str() + "!", LOG_WARNINGS);
+		return nullptr;
+	}
+	if (surfaces.size() < aMeshes.size()) {
+		WriteConsole("WARNING: The W32 doesn't have enough surfaces for prop " + (std::string)node->mName.C_Str() + ", " + std::to_string(aMeshes.size() - surfaces.size()) + " FBX surfaces will be skipped!", LOG_WARNINGS);
+	}
+
+	tModel model;
+	model.nUnk = 4;
+	model.sName = node->mName.C_Str();
+	model.vCenter[0] = (aabb.mMax[0] + aabb.mMin[0]) * 0.5;
+	model.vCenter[1] = (aabb.mMax[1] + aabb.mMin[1]) * 0.5;
+	model.vCenter[2] = (aabb.mMax[2] + aabb.mMin[2]) * -0.5;
+	model.vRadius[0] = std::abs(aabb.mMax[0] - aabb.mMin[0]) * 0.5;
+	model.vRadius[1] = std::abs(aabb.mMax[1] - aabb.mMin[1]) * 0.5;
+	model.vRadius[2] = std::abs(aabb.mMax[2] - aabb.mMin[2]) * 0.5;
+	for (auto& surface : surfaces) {
+		model.aSurfaces.push_back(surface - &aSurfaces[0]);
+	}
+	aModels.push_back(model);
+	return &aModels[aModels.size() - 1];
+}
+
 void WriteW32(uint32_t exportMapVersion) {
-	WriteConsole("Writing output w32 file...");
+	WriteConsole("Writing output w32 file...", LOG_ALWAYS);
 
 	nExportFileVersion = exportMapVersion;
 	if ((nExportFileVersion == 0x20002 || nImportFileVersion == 0x20002 || bIsFOUCModel) && nImportFileVersion != nExportFileVersion) {
-		WriteConsole("ERROR: FOUC conversions are currently not supported!");
+		WriteConsole("ERROR: FOUC conversions are currently not supported!", LOG_ERRORS);
 		return;
 	}
 
@@ -902,70 +995,33 @@ void WriteW32(uint32_t exportMapVersion) {
 	if (nExportFileVersion >= 0x20000) file.write((char*)&nSomeMapValue, 4);
 
 	if (bImportSurfacesFromFBX) {
-		if (bImportAndAutoMatchAllMeshesFromFBX) {
+		if (bImportAndAutoMatchAllMeshesFromFBX || bImportAndAutoMatchAllSurfacesFromFBX) {
 			auto materialsBackup = aMaterials;
 
 			// FO1 can't handle too many materials, clear them first
 			if (nExportFileVersion < 0x20000 || bClearOriginalMaterials) aMaterials.clear();
 
-			WalkFBXTreeForMeshes(pParsedFBXScene->mRootNode);
+			if (bImportAndAutoMatchAllMeshesFromFBX) {
+				WalkFBXTreeForMeshes(pParsedFBXScene->mRootNode);
+			}
+			else {
+				for (int i = 0; i < 9999; i++) {
+					if (auto node = FindFBXNodeForSurface(i)) {
+						for (int j = 0; j < node->mNumMeshes; j++) {
+							aUnorderedMeshImports.push_back({node, pParsedFBXScene->mMeshes[node->mMeshes[j]]});
+						}
+					}
+				}
+			}
 
 			// match up fbx meshes and delete every leftover non-prop w32 surface
-			int matchupId = 0;
-			for (auto& surface: aSurfaces) {
-				if (surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL] > 0) continue;
-				if (surface.nNumStreamsUsed != 2) continue;
-
-				if (matchupId >= aUnorderedMeshImports.size()) {
-					DeleteSurfaceByEmptying(&surface);
-				}
-				else {
-					auto data = aUnorderedMeshImports[matchupId];
-					ImportSurfaceFromFBX(&surface, data.node, true, data.mesh);
-					matchupId++;
-				}
+			int unmatchedCount = 0;
+			for (auto& data : aUnorderedMeshImports) {
+				if (!ReplaceNextAvailableSurface(data.node, data.mesh, false)) unmatchedCount++;
 			}
 
-			if (matchupId < aUnorderedMeshImports.size()) {
-				WriteConsole("WARNING: The W32 only has " + std::to_string(matchupId) + " usable surfaces but the FBX has " + std::to_string(aUnorderedSurfaceImports.size()) + ", Some FBX surfaces will be skipped!");
-			}
-
-			if (nExportFileVersion < 0x20000 || bClearOriginalMaterials) {
-				for (int i = aMaterials.size(); i < materialsBackup.size(); i++) {
-					aMaterials.push_back(materialsBackup[i]);
-				}
-			}
-		}
-		else if (bImportAndAutoMatchAllSurfacesFromFBX) {
-			auto materialsBackup = aMaterials;
-
-			// FO1 can't handle too many materials, clear them first
-			if (nExportFileVersion < 0x20000 || bClearOriginalMaterials) aMaterials.clear();
-
-			for (int i = 0; i < 9999; i++) {
-				if (auto node = FindFBXNodeForSurface(i)) {
-					if (node->mNumMeshes <= 0) continue;
-					aUnorderedSurfaceImports.push_back(node);
-				}
-			}
-
-			// match up fbx surfaces and delete every leftover non-prop w32 surface
-			int matchupId = 0;
-			for (auto& surface: aSurfaces) {
-				if (surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL] > 0) continue;
-				if (surface.nNumStreamsUsed != 2) continue;
-
-				if (matchupId >= aUnorderedSurfaceImports.size()) {
-					DeleteSurfaceByEmptying(&surface);
-				}
-				else {
-					ImportSurfaceFromFBX(&surface, aUnorderedSurfaceImports[matchupId], true, nullptr);
-					matchupId++;
-				}
-			}
-
-			if (matchupId < aUnorderedSurfaceImports.size()) {
-				WriteConsole("WARNING: The W32 only has " + std::to_string(matchupId) + " usable surfaces but the FBX has " + std::to_string(aUnorderedSurfaceImports.size()) + ", Some FBX surfaces will be skipped!");
+			if (unmatchedCount > 0) {
+				WriteConsole("WARNING: The W32 only has " + std::to_string(aUnorderedMeshImports.size() - unmatchedCount) + " usable surfaces but the FBX has " + std::to_string(aUnorderedMeshImports.size()) + ", " + std::to_string(unmatchedCount) + " FBX surfaces will be skipped!", LOG_WARNINGS);
 			}
 
 			if (nExportFileVersion < 0x20000 || bClearOriginalMaterials) {
@@ -979,9 +1035,49 @@ void WriteW32(uint32_t exportMapVersion) {
 				if (auto node = FindFBXNodeForSurface(&surface - &aSurfaces[0])) {
 					if (node->mNumMeshes <= 0) continue;
 					if (ShouldSurfaceMeshBeImported(node)) {
-						ImportSurfaceFromFBX(&surface, node, surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL] <= 0, nullptr);
+						if (node->mNumMeshes > 1) {
+							WriteConsole("WARNING: " + (std::string)node->mName.C_Str() + " has more than 1 mesh or material, only the first one will be imported!", LOG_WARNINGS);
+						}
+						ImportSurfaceFromFBX(&surface, node, surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL] <= 0, pParsedFBXScene->mMeshes[node->mMeshes[0]]);
 					}
 				}
+			}
+		}
+	}
+
+	if (bImportAllPropsFromFBX) {
+		aMeshDamageAssoc.clear();
+		aCollidableModels.clear();
+		aCompactMeshes.clear();
+
+		auto node = GetFBXNodeForCompactMeshArray();
+		for (int i = 0; i < node->mNumChildren; i++) {
+			auto prop = node->mChildren[i];
+			if (auto model = CreateModelFromMesh(prop)) {
+				tCompactMesh mesh;
+				mesh.sName1 = prop->mName.C_Str();
+				mesh.sName2 = "rubber_cone";
+				FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(prop), mesh.mMatrix);
+				mesh.nGroup = -1;
+				mesh.nFlags = 0x2000;
+				mesh.nUnk1 = 1;
+				mesh.aLODMeshIds.push_back(model - &aModels[0]);
+				mesh.nDamageAssocId = aMeshDamageAssoc.size();
+				aCompactMeshes.push_back(mesh);
+
+				tMeshDamageAssoc assoc;
+				assoc.sName = mesh.sName1;
+				assoc.nIds[0] = aCollidableModels.size();
+				assoc.nIds[1] = -1;
+				aMeshDamageAssoc.push_back(assoc);
+
+				tCollidableModel col;
+				memcpy(col.vRadius, model->vRadius, sizeof(col.vRadius));
+				memcpy(col.vCenter, model->vCenter, sizeof(col.vCenter));
+				col.aModels.push_back(model - &aModels[0]);
+				aCollidableModels.push_back(col);
+
+				WriteConsole("Successfully created new prop " + mesh.sName1 + " with properties from " + mesh.sName2, LOG_ALL);
 			}
 		}
 	}
@@ -1125,7 +1221,7 @@ void WriteW32(uint32_t exportMapVersion) {
 				aCompactMeshes.push_back(newMesh);
 				compactMeshCount++;
 
-				WriteConsole("Cloning " + baseName + " for new prop placement " + newMesh.sName1);
+				WriteConsole("Cloning " + baseName + " for new prop placement " + newMesh.sName1, LOG_ALL);
 			}
 		}
 
@@ -1141,14 +1237,14 @@ void WriteW32(uint32_t exportMapVersion) {
 		for (int i = aSurfaces.size(); i < 9999; i++) {
 			if (auto node = FindFBXNodeForSurface(i)) {
 				if (node->mNumMeshes <= 0) continue;
-				WriteConsole("WARNING: Found " + (std::string)node->mName.C_Str() + " but no such surface exists in the w32! Ignoring...");
+				WriteConsole("WARNING: Found " + (std::string)node->mName.C_Str() + " but no such surface exists in the w32! Ignoring...", LOG_WARNINGS);
 			}
 		}
 	}
 
 	file.flush();
 
-	WriteConsole("W32 export finished");
+	WriteConsole("W32 export finished", LOG_ALWAYS);
 }
 
 std::vector<tVertexBuffer> aConversionVertexBuffers;
@@ -1235,7 +1331,7 @@ void ConvertFOUCSurfaceToFO2(tSurface& surface) {
 		auto tmp = *(uint16_t*)indexData;
 		newIndices[i] = tmp - baseVertexOffset;
 		if (newIndices[i] < 0 || newIndices[i] >= surface.nVertexCount) {
-			WriteConsole("Index out of bounds: " + std::to_string(newIndices[i]));
+			WriteConsole("ERROR: Index out of bounds: " + std::to_string(newIndices[i]) + " for surface " + std::to_string(&surface - &aSurfaces[0]), LOG_ERRORS);
 			exit(0);
 		}
 		indexData += 2;
@@ -1249,7 +1345,7 @@ void ConvertFOUCSurfaceToFO2(tSurface& surface) {
 }
 
 void WriteBGM(uint32_t exportMapVersion) {
-	WriteConsole("Writing output bgm file...");
+	WriteConsole("Writing output bgm file...", LOG_ALWAYS);
 
 	nExportFileVersion = exportMapVersion;
 
@@ -1275,7 +1371,7 @@ void WriteBGM(uint32_t exportMapVersion) {
 
 		for (auto& surface : aSurfaces) {
 			if (surface.nFlags != 0x2242) {
-				WriteConsole("Unexpected flags value for surface! Can't convert");
+				WriteConsole("ERROR: Unexpected flags value! Failed to convert surfaces", LOG_ERRORS);
 				return;
 			}
 			ConvertFOUCSurfaceToFO2(surface);
@@ -1334,11 +1430,11 @@ void WriteBGM(uint32_t exportMapVersion) {
 
 	file.flush();
 
-	WriteConsole("BGM export finished");
+	WriteConsole("BGM export finished", LOG_ALWAYS);
 }
 
 void WriteCrashDat(uint32_t exportMapVersion) {
-	WriteConsole("Writing output crash.dat file...");
+	WriteConsole("Writing output crash.dat file...", LOG_ALWAYS);
 
 	nExportFileVersion = exportMapVersion;
 
@@ -1365,21 +1461,21 @@ void WriteCrashDat(uint32_t exportMapVersion) {
 			auto baseSurface = aSurfaces[model.aSurfaces[&surfaceId - &model.aCrashSurfaces[0]]];
 			auto crashSurface = aCrashSurfaces[surfaceId];
 			if (baseSurface.nVertexCount != crashSurface.nVertexCount) {
-				WriteConsole("ERROR: " + model.sName + " has damage model with a mismatching vertex count, no damage will be exported! (" +std::to_string(baseSurface.nVertexCount) + "/" + std::to_string(crashSurface.nVertexCount) + ")");
+				WriteConsole("ERROR: " + model.sName + " has damage model with a mismatching vertex count, no damage will be exported! (" +std::to_string(baseSurface.nVertexCount) + "/" + std::to_string(crashSurface.nVertexCount) + ")", LOG_ERRORS);
 				noDamage = true;
 			}
 			auto baseVBuffer = FindVertexBuffer(baseSurface.nStreamId[0]);
 			if (!baseVBuffer) {
-				WriteConsole("ERROR: Failed to find vertex buffer for " + model.sName);
+				WriteConsole("ERROR: Failed to find vertex buffer for " + model.sName, LOG_ERRORS);
 				exit(0);
 			}
 			auto crashVBuffer = FindVertexBuffer(crashSurface.nStreamId[0]);
 			if (!crashVBuffer) {
-				WriteConsole("ERROR: Failed to find damage vertex buffer for " + model.sName);
+				WriteConsole("ERROR: Failed to find damage vertex buffer for " + model.sName, LOG_ERRORS);
 				exit(0);
 			}
 			if (baseVBuffer->vertexSize != crashVBuffer->vertexSize) {
-				WriteConsole("ERROR: " + model.sName + " has damage model with a mismatching vertex size!");
+				WriteConsole("ERROR: " + model.sName + " has damage model with a mismatching vertex size!", LOG_ERRORS);
 				exit(0);
 			}
 
@@ -1426,5 +1522,5 @@ void WriteCrashDat(uint32_t exportMapVersion) {
 
 	file.flush();
 
-	WriteConsole("crash.dat export finished");
+	WriteConsole("crash.dat export finished", LOG_ALWAYS);
 }

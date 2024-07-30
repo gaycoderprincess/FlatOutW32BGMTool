@@ -28,7 +28,7 @@
 bool ParseFBX() {
 	if (sFBXFileName.extension() != ".fbx") return false;
 
-	WriteConsole("Parsing FBX...");
+	WriteConsole("Parsing FBX...", LOG_ALWAYS);
 
 	Assimp::Logger::LogSeverity severity = Assimp::Logger::VERBOSE;
 	Assimp::DefaultLogger::create("fbx_import_log.txt", severity, aiDefaultLogStream_FILE);
@@ -59,13 +59,13 @@ bool ParseFBX() {
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
-		WriteConsole("Usage: FlatOut2W32BGMTool_gcp.exe <filename>");
-		WriteConsole("Run FlatOut2W32BGMTool_gcp.exe -help for a list of arguments");
+		WriteConsole("Usage: FlatOut2W32BGMTool_gcp.exe <filename>", LOG_ALWAYS);
+		WriteConsole("Run FlatOut2W32BGMTool_gcp.exe -help for a list of arguments", LOG_ALWAYS);
 		return 0;
 	}
 	ProcessCommandlineArguments(argc, argv);
 	if (!std::filesystem::exists(sFileName)) {
-		WriteConsole("Failed to load " + std::filesystem::absolute(sFileName).string() + "! (File doesn't exist)");
+		WriteConsole("ERROR: Failed to load " + std::filesystem::absolute(sFileName).string() + "! (File doesn't exist)", LOG_ERRORS);
 		exit(0);
 	}
 	if (bCreateEmptyPlantVDB) {
@@ -73,11 +73,11 @@ int main(int argc, char *argv[]) {
 	}
 	if (bCreateBGMFromFBX) {
 		if (!ParseFBX()) {
-			WriteConsole("Failed to load " + sFBXFileName.string() + "!");
+			WriteConsole("ERROR: Failed to load " + sFBXFileName.string() + "!", LOG_ERRORS);
 			exit(0);
 		}
 		else {
-			WriteConsole("Parsing finished");
+			WriteConsole("Parsing finished", LOG_ALWAYS);
 
 			FillBGMFromFBX();
 			WriteBGM(nExportFileVersion);
@@ -87,21 +87,21 @@ int main(int argc, char *argv[]) {
 	else {
 		if (bLoadFBX) {
 			if (!ParseFBX()) {
-				WriteConsole("Failed to load " + sFBXFileName.string() + "!");
+				WriteConsole("ERROR: Failed to load " + sFBXFileName.string() + "!", LOG_ERRORS);
 				exit(0);
 			} else {
-				WriteConsole("Parsing finished");
+				WriteConsole("Parsing finished", LOG_ALWAYS);
 			}
 		}
 		if (bEmptyOutTrackBVH) {
 			if (!ReadAndEmptyTrackBVH()) {
-				WriteConsole("Failed to load " + sFileName.string() + "!");
+				WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 			}
 			return 0;
 		} else {
 			if (sFileName.extension() == ".bgm" || sFileName.extension() == ".car") {
 				if (!ParseBGM()) {
-					WriteConsole("Failed to load " + sFileName.string() + "!");
+					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 				} else {
 					if (bDumpIntoTextFile) WriteBGMToText();
 					if (bDumpIntoFBX) WriteToFBX();
@@ -114,14 +114,14 @@ int main(int argc, char *argv[]) {
 				}
 			} else if (sFileName.extension() == ".w32") {
 				if (!ParseW32()) {
-					WriteConsole("Failed to load " + sFileName.string() + "!");
+					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 				} else {
 					if (bDumpIntoTextFile) WriteW32ToText();
 					if (bDumpIntoFBX) WriteToFBX();
 					if (bDumpIntoW32) WriteW32(bConvertToFO1 ? 0x10005 : nImportFileVersion);
 				}
 			} else {
-				WriteConsole("Unrecognized file format for " + sFileName.string());
+				WriteConsole("ERROR: Unrecognized file format for " + sFileName.string(), LOG_ERRORS);
 			}
 		}
 	}

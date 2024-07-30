@@ -78,6 +78,11 @@ void CMD_W32_ImportClonedProps() {
 	bLoadFBX = true;
 	bDumpIntoW32 = true;
 }
+void CMD_W32_ImportAllProps() {
+	bImportAllPropsFromFBX = true;
+	bLoadFBX = true;
+	bDumpIntoW32 = true;
+}
 void CMD_W32_ImportSurfaces() {
 	bImportSurfacesFromFBX = true;
 	bLoadFBX = true;
@@ -115,6 +120,12 @@ void CMD_W32_ImportDeletions() {
 	bLoadFBX = true;
 	bDumpIntoW32 = true;
 }
+void CMD_LogWarningsOnly() {
+	nLoggingSeverity = LOG_WARNINGS;
+}
+void CMD_LogErrorsOnly() {
+	nLoggingSeverity = LOG_ERRORS;
+}
 
 struct tCommandlineArgument {
 	std::string name;
@@ -148,6 +159,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-import_moved_props", CMD_W32_ImportMovedProps, "Imports moved prop positions from an .fbx, takes an .fbx file as the second argument", "FBX to W32" },
 		{ "-ungroup_moved_props", CMD_W32_UngroupMovedProps, "Ungroups props that have been moved via -import_moved_props, fixes some physics behavior" },
 		{ "-import_cloned_props", CMD_W32_ImportClonedProps, "Imports new cloned props from an .fbx, takes an .fbx file as the second argument" },
+		{ "-import_all_props", CMD_W32_ImportAllProps, "Imports all props from an .fbx and deletes the original w32 ones, takes an .fbx file as the second argument" },
 		{ "-import_surfaces", CMD_W32_ImportSurfaces, "Imports modified surfaces from an .fbx if they have the '_export' suffix, takes an .fbx file as the second argument" },
 		{ "-import_all_surfaces", CMD_W32_ImportAllSurfaces, "Imports all modified surfaces from an .fbx, takes an .fbx file as the second argument" },
 		{ "-import_and_match_all_surfaces", CMD_W32_ImportAndAutoMatchAllSurfaces, "Imports all surfaces from an .fbx and matches them up to any valid w32 surface, takes an .fbx file as the second argument" },
@@ -163,6 +175,9 @@ tCommandlineArgument aArguments[] = {
 		{ "-text_streams_fouc_normalized", CMD_DumpText_Streams_FOUCNormal, "Dumps FOUC mesh data into text as normalized floating points" },
 		{ "-text_streams_fouc_int8", CMD_DumpText_Streams_FOUCInt8, "Dumps FOUC mesh data into text as a hex dump" },
 
+		{ "-log_warnings_only", CMD_LogWarningsOnly, "Only prints errors and warnings into the console", "Console logging" },
+		{ "-log_errors_only", CMD_LogErrorsOnly, "Only prints errors into the console" },
+
 		// debug options
 		{ "-export_w32", CMD_ExportW32, "Exports a map into an identical .w32, for advanced users", "Debug options" },
 		{ "-export_bgm", CMD_ExportBGM, "Exports a car into an identical .bgm, for advanced users" },
@@ -176,15 +191,15 @@ bool IsValidCommandlineArgument(const char* arg) {
 }
 
 void PrintCommandlineHelp() {
-	WriteConsole("Commandline arguments");
+	WriteConsole("Commandline arguments", LOG_ALWAYS);
 	for (auto& cmdArg : aArguments) {
-		if (!cmdArg.categoryName.empty()) WriteConsole("\n- " + cmdArg.categoryName);
-		WriteConsole(cmdArg.name + " - " + cmdArg.description);
+		if (!cmdArg.categoryName.empty()) WriteConsole("\n- " + cmdArg.categoryName, LOG_ALWAYS);
+		WriteConsole(cmdArg.name + " - " + cmdArg.description, LOG_ALWAYS);
 	}
 }
 
 void ProcessCommandlineArguments(int argc, char* argv[]) {
-	WriteConsole("FlatOut 2 W32 & BGM Tool by Chloe @ gaycoderprincess\n");
+	WriteConsole("FlatOut 2 W32 & BGM Tool by Chloe @ gaycoderprincess\n", LOG_ALWAYS);
 
 	// display argument list and exit
 	if (!strcmp(argv[1], "-help")) {
@@ -206,19 +221,19 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 	for (int i = (bLoadFBX ? 3 : 2); i < argc; i++) {
 		auto arg = argv[i];
 		if (!IsValidCommandlineArgument(arg)) {
-			WriteConsole("WARNING: Unrecognized commandline argument " + (std::string)arg);
+			WriteConsole("WARNING: Unrecognized commandline argument " + (std::string)arg, LOG_ALWAYS);
 		}
 	}
 
 	// do dummy checks and then process the input filename
 	if (!bDumpIntoW32 && !bDumpIntoBGM && !bDumpIntoFBX && !bDumpIntoTextFile && !bCreateBGMFromFBX && !bEmptyOutTrackBVH) {
-		WriteConsole("WARNING: No export output specified, the tool will not generate any files!");
+		WriteConsole("WARNING: No export output specified, the tool will not generate any files!", LOG_ALWAYS);
 	}
 	if (bUngroupMovedPropsFromFBX && !bImportPropsFromFBX) {
-		WriteConsole("WARNING: -ungroup_moved_props used without -import_moved_props, the argument will be ignored");
+		WriteConsole("WARNING: -ungroup_moved_props used without -import_moved_props, the argument will be ignored", LOG_ALWAYS);
 	}
 	if (bConvertToFO2) {
-		WriteConsole("WARNING: Direct conversions from Ultimate Carnage to FlatOut 2 will skip crash.dat, export the model to .fbx first to keep car damage!");
+		WriteConsole("WARNING: Direct conversions from Ultimate Carnage to FlatOut 2 will skip crash.dat, export the model to .fbx first to keep car damage!", LOG_ALWAYS);
 	}
 
 	sFileName = argv[1];

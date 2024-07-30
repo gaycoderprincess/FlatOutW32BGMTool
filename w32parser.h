@@ -1,5 +1,5 @@
 bool ParseW32Materials(std::ifstream& file, bool print = true) {
-	if (print) WriteConsole("Parsing materials...");
+	if (print) WriteConsole("Parsing materials...", LOG_ALWAYS);
 
 	uint32_t numMaterials;
 	ReadFromFile(file, &numMaterials, 4);
@@ -32,7 +32,7 @@ bool ParseW32Materials(std::ifstream& file, bool print = true) {
 }
 
 bool ParseW32Streams(std::ifstream& file) {
-	WriteConsole("Parsing streams...");
+	WriteConsole("Parsing streams...", LOG_ALWAYS);
 
 	uint32_t numStreams;
 	ReadFromFile(file, &numStreams, 4);
@@ -232,7 +232,7 @@ bool ParseW32Streams(std::ifstream& file) {
 			}
 		}
 		else {
-			WriteConsole("Unknown stream type " + std::to_string(dataType));
+			WriteConsole("Unknown stream type " + std::to_string(dataType), LOG_ERRORS);
 			return false;
 		}
 	}
@@ -240,7 +240,7 @@ bool ParseW32Streams(std::ifstream& file) {
 }
 
 bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
-	WriteConsole("Parsing surfaces...");
+	WriteConsole("Parsing surfaces...", LOG_ALWAYS);
 
 	if (bIsXboxBetaModel) {
 		uint32_t nCPUPushBufferCount;
@@ -319,7 +319,7 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 }
 
 bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
-	WriteConsole("Parsing static batches...");
+	WriteConsole("Parsing static batches...", LOG_ALWAYS);
 
 	uint32_t numStaticBatches;
 	ReadFromFile(file, &numStaticBatches, 4);
@@ -363,7 +363,7 @@ bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 }
 
 bool ParseW32TreeMeshes(std::ifstream& file) {
-	WriteConsole("Parsing tree meshes...");
+	WriteConsole("Parsing tree meshes...", LOG_ALWAYS);
 
 	uint32_t treeMeshCount;
 	ReadFromFile(file, &treeMeshCount, 4);
@@ -424,7 +424,7 @@ tCrashData* GetCrashDataForModel(const std::string& name) {
 }
 
 bool ParseW32Models(std::ifstream& file) {
-	WriteConsole("Parsing models...");
+	WriteConsole("Parsing models...", LOG_ALWAYS);
 
 	uint32_t modelCount;
 	ReadFromFile(file, &modelCount, 4);
@@ -444,7 +444,7 @@ bool ParseW32Models(std::ifstream& file) {
 		ReadFromFile(file, &numSurfaces, sizeof(numSurfaces));
 		if (crashData) {
 			if (crashData->aSurfaces.size() != numSurfaces) {
-				WriteConsole("ERROR: crash.dat mismatch, damage data will not be exported!");
+				WriteConsole("ERROR: crash.dat mismatch, damage data will not be exported!", LOG_ERRORS);
 				crashData = nullptr;
 			}
 		}
@@ -467,7 +467,7 @@ bool ParseW32Models(std::ifstream& file) {
 }
 
 bool ParseW32Objects(std::ifstream& file) {
-	WriteConsole("Parsing objects...");
+	WriteConsole("Parsing objects...", LOG_ALWAYS);
 
 	uint32_t objectCount;
 	ReadFromFile(file, &objectCount, 4);
@@ -487,7 +487,7 @@ bool ParseW32Objects(std::ifstream& file) {
 }
 
 bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
-	WriteConsole("Parsing compact meshes...");
+	WriteConsole("Parsing compact meshes...", LOG_ALWAYS);
 
 	uint32_t compactMeshCount;
 	ReadFromFile(file, &nCompactMeshGroupCount, 4);
@@ -506,9 +506,9 @@ bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 
 		if (mapVersion >= 0x20000) {
 			ReadFromFile(file, &compactMesh.nUnk1, 4);
-			ReadFromFile(file, &compactMesh.nBBoxAssocId, 4);
+			ReadFromFile(file, &compactMesh.nDamageAssocId, 4);
 
-			auto bboxAssoc = aMeshDamageAssoc[compactMesh.nBBoxAssocId];
+			auto bboxAssoc = aMeshDamageAssoc[compactMesh.nDamageAssocId];
 			auto bbox = aCollidableModels[bboxAssoc.nIds[0]];
 			compactMesh.aLODMeshIds = bbox.aModels;
 		}
@@ -528,7 +528,7 @@ bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 }
 
 bool ParseW32CollidableModels(std::ifstream& file) {
-	WriteConsole("Parsing collidable models...");
+	WriteConsole("Parsing collidable models...", LOG_ALWAYS);
 
 	uint32_t colCount;
 	ReadFromFile(file, &colCount, 4);
@@ -552,7 +552,7 @@ bool ParseW32CollidableModels(std::ifstream& file) {
 }
 
 bool ParseW32MeshDamageAssoc(std::ifstream& file) {
-	WriteConsole("Parsing mesh damage associations...");
+	WriteConsole("Parsing mesh damage associations...", LOG_ALWAYS);
 
 	uint32_t assocCount;
 	ReadFromFile(file, &assocCount, 4);
@@ -567,6 +567,8 @@ bool ParseW32MeshDamageAssoc(std::ifstream& file) {
 }
 
 bool ParseVertexColors(const std::string& fileName) {
+	WriteConsole("Parsing vertex colors...", LOG_ALWAYS);
+
 	std::ifstream file(fileName, std::ios::in | std::ios::binary);
 	if (!file.is_open()) return false;
 
@@ -584,7 +586,7 @@ bool ParseVertexColors(const std::string& fileName) {
 }
 
 bool ParseBGMMeshes(std::ifstream& file) {
-	WriteConsole("Parsing BGM meshes...");
+	WriteConsole("Parsing BGM meshes...", LOG_ALWAYS);
 
 	uint32_t meshCount;
 	ReadFromFile(file, &meshCount, 4);
@@ -621,13 +623,18 @@ bool ParseW32() {
 	if (!fin.is_open()) return false;
 
 	ReadFromFile(fin, &nImportFileVersion, 4);
-	if (nImportFileVersion > 0x20000) ReadFromFile(fin, &nSomeMapValue, 4);
 
+	if (nImportFileVersion == 0x62647370) {
+		WriteConsole("ERROR: Plant W32 files are not supported!", LOG_ERRORS);
+		return false;
+	}
+
+	if (nImportFileVersion > 0x20000) ReadFromFile(fin, &nSomeMapValue, 4);
 	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
 	else {
 		auto vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
 		if (!ParseVertexColors(vertexColorsPath)) {
-			WriteConsole("Failed to load " + (std::string)vertexColorsPath + ", vertex colors will not be exported");
+			WriteConsole("WARNING: Failed to load " + (std::string)vertexColorsPath + ", vertex colors will not be exported", LOG_WARNINGS);
 		}
 	}
 
@@ -636,7 +643,7 @@ bool ParseW32() {
 	if (!ParseW32Surfaces(fin, nImportFileVersion)) return false;
 	if (!ParseW32StaticBatches(fin, nImportFileVersion)) return false;
 
-	WriteConsole("Parsing tree-related data...");
+	WriteConsole("Parsing tree-related data...", LOG_ALWAYS);
 
 	if (nImportFileVersion != 0x20002) {
 		uint32_t someCount;
@@ -660,7 +667,7 @@ bool ParseW32() {
 
 	if (!ParseW32TreeMeshes(fin)) return false;
 
-	WriteConsole("Parsing unknown data...");
+	WriteConsole("Parsing unknown data...", LOG_ALWAYS);
 	if (nImportFileVersion >= 0x10004) {
 		for (int i = 0; i < 16; i++) {
 			float value;
@@ -679,7 +686,7 @@ bool ParseW32() {
 
 	if (!ParseW32CompactMeshes(fin, nImportFileVersion)) return false;
 
-	WriteConsole("Parsing finished");
+	WriteConsole("Parsing finished", LOG_ALWAYS);
 	return true;
 }
 
@@ -734,7 +741,7 @@ bool ParseBGM() {
 		if (!std::filesystem::exists(crashDatPath)) crashDatPath = sFileFolder.string() + "crash.dat";
 
 		if (!ParseCrashDat(crashDatPath)) {
-			WriteConsole("Failed to load " + (std::string)crashDatPath + ", damage data will not be exported");
+			WriteConsole("WARNING: Failed to load " + (std::string)crashDatPath + ", damage data will not be exported", LOG_WARNINGS);
 		}
 	}
 	bIsBGMModel = true;
@@ -746,6 +753,6 @@ bool ParseBGM() {
 	if (!ParseBGMMeshes(fin)) return false;
 	if (!ParseW32Objects(fin)) return false;
 
-	WriteConsole("Parsing finished");
+	WriteConsole("Parsing finished", LOG_ALWAYS);
 	return true;
 }

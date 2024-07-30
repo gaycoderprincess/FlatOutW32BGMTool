@@ -142,8 +142,8 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 				else if (!aVertexColors.empty()) {
 					int id = vertexColorOffset & 0xFFFFFF;
 					if (id >= aVertexColors.size()) {
-						WriteConsole("ERROR: Vertex colors for surface " + std::to_string(&src - &aSurfaces[0]) + " out of bounds!");
-						WriteConsole(std::to_string(id) + "/" + std::to_string(aVertexColors.size()));
+						WriteConsole("ERROR: Vertex colors for surface " + std::to_string(&src - &aSurfaces[0]) + " out of bounds!", LOG_ERRORS);
+						WriteConsole(std::to_string(id) + "/" + std::to_string(aVertexColors.size()), LOG_ERRORS);
 						exit(0);
 					}
 					auto rgb = (uint8_t*)&aVertexColors[id];
@@ -185,9 +185,9 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 			indices[0] -= baseVertexOffset;
 			indices[1] -= baseVertexOffset;
 			indices[2] -= baseVertexOffset;
-			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0])); exit(0); }
-			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1])); exit(0); }
-			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2])); exit(0); }
+			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); exit(0); }
+			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); exit(0); }
+			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); exit(0); }
 			dest->mFaces[j].mIndices = new uint32_t[3];
 			if (bFlip) {
 				dest->mFaces[j].mIndices[0] = indices[0];
@@ -211,9 +211,9 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 			indices[0] -= baseVertexOffset;
 			indices[1] -= baseVertexOffset;
 			indices[2] -= baseVertexOffset;
-			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0])); exit(0); }
-			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1])); exit(0); }
-			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2])); exit(0); }
+			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); exit(0); }
+			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); exit(0); }
+			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); exit(0); }
 			dest->mFaces[j].mIndices = new uint32_t[3];
 			dest->mFaces[j].mIndices[0] = indices[2];
 			dest->mFaces[j].mIndices[1] = indices[1];
@@ -269,7 +269,7 @@ aiScene GenerateScene() {
 		numBaseSurfaces++;
 		if (surface._pCrashDataSurface) numSurfaces++;
 	}
-	WriteConsole(std::to_string(numBaseSurfaces) + " surfaces of " + std::to_string(aSurfaces.size()) + " can be exported");
+	WriteConsole(std::to_string(numBaseSurfaces) + " surfaces of " + std::to_string(aSurfaces.size()) + " can be exported", LOG_ALWAYS);
 
 	scene.mMeshes = new aiMesh*[numSurfaces];
 	scene.mNumMeshes = numSurfaces;
@@ -402,7 +402,7 @@ aiScene GenerateScene() {
 }
 
 void WriteToFBX() {
-	WriteConsole("Writing model file...");
+	WriteConsole("Writing model file...", LOG_ALWAYS);
 
 	auto scene = GenerateScene();
 
@@ -411,9 +411,9 @@ void WriteToFBX() {
 
 	Assimp::Exporter exporter;
 	if (exporter.Export(&scene, "fbx", sFileNameNoExt.string() + "_out.fbx") != aiReturn_SUCCESS) {
-		WriteConsole("Model export failed!");
+		WriteConsole("ERROR: Model export failed!", LOG_ERRORS);
 	}
 	else {
-		WriteConsole("Model export finished");
+		WriteConsole("Model export finished", LOG_ALWAYS);
 	}
 }

@@ -431,7 +431,7 @@ void WriteW32CompactMeshesToText() {
 		WriteFile(std::format("{}, {}, {}, {}", mesh.mMatrix[12], mesh.mMatrix[13], mesh.mMatrix[14], mesh.mMatrix[15]));
 		if (nImportFileVersion >= 0x20000) {
 			WriteFile("nUnk1: " + std::to_string(mesh.nUnk1));
-			WriteFile("nBBoxAssocId: " + std::to_string(mesh.nBBoxAssocId));
+			WriteFile("nDamageAssocId: " + std::to_string(mesh.nDamageAssocId));
 		}
 		WriteFile("nNumLODs: " + std::to_string(mesh.aLODMeshIds.size()));
 		for (auto unkValue : mesh.aLODMeshIds) {
@@ -470,7 +470,7 @@ void WriteBGMMeshesToText() {
 }
 
 void WriteW32ToText() {
-	WriteConsole("Writing text file...");
+	WriteConsole("Writing text file...", LOG_ALWAYS);
 
 	WriteFile(std::format("nFileVersion: 0x{:X} {}", nImportFileVersion, GetFileVersion(nImportFileVersion)));
 	if (nImportFileVersion > 0x20000) {
@@ -493,21 +493,21 @@ void WriteW32ToText() {
 
 	for (auto& surface : aSurfaces) {
 		if (!surface._nNumReferences) {
-			WriteConsole("WARNING: Surface " + std::to_string(&surface - &aSurfaces[0]) + " goes unused! The game will not like this!!");
+			WriteConsole("WARNING: Surface " + std::to_string(&surface - &aSurfaces[0]) + " goes unused! The game will not like this!!", LOG_WARNINGS);
 		}
 	}
 
-	WriteConsole("Text file export finished");
+	WriteConsole("Text file export finished", LOG_ALWAYS);
 }
 
 void WriteBGMToText() {
-	WriteConsole("Writing text file...");
+	WriteConsole("Writing text file...", LOG_ALWAYS);
 
 	WriteFile(std::format("nFileVersion: 0x{:X} {}", nImportFileVersion, GetFileVersion(nImportFileVersion)));
 
 	for (auto& surface : aSurfaces) {
 		if (!surface._nNumReferences) {
-			WriteConsole("WARNING: Surface " + std::to_string(&surface - &aSurfaces[0]) + " goes unused! The game will not like this!!");
+			WriteConsole("WARNING: Surface " + std::to_string(&surface - &aSurfaces[0]) + " goes unused! The game will not like this!!", LOG_WARNINGS);
 		}
 	}
 
@@ -570,5 +570,5 @@ void WriteBGMToText() {
 		WriteFile("");
 	}
 
-	WriteConsole("Text file export finished");
+	WriteConsole("Text file export finished", LOG_ALWAYS);
 }

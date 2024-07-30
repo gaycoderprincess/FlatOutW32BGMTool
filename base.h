@@ -28,9 +28,18 @@ std::filesystem::path sFBXFileName;
 bool bIsBGMModel = false;
 bool bIsFOUCModel = false;
 bool bIsXboxBetaModel = false;
-double fFOUCCarMultiplier = 0.000977; // the game seems hardcoded to use this multiplier for car BGMs
+const double fFOUCBGMScaleMultiplier = 0.000977; // the game seems hardcoded to use this multiplier for BGMs
+enum {
+	LOG_ALL,
+	LOG_MINOR_WARNINGS,
+	LOG_WARNINGS,
+	LOG_ERRORS,
+	LOG_ALWAYS = 255,
+} nLoggingSeverity = LOG_ALL;
 
-void WriteConsole(const std::string& str) {
+void WriteConsole(const std::string& str, int logType) {
+	if (logType < nLoggingSeverity) return;
+
 	auto& out = std::cout;
 	out << str;
 	out << "\n";
@@ -310,6 +319,8 @@ struct tSurface {
 	uint32_t nStreamOffset[2];
 
 	tCrashDataSurface* _pCrashDataSurface = nullptr;
+	bool _bIsReplacedMapSurface = false;
+	aiMesh* _pReplacedMapSurfaceMesh = nullptr;
 	int _nFBXModelId = -1;
 	int _nFBXCrashModelId = -1;
 	int _nNumReferencesByType[NUM_SURFACE_REFERENCE_TYPES] = {};
@@ -378,7 +389,7 @@ struct tCompactMesh {
 	int nGroup;
 	float mMatrix[4*4];
 	uint32_t nUnk1;
-	uint32_t nBBoxAssocId;
+	uint32_t nDamageAssocId;
 	std::vector<int> aLODMeshIds;
 };
 struct tCollidableModel {

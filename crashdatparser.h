@@ -34,7 +34,7 @@ bool ParseCrashDat(const std::filesystem::path& fileName) {
 				surface.vBuffer.vertexCount = numVertices;
 				surface.vBuffer.vertexSize = numVerticesInBytes / numVertices;
 				if (surface.vBuffer.vertexSize > 45 || surface.vBuffer.vertexSize < 8) {
-					WriteConsole("ERROR: crash.dat is in the incorrect format, it might be mismatched with the bgm version!");
+					WriteConsole("ERROR: crash.dat is in the incorrect format, it might be mismatched with the bgm version!", LOG_ERRORS);
 					return false;
 				}
 				surface.vBuffer.data = new float[numVerticesInBytes / 4];
@@ -51,6 +51,6 @@ bool ParseCrashDat(const std::filesystem::path& fileName) {
 		aCrashData.push_back(data);
 	}
 
-	WriteConsole("Parsing finished");
+	WriteConsole("Parsing finished", LOG_ALWAYS);
 	return true;
 }
