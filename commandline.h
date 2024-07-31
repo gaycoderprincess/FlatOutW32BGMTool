@@ -227,7 +227,7 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 	}
 
 	// process all arguments
-	for (int i = 2; i < argc; i++) {
+	for (int i = 1; i < argc; i++) {
 		auto arg = argv[i];
 		for (auto& cmdArg : aArguments) {
 			if (cmdArg.name == arg) {

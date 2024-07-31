@@ -245,7 +245,7 @@ void WriteW32SurfacesToText() {
 			WriteFile(std::format("nStreamOffset: 0x{:X}", surface.nStreamOffset[j]));
 		}
 		WriteFile("Total references: " + std::to_string(surface._nNumReferences));
-		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_STATICBATCH]) WriteFile("Level geometry references: " + std::to_string(num));
+		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_STATICBATCH]) WriteFile("Static batch references: " + std::to_string(num));
 		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL]) WriteFile("Prop model references: " + std::to_string(num));
 		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_2]) WriteFile("Tree mesh surface 2 references: " + std::to_string(num));
 		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_3]) WriteFile("Tree mesh surface 3 references: " + std::to_string(num));
@@ -278,33 +278,33 @@ void WriteW32StaticBatchesToText() {
 	WriteFile("");
 }
 
-void WriteW32UnknownArray1ToText() {
-	WriteFile("Unknown Array 1 begin");
-	WriteFile("Count: " + std::to_string(aUnknownArray1.size()));
+void WriteW32TreeColorsToText() {
+	WriteFile("Tree Colors begin");
+	WriteFile("Count: " + std::to_string(aTreeColors.size()));
 	WriteFile("");
-	for (auto& value : aUnknownArray1) {
+	for (auto& value : aTreeColors) {
 		WriteFile(std::format("0x{:X}", value));
 	}
 	WriteFile("");
-	WriteFile("Unknown Array 1 end");
+	WriteFile("Tree Colors end");
 	WriteFile("");
 }
 
-void WriteW32UnknownArray2ToText() {
-	WriteFile("Unknown Array 2 begin");
-	WriteFile("Count: " + std::to_string(aUnknownArray2.size()));
+void WriteW32TreeLODsToText() {
+	WriteFile("Tree LODs begin");
+	WriteFile("Count: " + std::to_string(aTreeLODs.size()));
 	WriteFile("");
-	for (auto& value : aUnknownArray2) {
-		WriteFile("vPos.x: " + std::to_string(value.vPos[0]));
-		WriteFile("vPos.y: " + std::to_string(value.vPos[1]));
-		WriteFile("vPos.z: " + std::to_string(value.vPos[2]));
-		WriteFile("fUnknown[0]: " + std::to_string(value.fValues[0]));
-		WriteFile("fUnknown[1]: " + std::to_string(value.fValues[1]));
-		WriteFile(std::format("nUnknown[0]: 0x{:X}", value.nValues[0]));
-		WriteFile(std::format("nUnknown[1]: 0x{:X}", value.nValues[1]));
+	for (auto& treeLod : aTreeLODs) {
+		WriteFile("vPos.x: " + std::to_string(treeLod.vPos[0]));
+		WriteFile("vPos.y: " + std::to_string(treeLod.vPos[1]));
+		WriteFile("vPos.z: " + std::to_string(treeLod.vPos[2]));
+		WriteFile("fUnknown[0]: " + std::to_string(treeLod.fValues[0]));
+		WriteFile("fUnknown[1]: " + std::to_string(treeLod.fValues[1]));
+		WriteFile(std::format("nUnknown[0]: 0x{:X}", treeLod.nValues[0]));
+		WriteFile(std::format("nUnknown[1]: 0x{:X}", treeLod.nValues[1]));
 		WriteFile("");
 	}
-	WriteFile("Unknown Array 2 end");
+	WriteFile("Tree LODs end");
 	WriteFile("");
 }
 
@@ -343,16 +343,16 @@ void WriteW32TreeMeshesToText() {
 			WriteFile("foucData3[1]: " + std::to_string(treeMesh.foucExtraData3[1]));
 			WriteFile("nSomeId4: " + std::to_string(treeMesh.foucExtraData3[2]));
 			WriteFile(std::format("nSomeOffset4: {:X}", (uint32_t)treeMesh.foucExtraData3[3]));
-			WriteFile("nSurfaceId3: " + std::to_string(treeMesh.nSurfaceId3));
-			WriteFile("nSurfaceId4: " + std::to_string(treeMesh.nSurfaceId4));
-			WriteFile("nSurfaceId5: " + std::to_string(treeMesh.nSurfaceId5));
+			WriteFile("nTrunkSurfaceId: " + std::to_string(treeMesh.nTrunkSurfaceId));
+			WriteFile("nBranchSurfaceId: " + std::to_string(treeMesh.nBranchSurfaceId));
+			WriteFile("nLeafSurfaceId: " + std::to_string(treeMesh.nLeafSurfaceId));
 		}
 		else {
-			WriteFile("nSurfaceId3: " + std::to_string(treeMesh.nSurfaceId3));
-			WriteFile("nSurfaceId4: " + std::to_string(treeMesh.nSurfaceId4));
-			WriteFile("nSurfaceId5: " + std::to_string(treeMesh.nSurfaceId5));
-			WriteFile("nIdInUnknownArray1: " + std::to_string(treeMesh.nIdInUnkArray1));
-			WriteFile("nIdInUnknownArray2: " + std::to_string(treeMesh.nIdInUnkArray2));
+			WriteFile("nTrunkSurfaceId: " + std::to_string(treeMesh.nTrunkSurfaceId));
+			WriteFile("nBranchSurfaceId: " + std::to_string(treeMesh.nBranchSurfaceId));
+			WriteFile("nLeafSurfaceId: " + std::to_string(treeMesh.nLeafSurfaceId));
+			WriteFile("nColorId: " + std::to_string(treeMesh.nColorId));
+			WriteFile("nLodId: " + std::to_string(treeMesh.nLodId));
 			WriteFile("nMaterialId: " + std::to_string(treeMesh.nMaterialId));
 		}
 		WriteFile("");
@@ -518,8 +518,8 @@ void WriteW32ToText() {
 	WriteW32StreamsToText();
 	WriteW32SurfacesToText();
 	WriteW32StaticBatchesToText();
-	WriteW32UnknownArray1ToText();
-	WriteW32UnknownArray2ToText();
+	WriteW32TreeColorsToText();
+	WriteW32TreeLODsToText();
 	WriteW32TreeMeshesToText();
 	WriteW32UnknownArray3ToText();
 	WriteW32ModelsToText();

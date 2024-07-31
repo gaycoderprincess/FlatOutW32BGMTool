@@ -382,33 +382,33 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 			ReadFromFile(file, treeMesh.foucExtraData1, sizeof(treeMesh.foucExtraData1));
 			ReadFromFile(file, treeMesh.foucExtraData2, sizeof(treeMesh.foucExtraData2));
 			ReadFromFile(file, treeMesh.foucExtraData3, sizeof(treeMesh.foucExtraData3));
-			ReadFromFile(file, &treeMesh.nSurfaceId3, 4);
-			ReadFromFile(file, &treeMesh.nSurfaceId4, 4);
-			ReadFromFile(file, &treeMesh.nSurfaceId5, 4);
+			ReadFromFile(file, &treeMesh.nTrunkSurfaceId, 4);
+			ReadFromFile(file, &treeMesh.nBranchSurfaceId, 4);
+			ReadFromFile(file, &treeMesh.nLeafSurfaceId, 4);
 
-			if (treeMesh.nSurfaceId3 >= 0 && treeMesh.nSurfaceId3 < aSurfaces.size()) aSurfaces[treeMesh.nSurfaceId3].RegisterReference(SURFACE_REFERENCE_TREEMESH_3);
-			if (treeMesh.nSurfaceId4 >= 0 && treeMesh.nSurfaceId4 < aSurfaces.size()) aSurfaces[treeMesh.nSurfaceId4].RegisterReference(SURFACE_REFERENCE_TREEMESH_4);
-			if (treeMesh.nSurfaceId5 >= 0 && treeMesh.nSurfaceId5 < aSurfaces.size()) aSurfaces[treeMesh.nSurfaceId5].RegisterReference(SURFACE_REFERENCE_TREEMESH_5);
+			if (treeMesh.nTrunkSurfaceId >= 0 && treeMesh.nTrunkSurfaceId < aSurfaces.size()) aSurfaces[treeMesh.nTrunkSurfaceId].RegisterReference(SURFACE_REFERENCE_TREEMESH_3);
+			if (treeMesh.nBranchSurfaceId >= 0 && treeMesh.nBranchSurfaceId < aSurfaces.size()) aSurfaces[treeMesh.nBranchSurfaceId].RegisterReference(SURFACE_REFERENCE_TREEMESH_4);
+			if (treeMesh.nLeafSurfaceId >= 0 && treeMesh.nLeafSurfaceId < aSurfaces.size()) aSurfaces[treeMesh.nLeafSurfaceId].RegisterReference(SURFACE_REFERENCE_TREEMESH_5);
 		}
 		else {
-			ReadFromFile(file, &treeMesh.nSurfaceId3, 4);
-			ReadFromFile(file, &treeMesh.nSurfaceId4, 4);
-			ReadFromFile(file, &treeMesh.nSurfaceId5, 4);
-			ReadFromFile(file, &treeMesh.nIdInUnkArray1, 4);
-			ReadFromFile(file, &treeMesh.nIdInUnkArray2, 4);
+			ReadFromFile(file, &treeMesh.nTrunkSurfaceId, 4);
+			ReadFromFile(file, &treeMesh.nBranchSurfaceId, 4);
+			ReadFromFile(file, &treeMesh.nLeafSurfaceId, 4);
+			ReadFromFile(file, &treeMesh.nColorId, 4);
+			ReadFromFile(file, &treeMesh.nLodId, 4);
 			ReadFromFile(file, &treeMesh.nMaterialId, 4);
 
 			//if (treeMesh.nSurfaceId1 >= 0 && treeMesh.nSurfaceId1 >= aSurfaces.size()) return false;
 			//if (treeMesh.nSurfaceId1 >= 0) aSurfaces[treeMesh.nSurfaceId1]._bUsedByAnything = true;
 
 			if (treeMesh.nSurfaceId2 >= 0 && treeMesh.nSurfaceId2 >= aSurfaces.size()) return false;
-			if (treeMesh.nSurfaceId3 >= 0 && treeMesh.nSurfaceId3 >= aSurfaces.size()) return false;
-			if (treeMesh.nSurfaceId4 >= 0 && treeMesh.nSurfaceId4 >= aSurfaces.size()) return false;
-			if (treeMesh.nSurfaceId5 >= 0 && treeMesh.nSurfaceId5 >= aSurfaces.size()) return false;
+			if (treeMesh.nTrunkSurfaceId >= 0 && treeMesh.nTrunkSurfaceId >= aSurfaces.size()) return false;
+			if (treeMesh.nBranchSurfaceId >= 0 && treeMesh.nBranchSurfaceId >= aSurfaces.size()) return false;
+			if (treeMesh.nLeafSurfaceId >= 0 && treeMesh.nLeafSurfaceId >= aSurfaces.size()) return false;
 			if (treeMesh.nSurfaceId2 >= 0) aSurfaces[treeMesh.nSurfaceId2].RegisterReference(SURFACE_REFERENCE_TREEMESH_2);
-			if (treeMesh.nSurfaceId3 >= 0) aSurfaces[treeMesh.nSurfaceId3].RegisterReference(SURFACE_REFERENCE_TREEMESH_3);
-			if (treeMesh.nSurfaceId4 >= 0) aSurfaces[treeMesh.nSurfaceId4].RegisterReference(SURFACE_REFERENCE_TREEMESH_4);
-			if (treeMesh.nSurfaceId5 >= 0) aSurfaces[treeMesh.nSurfaceId5].RegisterReference(SURFACE_REFERENCE_TREEMESH_5);
+			if (treeMesh.nTrunkSurfaceId >= 0) aSurfaces[treeMesh.nTrunkSurfaceId].RegisterReference(SURFACE_REFERENCE_TREEMESH_3);
+			if (treeMesh.nBranchSurfaceId >= 0) aSurfaces[treeMesh.nBranchSurfaceId].RegisterReference(SURFACE_REFERENCE_TREEMESH_4);
+			if (treeMesh.nLeafSurfaceId >= 0) aSurfaces[treeMesh.nLeafSurfaceId].RegisterReference(SURFACE_REFERENCE_TREEMESH_5);
 		}
 
 		aTreeMeshes.push_back(treeMesh);
@@ -643,26 +643,28 @@ bool ParseW32() {
 	if (!ParseW32Surfaces(fin, nImportFileVersion)) return false;
 	if (!ParseW32StaticBatches(fin, nImportFileVersion)) return false;
 
-	WriteConsole("Parsing tree-related data...", LOG_ALWAYS);
+	WriteConsole("Parsing tree colors...", LOG_ALWAYS);
 
 	if (nImportFileVersion != 0x20002) {
-		uint32_t someCount;
-		ReadFromFile(fin, &someCount, 4);
-		for (int i = 0; i < someCount; i++) {
-			int someValue;
-			ReadFromFile(fin, &someValue, 4);
-			aUnknownArray1.push_back(someValue);
+		uint32_t treeColourCount;
+		ReadFromFile(fin, &treeColourCount, 4);
+		for (int i = 0; i < treeColourCount; i++) {
+			uint32_t color;
+			ReadFromFile(fin, &color, 4);
+			aTreeColors.push_back(color);
 		}
 	}
 
-	uint32_t someStructCount;
-	ReadFromFile(fin, &someStructCount, 4);
-	for (int i = 0; i < someStructCount; i++) {
-		tUnknownStructure unkStruct;
-		ReadFromFile(fin, unkStruct.vPos, sizeof(unkStruct.vPos));
-		ReadFromFile(fin, unkStruct.fValues, sizeof(unkStruct.fValues));
-		ReadFromFile(fin, unkStruct.nValues, sizeof(unkStruct.nValues));
-		aUnknownArray2.push_back(unkStruct);
+	WriteConsole("Parsing tree LODs...", LOG_ALWAYS);
+
+	uint32_t treeLodCount;
+	ReadFromFile(fin, &treeLodCount, 4);
+	for (int i = 0; i < treeLodCount; i++) {
+		tTreeLOD treeLod;
+		ReadFromFile(fin, treeLod.vPos, sizeof(treeLod.vPos));
+		ReadFromFile(fin, treeLod.fValues, sizeof(treeLod.fValues));
+		ReadFromFile(fin, treeLod.nValues, sizeof(treeLod.nValues));
+		aTreeLODs.push_back(treeLod);
 	}
 
 	if (!ParseW32TreeMeshes(fin)) return false;

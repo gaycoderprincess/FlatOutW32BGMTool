@@ -150,16 +150,16 @@ void WriteTreeMeshToFile(std::ofstream& file, const tTreeMesh& treeMesh) {
 		file.write((char*)treeMesh.foucExtraData1, sizeof(treeMesh.foucExtraData1));
 		file.write((char*)treeMesh.foucExtraData2, sizeof(treeMesh.foucExtraData2));
 		file.write((char*)treeMesh.foucExtraData3, sizeof(treeMesh.foucExtraData3));
-		file.write((char*)&treeMesh.nSurfaceId3, 4);
-		file.write((char*)&treeMesh.nSurfaceId4, 4);
-		file.write((char*)&treeMesh.nSurfaceId5, 4);
+		file.write((char*)&treeMesh.nTrunkSurfaceId, 4);
+		file.write((char*)&treeMesh.nBranchSurfaceId, 4);
+		file.write((char*)&treeMesh.nLeafSurfaceId, 4);
 	}
 	else {
-		file.write((char*)&treeMesh.nSurfaceId3, 4);
-		file.write((char*)&treeMesh.nSurfaceId4, 4);
-		file.write((char*)&treeMesh.nSurfaceId5, 4);
-		file.write((char*)&treeMesh.nIdInUnkArray1, 4);
-		file.write((char*)&treeMesh.nIdInUnkArray2, 4);
+		file.write((char*)&treeMesh.nTrunkSurfaceId, 4);
+		file.write((char*)&treeMesh.nBranchSurfaceId, 4);
+		file.write((char*)&treeMesh.nLeafSurfaceId, 4);
+		file.write((char*)&treeMesh.nColorId, 4);
+		file.write((char*)&treeMesh.nLodId, 4);
 		file.write((char*)&treeMesh.nMaterialId, 4);
 	}
 }
@@ -1312,16 +1312,16 @@ void WriteW32(uint32_t exportMapVersion) {
 	}
 
 	if (!bIsFOUCModel) {
-		uint32_t unk1Count = aUnknownArray1.size();
-		file.write((char*)&unk1Count, 4);
-		for (auto &data: aUnknownArray1) {
+		uint32_t treeColorCount = aTreeColors.size();
+		file.write((char*)&treeColorCount, 4);
+		for (auto& data: aTreeColors) {
 			file.write((char*)&data, 4);
 		}
 	}
 
-	uint32_t unk2Count = aUnknownArray2.size();
-	file.write((char*)&unk2Count, 4);
-	for (auto& data : aUnknownArray2) {
+	uint32_t treeLodCount = aTreeLODs.size();
+	file.write((char*)&treeLodCount, 4);
+	for (auto& data : aTreeLODs) {
 		file.write((char*)data.vPos, sizeof(data.vPos));
 		file.write((char*)data.fValues, sizeof(data.fValues));
 		file.write((char*)data.nValues, sizeof(data.nValues));

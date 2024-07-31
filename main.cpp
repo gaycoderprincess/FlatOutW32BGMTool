@@ -64,12 +64,14 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	ProcessCommandlineArguments(argc, argv);
+
+	if (bCreateEmptyPlantVDB) {
+		WriteEmptyPlantVDB();
+		exit(0);
+	}
 	if (!std::filesystem::exists(sFileName)) {
 		WriteConsole("ERROR: Failed to load " + std::filesystem::absolute(sFileName).string() + "! (File doesn't exist)", LOG_ERRORS);
 		exit(0);
-	}
-	if (bCreateEmptyPlantVDB) {
-		WriteEmptyPlantVDB();
 	}
 	if (bCreateBGMFromFBX) {
 		if (!ParseFBX()) {

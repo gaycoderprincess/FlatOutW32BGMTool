@@ -357,7 +357,7 @@ struct tStaticBatch {
 	float vAbsoluteCenter[3] = { 0, 0, 0 };
 	float vRelativeCenter[3] = { 0, 0, 0 };
 };
-struct tUnknownStructure {
+struct tTreeLOD {
 	float vPos[3];
 	float fValues[2];
 	uint32_t nValues[2];
@@ -371,11 +371,11 @@ struct tTreeMesh {
 
 	int nSurfaceId2;
 	float fUnk[19];
-	int nSurfaceId3;
-	int nSurfaceId4;
-	int nSurfaceId5;
-	int nIdInUnkArray1;
-	int nIdInUnkArray2;
+	int nTrunkSurfaceId;
+	int nBranchSurfaceId;
+	int nLeafSurfaceId;
+	int nColorId;
+	int nLodId;
 	int nMaterialId;
 
 	int foucExtraData1[9];
@@ -439,8 +439,8 @@ std::vector<tMaterial> aMaterials;
 std::vector<tSurface> aSurfaces;
 std::vector<tSurface> aCrashSurfaces;
 std::vector<tStaticBatch> aStaticBatches;
-std::vector<uint32_t> aUnknownArray1;
-std::vector<tUnknownStructure> aUnknownArray2;
+std::vector<uint32_t> aTreeColors;
+std::vector<tTreeLOD> aTreeLODs;
 std::vector<tTreeMesh> aTreeMeshes;
 std::vector<float> aUnknownArray3;
 std::vector<tModel> aModels;

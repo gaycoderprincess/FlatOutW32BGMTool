@@ -1,9 +1,9 @@
 aiNode* CreateNodeForTreeMesh(aiScene* scene, const tTreeMesh& treeMesh) {
 	std::vector<int> surfaceIds;
 	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId2, true)) surfaceIds.push_back(treeMesh.nSurfaceId2);
-	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId3, true)) surfaceIds.push_back(treeMesh.nSurfaceId3);
-	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId4, true)) surfaceIds.push_back(treeMesh.nSurfaceId4);
-	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId5, true)) surfaceIds.push_back(treeMesh.nSurfaceId5);
+	if (IsSurfaceValidAndExportable(treeMesh.nTrunkSurfaceId, true)) surfaceIds.push_back(treeMesh.nTrunkSurfaceId);
+	if (IsSurfaceValidAndExportable(treeMesh.nBranchSurfaceId, true)) surfaceIds.push_back(treeMesh.nBranchSurfaceId);
+	if (IsSurfaceValidAndExportable(treeMesh.nLeafSurfaceId, true)) surfaceIds.push_back(treeMesh.nLeafSurfaceId);
 	if (surfaceIds.empty()) return nullptr;
 
 	auto node = new aiNode();
