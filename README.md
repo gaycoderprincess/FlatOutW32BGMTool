@@ -58,6 +58,7 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-import_and_match_all_meshes` - Imports all meshes from an .fbx file and matches them up to any valid w32 surface, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_and_match_all_meshes`
 - `-clear_old_materials` - Removes all original materials from the w32 before importing the ones from the .fbx, has no effect unless `-import_and_match_all_surfaces` is enabled
 - `-no_material_reuse` - Makes imported meshes not use any original w32 materials, instead always importing new ones from the .fbx
+- `-no_tree_hack` - Disables the adjusting of normal vectors for tree shaders in Ultimate Carnage
 - `-import_deletions` - Deletes surfaces and props that have been deleted from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_deletions`
 
 ## BGM Arguments
