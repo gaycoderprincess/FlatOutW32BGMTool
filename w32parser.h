@@ -205,7 +205,8 @@ bool ParseW32Streams(std::ifstream& file) {
 			aIndexBuffers.push_back(buf);
 		}
 		else if (dataType == 3) {
-			tVegVertexBuffer buf;
+			tVertexBuffer buf;
+			buf.isVegetation = true;
 			ReadFromFile(file, &buf.foucExtraFormat, 4);
 			ReadFromFile(file, &buf.vertexCount, 4);
 			ReadFromFile(file, &buf.vertexSize, 4);
@@ -216,7 +217,7 @@ bool ParseW32Streams(std::ifstream& file) {
 
 			buf.id = i;
 			buf.data = data;
-			aVegVertexBuffers.push_back(buf);
+			aVertexBuffers.push_back(buf);
 		}
 		// unknown, maybe some custom type of buffer in the xbox beta bgm format
 		else if (dataType == 4 || dataType == 5) {
@@ -278,8 +279,8 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 		}
 
 		if (mapVersion < 0x20000) {
-			ReadFromFile(file, surface.vAbsoluteCenter, 12);
-			ReadFromFile(file, surface.vRelativeCenter, 12);
+			ReadFromFile(file, surface.vCenter, 12);
+			ReadFromFile(file, surface.vRadius, 12);
 		}
 
 		if (bIsFOUCModel) {
@@ -296,9 +297,8 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 
 		auto id = surface.nStreamId[0];
 		auto vBuf = FindVertexBuffer(id);
-		auto vegvBuf = FindVegVertexBuffer(id);
-		if (!vBuf && !vegvBuf) return false;
-		if (bIsFOUCModel && vBuf) {
+		if (!vBuf) return false;
+		if (bIsFOUCModel) {
 			auto ptr = (uintptr_t)vBuf->data;
 			ptr += surface.nStreamOffset[0];
 			for (int j = 0; j < surface.nVertexCount; j++) {
@@ -327,24 +327,24 @@ bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 	for (int i = 0; i < numStaticBatches; i++) {
 		tStaticBatch staticBatch;
 		ReadFromFile(file, &staticBatch.nId1, 4);
-		ReadFromFile(file, &staticBatch.nId2, 4);
-		ReadFromFile(file, &staticBatch.nSurfaceId, 4);
+		ReadFromFile(file, &staticBatch.nBVHId1, 4);
+		ReadFromFile(file, &staticBatch.nBVHId2, 4);
 
-		bool bIsSurfaceValid = staticBatch.nSurfaceId < aSurfaces.size();
+		bool bIsSurfaceValid = staticBatch.nBVHId1 < aSurfaces.size();
 		if (nImportFileVersion != 0x20002 && !bIsSurfaceValid) return false;
 
 		if (bIsSurfaceValid) {
-			aSurfaces[staticBatch.nSurfaceId].RegisterReference(SURFACE_REFERENCE_STATICBATCH);
+			aSurfaces[staticBatch.nBVHId1].RegisterReference(SURFACE_REFERENCE_STATICBATCH);
 		}
 
 		if (mapVersion >= 0x20000) {
-			ReadFromFile(file, staticBatch.vAbsoluteCenter, 12);
-			ReadFromFile(file, staticBatch.vRelativeCenter, 12);
+			ReadFromFile(file, staticBatch.vCenter, 12);
+			ReadFromFile(file, staticBatch.vRadius, 12);
 
 			if (bIsSurfaceValid) {
 				// backwards compatibility
-				memcpy(aSurfaces[staticBatch.nSurfaceId].vAbsoluteCenter, staticBatch.vAbsoluteCenter, 12);
-				memcpy(aSurfaces[staticBatch.nSurfaceId].vRelativeCenter, staticBatch.vRelativeCenter, 12);
+				memcpy(aSurfaces[staticBatch.nBVHId1].vCenter, staticBatch.vCenter, 12);
+				memcpy(aSurfaces[staticBatch.nBVHId1].vRadius, staticBatch.vRadius, 12);
 			}
 		}
 		else {
@@ -352,8 +352,8 @@ bool ParseW32StaticBatches(std::ifstream& file, int mapVersion) {
 
 			if (bIsSurfaceValid) {
 				// forwards compatibility
-				memcpy(staticBatch.vAbsoluteCenter, aSurfaces[staticBatch.nSurfaceId].vAbsoluteCenter, 12);
-				memcpy(staticBatch.vRelativeCenter, aSurfaces[staticBatch.nSurfaceId].vRelativeCenter, 12);
+				memcpy(staticBatch.vCenter, aSurfaces[staticBatch.nBVHId1].vCenter, 12);
+				memcpy(staticBatch.vRadius, aSurfaces[staticBatch.nBVHId1].vRadius, 12);
 			}
 		}
 
@@ -370,14 +370,15 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 	aTreeMeshes.reserve(treeMeshCount);
 	for (int i = 0; i < treeMeshCount; i++) {
 		tTreeMesh treeMesh;
-		ReadFromFile(file, &treeMesh.nUnk1, 4);
+		ReadFromFile(file, &treeMesh.nIsBush, 4);
 		ReadFromFile(file, &treeMesh.nUnk2Unused, 4);
-		ReadFromFile(file, &treeMesh.nSurfaceId1Unused, 4);
-		ReadFromFile(file, &treeMesh.nSurfaceId2, 4);
-		ReadFromFile(file, treeMesh.fUnk, sizeof(treeMesh.fUnk));
+		ReadFromFile(file, &treeMesh.nBVHId1, 4);
+		ReadFromFile(file, &treeMesh.nBVHId2, 4);
+		ReadFromFile(file, treeMesh.mMatrix, sizeof(treeMesh.mMatrix));
+		ReadFromFile(file, treeMesh.fScale, sizeof(treeMesh.fScale));
 
 		if (bIsFOUCModel) {
-			if (treeMesh.nSurfaceId2 >= 0 && treeMesh.nSurfaceId2 < aSurfaces.size()) aSurfaces[treeMesh.nSurfaceId2].RegisterReference(SURFACE_REFERENCE_TREEMESH_2);
+			//if (treeMesh.nUnkId2 >= 0 && treeMesh.nUnkId2 < aSurfaces.size()) aSurfaces[treeMesh.nUnkId2].RegisterReference(SURFACE_REFERENCE_TREEMESH_2);
 
 			ReadFromFile(file, treeMesh.foucExtraData1, sizeof(treeMesh.foucExtraData1));
 			ReadFromFile(file, treeMesh.foucExtraData2, sizeof(treeMesh.foucExtraData2));
@@ -401,11 +402,11 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 			//if (treeMesh.nSurfaceId1 >= 0 && treeMesh.nSurfaceId1 >= aSurfaces.size()) return false;
 			//if (treeMesh.nSurfaceId1 >= 0) aSurfaces[treeMesh.nSurfaceId1]._bUsedByAnything = true;
 
-			if (treeMesh.nSurfaceId2 >= 0 && treeMesh.nSurfaceId2 >= aSurfaces.size()) return false;
+			//if (treeMesh.nUnkId2 >= 0 && treeMesh.nUnkId2 >= aSurfaces.size()) return false;
 			if (treeMesh.nTrunkSurfaceId >= 0 && treeMesh.nTrunkSurfaceId >= aSurfaces.size()) return false;
 			if (treeMesh.nBranchSurfaceId >= 0 && treeMesh.nBranchSurfaceId >= aSurfaces.size()) return false;
 			if (treeMesh.nLeafSurfaceId >= 0 && treeMesh.nLeafSurfaceId >= aSurfaces.size()) return false;
-			if (treeMesh.nSurfaceId2 >= 0) aSurfaces[treeMesh.nSurfaceId2].RegisterReference(SURFACE_REFERENCE_TREEMESH_2);
+			//if (treeMesh.nUnkId2 >= 0) aSurfaces[treeMesh.nUnkId2].RegisterReference(SURFACE_REFERENCE_TREEMESH_2);
 			if (treeMesh.nTrunkSurfaceId >= 0) aSurfaces[treeMesh.nTrunkSurfaceId].RegisterReference(SURFACE_REFERENCE_TREEMESH_3);
 			if (treeMesh.nBranchSurfaceId >= 0) aSurfaces[treeMesh.nBranchSurfaceId].RegisterReference(SURFACE_REFERENCE_TREEMESH_4);
 			if (treeMesh.nLeafSurfaceId >= 0) aSurfaces[treeMesh.nLeafSurfaceId].RegisterReference(SURFACE_REFERENCE_TREEMESH_5);
@@ -662,7 +663,7 @@ bool ParseW32() {
 	for (int i = 0; i < treeLodCount; i++) {
 		tTreeLOD treeLod;
 		ReadFromFile(fin, treeLod.vPos, sizeof(treeLod.vPos));
-		ReadFromFile(fin, treeLod.fValues, sizeof(treeLod.fValues));
+		ReadFromFile(fin, treeLod.fScale, sizeof(treeLod.fScale));
 		ReadFromFile(fin, treeLod.nValues, sizeof(treeLod.nValues));
 		aTreeLODs.push_back(treeLod);
 	}

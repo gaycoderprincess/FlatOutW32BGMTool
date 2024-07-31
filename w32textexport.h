@@ -35,14 +35,14 @@ void WriteW32MaterialsToText() {
 
 void WriteW32StreamsToText() {
 	WriteFile("Streams begin");
-	uint32_t numStreams = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
+	uint32_t numStreams = aVertexBuffers.size() + aIndexBuffers.size();
 	WriteFile("Count: " + std::to_string(numStreams));
 	WriteFile("");
 	for (int i = 0; i < numStreams; i++) {
 		WriteFile("Stream " + std::to_string(i));
 		for (auto& buf : aVertexBuffers) {
 			if (buf.id == i) {
-				WriteFile("Vertex buffer");
+				WriteFile(buf.isVegetation ? "Vegetation vertex buffer" : "Vertex buffer");
 				if (bIsFOUCModel) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
 				WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
 				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
@@ -174,28 +174,6 @@ void WriteW32StreamsToText() {
 				}
 			}
 		}
-		for (auto& buf : aVegVertexBuffers) {
-			if (buf.id == i) {
-				WriteFile("Vegetation vertex buffer");
-				if (bIsFOUCModel) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
-				WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
-				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
-				if (bDumpStreams) {
-					auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
-
-					size_t j = 0;
-					while (j < dataSize) {
-						std::string out;
-						for (int k = 0; k < buf.vertexSize / sizeof(float); k++) {
-							out += std::to_string(buf.data[j]);
-							out += " ";
-							j++;
-						}
-						WriteFile(out);
-					}
-				}
-			}
-		}
 		for (auto& buf : aIndexBuffers) {
 			if (buf.id == i) {
 				WriteFile("Index buffer");
@@ -227,12 +205,12 @@ void WriteW32SurfacesToText() {
 		WriteFile("nPolyCount: " + std::to_string(surface.nPolyCount));
 		WriteFile("nPolyMode: " + std::to_string(surface.nPolyMode)); // 4-triindx or 5-tristrip
 		WriteFile("nNumIndicesUsed: " + std::to_string(surface.nNumIndicesUsed));
-		WriteFile("vAbsoluteCenter.x: " + std::to_string(surface.vAbsoluteCenter[0]));
-		WriteFile("vAbsoluteCenter.y: " + std::to_string(surface.vAbsoluteCenter[1]));
-		WriteFile("vAbsoluteCenter.z: " + std::to_string(surface.vAbsoluteCenter[2]));
-		WriteFile("vRelativeCenter.x: " + std::to_string(surface.vRelativeCenter[0]));
-		WriteFile("vRelativeCenter.y: " + std::to_string(surface.vRelativeCenter[1]));
-		WriteFile("vRelativeCenter.z: " + std::to_string(surface.vRelativeCenter[2]));
+		WriteFile("vCenter.x: " + std::to_string(surface.vCenter[0]));
+		WriteFile("vCenter.y: " + std::to_string(surface.vCenter[1]));
+		WriteFile("vCenter.z: " + std::to_string(surface.vCenter[2]));
+		WriteFile("vRadius.x: " + std::to_string(surface.vRadius[0]));
+		WriteFile("vRadius.y: " + std::to_string(surface.vRadius[1]));
+		WriteFile("vRadius.z: " + std::to_string(surface.vRadius[2]));
 		if (bIsFOUCModel) {
 			WriteFile("foucVertexMultiplier.x: " + std::to_string(surface.foucVertexMultiplier[0]));
 			WriteFile("foucVertexMultiplier.y: " + std::to_string(surface.foucVertexMultiplier[1]));
@@ -247,10 +225,10 @@ void WriteW32SurfacesToText() {
 		WriteFile("Total references: " + std::to_string(surface._nNumReferences));
 		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_STATICBATCH]) WriteFile("Static batch references: " + std::to_string(num));
 		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_MODEL]) WriteFile("Prop model references: " + std::to_string(num));
-		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_2]) WriteFile("Tree mesh surface 2 references: " + std::to_string(num));
-		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_3]) WriteFile("Tree mesh surface 3 references: " + std::to_string(num));
-		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_4]) WriteFile("Tree mesh surface 4 references: " + std::to_string(num));
-		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_5]) WriteFile("Tree mesh surface 5 references: " + std::to_string(num));
+		//if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_2]) WriteFile("Tree mesh surface 2 references: " + std::to_string(num));
+		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_3]) WriteFile("Tree trunk references: " + std::to_string(num));
+		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_4]) WriteFile("Tree branch references: " + std::to_string(num));
+		if (auto num = surface._nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_5]) WriteFile("Tree leaf references: " + std::to_string(num));
 		WriteFile("");
 	}
 	WriteFile("Surfaces end");
@@ -263,15 +241,15 @@ void WriteW32StaticBatchesToText() {
 	WriteFile("");
 	for (auto& staticBatch : aStaticBatches) {
 		WriteFile("nId1: " + std::to_string(staticBatch.nId1));
-		WriteFile("nId2: " + std::to_string(staticBatch.nId2));
-		WriteFile("nSurfaceId: " + std::to_string(staticBatch.nSurfaceId));
+		WriteFile("nBVHId1_nSurfaceId: " + std::to_string(staticBatch.nBVHId1));
+		WriteFile("nBVHId2: " + std::to_string(staticBatch.nBVHId2));
 		WriteFile("nUnk: " + std::to_string(staticBatch.nUnk));
-		WriteFile("vAbsoluteCenter.x: " + std::to_string(staticBatch.vAbsoluteCenter[0]));
-		WriteFile("vAbsoluteCenter.y: " + std::to_string(staticBatch.vAbsoluteCenter[1]));
-		WriteFile("vAbsoluteCenter.z: " + std::to_string(staticBatch.vAbsoluteCenter[2]));
-		WriteFile("vRelativeCenter.x: " + std::to_string(staticBatch.vRelativeCenter[0]));
-		WriteFile("vRelativeCenter.y: " + std::to_string(staticBatch.vRelativeCenter[1]));
-		WriteFile("vRelativeCenter.z: " + std::to_string(staticBatch.vRelativeCenter[2]));
+		WriteFile("vCenter.x: " + std::to_string(staticBatch.vCenter[0]));
+		WriteFile("vCenter.y: " + std::to_string(staticBatch.vCenter[1]));
+		WriteFile("vCenter.z: " + std::to_string(staticBatch.vCenter[2]));
+		WriteFile("vRadius.x: " + std::to_string(staticBatch.vRadius[0]));
+		WriteFile("vRadius.y: " + std::to_string(staticBatch.vRadius[1]));
+		WriteFile("vRadius.z: " + std::to_string(staticBatch.vRadius[2]));
 		WriteFile("");
 	}
 	WriteFile("Static Batches end");
@@ -298,8 +276,8 @@ void WriteW32TreeLODsToText() {
 		WriteFile("vPos.x: " + std::to_string(treeLod.vPos[0]));
 		WriteFile("vPos.y: " + std::to_string(treeLod.vPos[1]));
 		WriteFile("vPos.z: " + std::to_string(treeLod.vPos[2]));
-		WriteFile("fUnknown[0]: " + std::to_string(treeLod.fValues[0]));
-		WriteFile("fUnknown[1]: " + std::to_string(treeLod.fValues[1]));
+		WriteFile("fScale.x: " + std::to_string(treeLod.fScale[0]));
+		WriteFile("fScale.y: " + std::to_string(treeLod.fScale[1]));
 		WriteFile(std::format("nUnknown[0]: 0x{:X}", treeLod.nValues[0]));
 		WriteFile(std::format("nUnknown[1]: 0x{:X}", treeLod.nValues[1]));
 		WriteFile("");
@@ -313,13 +291,18 @@ void WriteW32TreeMeshesToText() {
 	WriteFile("Count: " + std::to_string(aTreeMeshes.size()));
 	WriteFile("");
 	for (auto& treeMesh : aTreeMeshes) {
-		WriteFile("nUnknown1: " + std::to_string(treeMesh.nUnk1));
+		WriteFile("nIsBush: " + std::to_string(treeMesh.nIsBush));
 		WriteFile("nUnknown2: " + std::to_string(treeMesh.nUnk2Unused));
-		WriteFile("nSurfaceId1: " + std::to_string(treeMesh.nSurfaceId1Unused));
-		WriteFile("nSurfaceId2: " + std::to_string(treeMesh.nSurfaceId2));
-		for (int j = 0; j < 19; j++) {
-			WriteFile("fUnk[" + std::to_string(j) + "]: " + std::to_string(treeMesh.fUnk[j]));
-		}
+		WriteFile("nBVHId1_nLeafSurfaceId: " + std::to_string(treeMesh.nBVHId1));
+		WriteFile("nBVHId2: " + std::to_string(treeMesh.nBVHId2));
+		WriteFile("mMatrix: ");
+		WriteFile(std::format("{}, {}, {}, {}", treeMesh.mMatrix[0], treeMesh.mMatrix[1], treeMesh.mMatrix[2], treeMesh.mMatrix[3]));
+		WriteFile(std::format("{}, {}, {}, {}", treeMesh.mMatrix[4], treeMesh.mMatrix[5], treeMesh.mMatrix[6], treeMesh.mMatrix[7]));
+		WriteFile(std::format("{}, {}, {}, {}", treeMesh.mMatrix[8], treeMesh.mMatrix[9], treeMesh.mMatrix[10], treeMesh.mMatrix[11]));
+		WriteFile(std::format("{}, {}, {}, {}", treeMesh.mMatrix[12], treeMesh.mMatrix[13], treeMesh.mMatrix[14], treeMesh.mMatrix[15]));
+		WriteFile("fScale.x: " + std::to_string(treeMesh.fScale[0]));
+		WriteFile("fScale.y: " + std::to_string(treeMesh.fScale[1]));
+		WriteFile("fScale.z: " + std::to_string(treeMesh.fScale[2]));
 		if (bIsFOUCModel) {
 			WriteFile("nMaterialId: " + std::to_string(treeMesh.foucExtraData1[0]));
 			WriteFile("foucData1[1]: " + std::to_string(treeMesh.foucExtraData1[1]));
@@ -527,12 +510,6 @@ void WriteW32ToText() {
 	WriteW32CollidableModelsToText();
 	WriteW32MeshDamageAssocToText();
 	WriteW32CompactMeshesToText();
-
-	for (auto& surface : aSurfaces) {
-		if (!surface._nNumReferences) {
-			WriteConsole("WARNING: Surface " + std::to_string(&surface - &aSurfaces[0]) + " goes unused! The game will not like this!!", LOG_WARNINGS);
-		}
-	}
 
 	WriteConsole("Text file export finished", LOG_ALWAYS);
 }

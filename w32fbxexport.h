@@ -1,15 +1,15 @@
 aiNode* CreateNodeForTreeMesh(aiScene* scene, const tTreeMesh& treeMesh) {
 	std::vector<int> surfaceIds;
-	if (IsSurfaceValidAndExportable(treeMesh.nSurfaceId2, true)) surfaceIds.push_back(treeMesh.nSurfaceId2);
-	if (IsSurfaceValidAndExportable(treeMesh.nTrunkSurfaceId, true)) surfaceIds.push_back(treeMesh.nTrunkSurfaceId);
-	if (IsSurfaceValidAndExportable(treeMesh.nBranchSurfaceId, true)) surfaceIds.push_back(treeMesh.nBranchSurfaceId);
-	if (IsSurfaceValidAndExportable(treeMesh.nLeafSurfaceId, true)) surfaceIds.push_back(treeMesh.nLeafSurfaceId);
+	if (IsSurfaceValidAndExportable(treeMesh.nTrunkSurfaceId)) surfaceIds.push_back(treeMesh.nTrunkSurfaceId);
+	if (IsSurfaceValidAndExportable(treeMesh.nBranchSurfaceId)) surfaceIds.push_back(treeMesh.nBranchSurfaceId);
+	if (IsSurfaceValidAndExportable(treeMesh.nLeafSurfaceId)) surfaceIds.push_back(treeMesh.nLeafSurfaceId);
 	if (surfaceIds.empty()) return nullptr;
 
 	auto node = new aiNode();
 	node->mName = "TreeMesh" + std::to_string(&treeMesh - &aTreeMeshes[0]);
 	node->mMeshes = new uint32_t[surfaceIds.size()];
 	node->mNumMeshes = surfaceIds.size();
+	//FO2MatrixToFBXMatrix(treeMesh.mMatrix, &node->mTransformation);
 	int i = 0;
 	for (auto& surfaceId : surfaceIds) {
 		node->mMeshes[i++] = aSurfaces[surfaceId]._nFBXModelId;
@@ -177,7 +177,28 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 		}
 	}
 
-	if (src.nPolyMode == 5) {
+	// quads, not sure how these are read
+	if (src.nPolyMode == 0) {
+		for (int j = 0; j < src.nPolyCount; j++) {
+			int indices[4] = {0, 0, 0, 0};
+			indices[0] = j * 4;
+			indices[1] = (j * 4) + 1;
+			indices[2] = (j * 4) + 2;
+			indices[3] = (j * 4) + 3;
+			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); exit(0); }
+			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); exit(0); }
+			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); exit(0); }
+			if (indices[3] < 0 || indices[3] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[3]), LOG_ERRORS); exit(0); }
+			dest->mFaces[j].mIndices = new uint32_t[4];
+			dest->mFaces[j].mIndices[0] = indices[3];
+			dest->mFaces[j].mIndices[1] = indices[2];
+			dest->mFaces[j].mIndices[2] = indices[1];
+			dest->mFaces[j].mIndices[3] = indices[0];
+			dest->mFaces[j].mNumIndices = 4;
+		}
+	}
+	// tristrip
+	else if (src.nPolyMode == 5) {
 		bool bFlip = false;
 		for (int j = 0; j < src.nPolyCount; j++) {
 			auto tmp = (uint16_t*)indexData;
@@ -204,6 +225,7 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 			bFlip = !bFlip;
 		}
 	}
+	// tris
 	else {
 		for (int j = 0; j < src.nPolyCount; j++) {
 			auto tmp = (uint16_t*)indexData;
@@ -305,8 +327,8 @@ aiScene GenerateScene() {
 	if (!bIsBGMModel) {
 		if (auto node = new aiNode()) {
 			std::vector<int> surfaceIds;
-			for (auto &batch: aStaticBatches) {
-				if (IsSurfaceValidAndExportable(batch.nSurfaceId, true)) surfaceIds.push_back(batch.nSurfaceId);
+			for (auto& batch: aStaticBatches) {
+				if (IsSurfaceValidAndExportable(batch.nBVHId1)) surfaceIds.push_back(batch.nBVHId1);
 			}
 
 			node->mName = "StaticBatch";

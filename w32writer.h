@@ -38,7 +38,7 @@ void WriteVertexBufferToFile(std::ofstream& file, tVertexBuffer& buf) {
 		bRemoveNormals = true;
 	}
 
-	int type = 1;
+	int type = buf.isVegetation ? 3 : 1;
 	file.write((char*)&type, 4);
 	file.write((char*)&buf.foucExtraFormat, 4);
 	file.write((char*)&buf.vertexCount, 4);
@@ -87,15 +87,6 @@ void WriteIndexBufferToFile(std::ofstream& file, const tIndexBuffer& buf) {
 	file.write((char*)buf.data, buf.indexCount * 2);
 }
 
-void WriteVegVertexBufferToFile(std::ofstream& file, const tVegVertexBuffer& buf) {
-	int type = 3;
-	file.write((char*)&type, 4);
-	file.write((char*)&buf.foucExtraFormat, 4);
-	file.write((char*)&buf.vertexCount, 4);
-	file.write((char*)&buf.vertexSize, 4);
-	file.write((char*)buf.data, buf.vertexCount * buf.vertexSize);
-}
-
 void WriteSurfaceToFile(std::ofstream& file, tSurface& surface) {
 	if (nExportFileVersion < 0x20000 && nExportFileVersion != nImportFileVersion && IsBufferReductionRequiredForFO1(surface.nFlags)) {
 		surface.nFlags -= 0x10;
@@ -114,8 +105,8 @@ void WriteSurfaceToFile(std::ofstream& file, tSurface& surface) {
 	file.write((char*)&surface.nPolyMode, 4);
 	file.write((char*)&surface.nNumIndicesUsed, 4);
 	if (nExportFileVersion < 0x20000) {
-		file.write((char*)surface.vAbsoluteCenter, 12);
-		file.write((char*)surface.vRelativeCenter, 12);
+		file.write((char*)surface.vCenter, 12);
+		file.write((char*)surface.vRadius, 12);
 	}
 	if (bIsFOUCModel) {
 		file.write((char*)surface.foucVertexMultiplier, sizeof(surface.foucVertexMultiplier));
@@ -129,11 +120,11 @@ void WriteSurfaceToFile(std::ofstream& file, tSurface& surface) {
 
 void WriteStaticBatchToFile(std::ofstream& file, const tStaticBatch& staticBatch) {
 	file.write((char*)&staticBatch.nId1, 4);
-	file.write((char*)&staticBatch.nId2, 4);
-	file.write((char*)&staticBatch.nSurfaceId, 4);
+	file.write((char*)&staticBatch.nBVHId1, 4);
+	file.write((char*)&staticBatch.nBVHId2, 4);
 	if (nExportFileVersion >= 0x20000) {
-		file.write((char*)staticBatch.vAbsoluteCenter, 12);
-		file.write((char*)staticBatch.vRelativeCenter, 12);
+		file.write((char*)staticBatch.vCenter, 12);
+		file.write((char*)staticBatch.vRadius, 12);
 	}
 	else {
 		file.write((char*)&staticBatch.nUnk, 4);
@@ -141,11 +132,12 @@ void WriteStaticBatchToFile(std::ofstream& file, const tStaticBatch& staticBatch
 }
 
 void WriteTreeMeshToFile(std::ofstream& file, const tTreeMesh& treeMesh) {
-	file.write((char*)&treeMesh.nUnk1, 4);
+	file.write((char*)&treeMesh.nIsBush, 4);
 	file.write((char*)&treeMesh.nUnk2Unused, 4);
-	file.write((char*)&treeMesh.nSurfaceId1Unused, 4);
-	file.write((char*)&treeMesh.nSurfaceId2, 4);
-	file.write((char*)treeMesh.fUnk, sizeof(treeMesh.fUnk));
+	file.write((char*)&treeMesh.nBVHId1, 4);
+	file.write((char*)&treeMesh.nBVHId2, 4);
+	file.write((char*)treeMesh.mMatrix, sizeof(treeMesh.mMatrix));
+	file.write((char*)treeMesh.fScale, sizeof(treeMesh.fScale));
 	if (bIsFOUCModel) {
 		file.write((char*)treeMesh.foucExtraData1, sizeof(treeMesh.foucExtraData1));
 		file.write((char*)treeMesh.foucExtraData2, sizeof(treeMesh.foucExtraData2));
@@ -287,7 +279,7 @@ void ClampMeshUVs(aiMesh* mesh, int uvChannel) {
 }
 
 void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, float foucOffset1 = 0, float foucOffset2 = 0, float foucOffset3 = 0, float foucOffset4 = fFOUCBGMScaleMultiplier, bool treeHack = false) {
-	int id = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
+	int id = aVertexBuffers.size() + aIndexBuffers.size();
 
 	if (bNoTreeHack) treeHack = false;
 
@@ -862,7 +854,7 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 	vRadius[1] = std::abs(mesh->mAABB.mMax.y - mesh->mAABB.mMin.y);
 	vRadius[2] = std::abs(mesh->mAABB.mMax.z - mesh->mAABB.mMin.z);
 
-	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
+	uint32_t streamCount = aVertexBuffers.size() + aIndexBuffers.size();
 	if (bIsFOUCModel) {
 		float fFOUCRadius = vRadius.length() / 32767;
 		NyaVec3 vFOUCCenter = vCenter / fFOUCRadius;
@@ -881,12 +873,12 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 		CreateStreamsFromFBX(mesh, bufFlags, vertexSize);
 	}
 
-	surface->vAbsoluteCenter[0] = vCenter[0];
-	surface->vAbsoluteCenter[1] = vCenter[1];
-	surface->vAbsoluteCenter[2] = vCenter[2];
-	surface->vRelativeCenter[0] = vRadius[0];
-	surface->vRelativeCenter[1] = vRadius[1];
-	surface->vRelativeCenter[2] = vRadius[2];
+	surface->vCenter[0] = vCenter[0];
+	surface->vCenter[1] = vCenter[1];
+	surface->vCenter[2] = vCenter[2];
+	surface->vRadius[0] = vRadius[0];
+	surface->vRadius[1] = vRadius[1];
+	surface->vRadius[2] = vRadius[2];
 	surface->nFlags = bufFlags;
 	surface->nVertexCount = mesh->mNumVertices;
 	surface->nPolyCount = mesh->mNumFaces;
@@ -1275,17 +1267,12 @@ void WriteW32(uint32_t exportMapVersion) {
 		WriteMaterialToFile(file, material);
 	}
 
-	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
+	uint32_t streamCount = aVertexBuffers.size() + aIndexBuffers.size();
 	file.write((char*)&streamCount, 4);
 	for (int i = 0; i < streamCount; i++) {
 		for (auto& buf : aVertexBuffers) {
 			if (buf.id == i) {
 				WriteVertexBufferToFile(file, buf);
-			}
-		}
-		for (auto& buf : aVegVertexBuffers) {
-			if (buf.id == i) {
-				WriteVegVertexBufferToFile(file, buf);
 			}
 		}
 		for (auto& buf : aIndexBuffers) {
@@ -1323,7 +1310,7 @@ void WriteW32(uint32_t exportMapVersion) {
 	file.write((char*)&treeLodCount, 4);
 	for (auto& data : aTreeLODs) {
 		file.write((char*)data.vPos, sizeof(data.vPos));
-		file.write((char*)data.fValues, sizeof(data.fValues));
+		file.write((char*)data.fScale, sizeof(data.fScale));
 		file.write((char*)data.nValues, sizeof(data.nValues));
 	}
 
@@ -1560,22 +1547,16 @@ void WriteBGM(uint32_t exportMapVersion) {
 
 		aVertexBuffers = aConversionVertexBuffers;
 		aIndexBuffers = aConversionIndexBuffers;
-		aVegVertexBuffers.clear();
 	}
 
 	if (bConvertToFO1 || bConvertToFO2) bIsFOUCModel = false;
 
-	uint32_t streamCount = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
+	uint32_t streamCount = aVertexBuffers.size() + aIndexBuffers.size();
 	file.write((char*)&streamCount, 4);
 	for (int i = 0; i < streamCount; i++) {
 		for (auto& buf : aVertexBuffers) {
 			if (buf.id == i) {
 				WriteVertexBufferToFile(file, buf);
-			}
-		}
-		for (auto& buf : aVegVertexBuffers) {
-			if (buf.id == i) {
-				WriteVegVertexBufferToFile(file, buf);
 			}
 		}
 		for (auto& buf : aIndexBuffers) {

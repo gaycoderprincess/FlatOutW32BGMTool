@@ -214,7 +214,7 @@ void ReadFromFile(std::ifstream& file, void* out, size_t numBytes) {
 enum eSurfaceReference {
 	SURFACE_REFERENCE_STATICBATCH,
 	SURFACE_REFERENCE_MODEL,
-	SURFACE_REFERENCE_TREEMESH_2,
+	//SURFACE_REFERENCE_TREEMESH_2,
 	SURFACE_REFERENCE_TREEMESH_3,
 	SURFACE_REFERENCE_TREEMESH_4,
 	SURFACE_REFERENCE_TREEMESH_5,
@@ -222,6 +222,7 @@ enum eSurfaceReference {
 };
 
 struct tVertexBuffer {
+	bool isVegetation = false;
 	int id;
 	int foucExtraFormat = 0;
 	uint32_t vertexCount;
@@ -240,13 +241,6 @@ struct tIndexBuffer {
 	int foucExtraFormat = 0;
 	uint32_t indexCount;
 	uint16_t* data;
-};
-struct tVegVertexBuffer {
-	int id;
-	int foucExtraFormat = 0;
-	uint32_t vertexCount;
-	uint32_t vertexSize;
-	float* data;
 };
 struct tVertexDataFOUC {
 	int16_t vPos[3];
@@ -330,8 +324,8 @@ struct tSurface {
 	int nPolyCount;
 	int nPolyMode;
 	int nNumIndicesUsed;
-	float vAbsoluteCenter[3] = { 0, 0, 0 };
-	float vRelativeCenter[3] = { 0, 0, 0 };
+	float vCenter[3] = { 0, 0, 0 };
+	float vRadius[3] = { 0, 0, 0 };
 	float foucVertexMultiplier[4];
 	int nNumStreamsUsed;
 	uint32_t nStreamId[2];
@@ -351,26 +345,26 @@ struct tSurface {
 };
 struct tStaticBatch {
 	uint32_t nId1;
-	uint32_t nId2;
-	uint32_t nSurfaceId;
+	uint32_t nBVHId1; // surface id
+	uint32_t nBVHId2; // second id in bvh array 1
 	uint32_t nUnk = 0; // seems to always be 0
-	float vAbsoluteCenter[3] = { 0, 0, 0 };
-	float vRelativeCenter[3] = { 0, 0, 0 };
+	float vCenter[3] = { 0, 0, 0 };
+	float vRadius[3] = { 0, 0, 0 };
 };
 struct tTreeLOD {
 	float vPos[3];
-	float fValues[2];
+	float fScale[2];
 	uint32_t nValues[2];
 };
 struct tTreeMesh {
-	int nUnk1;
+	int nIsBush;
 
 	// these 2 values are unused and completely unread
 	int nUnk2Unused;
-	int nSurfaceId1Unused;
-
-	int nSurfaceId2;
-	float fUnk[19];
+	int nBVHId1; // first id in bvh array 1, leaf surface id
+	int nBVHId2; // second id in bvh array 1
+	float mMatrix[4*4];
+	float fScale[3];
 	int nTrunkSurfaceId;
 	int nBranchSurfaceId;
 	int nLeafSurfaceId;
@@ -434,7 +428,6 @@ int nExportFileVersion;
 int nSomeMapValue = 1; // always 1 in FO2, doesn't exist in FO1
 std::vector<tVertexBuffer> aVertexBuffers;
 std::vector<tIndexBuffer> aIndexBuffers;
-std::vector<tVegVertexBuffer> aVegVertexBuffers;
 std::vector<tMaterial> aMaterials;
 std::vector<tSurface> aSurfaces;
 std::vector<tSurface> aCrashSurfaces;
@@ -461,13 +454,6 @@ tVertexBuffer* FindVertexBuffer(int id) {
 	return nullptr;
 }
 
-tVegVertexBuffer* FindVegVertexBuffer(int id) {
-	for (auto& buf : aVegVertexBuffers) {
-		if (buf.id == id) return &buf;
-	}
-	return nullptr;
-}
-
 tIndexBuffer* FindIndexBuffer(int id) {
 	for (auto& buf : aIndexBuffers) {
 		if (buf.id == id) return &buf;
@@ -478,22 +464,19 @@ tIndexBuffer* FindIndexBuffer(int id) {
 bool CanSurfaceBeExported(tSurface* surface) {
 	auto vBuf = FindVertexBuffer(surface->nStreamId[0]);
 	if (!vBuf) return false;
-	if (surface->nNumStreamsUsed < 2) return false;
+	if (surface->nNumStreamsUsed != 2) return false;
 	auto iBuf = FindIndexBuffer(surface->nStreamId[1]);
 	if (!iBuf) return false;
+	//if (surface->nNumStreamsUsed >= 2) {
+	//	auto iBuf = FindIndexBuffer(surface->nStreamId[1]);
+	//	if (!iBuf) return false;
+	//}
 	return true;
 }
 
-int IsSurfaceValidAndExportable(int id, bool checkNotModel = false) {
+int IsSurfaceValidAndExportable(int id) {
 	if (id < 0 || id >= aSurfaces.size()) return false;
 	if (!CanSurfaceBeExported(&aSurfaces[id])) return false;
-	if (checkNotModel) {
-		for (auto& model : aModels) {
-			for (auto& surface : model.aSurfaces) {
-				if (surface == id) return false;
-			}
-		}
-	}
 	return true;
 }
 
