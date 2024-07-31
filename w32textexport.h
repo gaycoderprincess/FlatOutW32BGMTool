@@ -326,9 +326,9 @@ void WriteW32TreeMeshesToText() {
 			WriteFile("foucData3[1]: " + std::to_string(treeMesh.foucExtraData3[1]));
 			WriteFile("nSomeId4: " + std::to_string(treeMesh.foucExtraData3[2]));
 			WriteFile(std::format("nSomeOffset4: {:X}", (uint32_t)treeMesh.foucExtraData3[3]));
-			WriteFile("nTrunkSurfaceId: " + std::to_string(treeMesh.nTrunkSurfaceId));
-			WriteFile("nBranchSurfaceId: " + std::to_string(treeMesh.nBranchSurfaceId));
-			WriteFile("nLeafSurfaceId: " + std::to_string(treeMesh.nLeafSurfaceId));
+			WriteFile("foucData4[0]: " + std::to_string(treeMesh.foucExtraData4[0]));
+			WriteFile("foucData4[1]: " + std::to_string(treeMesh.foucExtraData4[1]));
+			WriteFile("foucData4[2]: " + std::to_string(treeMesh.foucExtraData4[2]));
 		}
 		else {
 			WriteFile("nTrunkSurfaceId: " + std::to_string(treeMesh.nTrunkSurfaceId));

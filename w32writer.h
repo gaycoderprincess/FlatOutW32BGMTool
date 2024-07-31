@@ -142,9 +142,7 @@ void WriteTreeMeshToFile(std::ofstream& file, const tTreeMesh& treeMesh) {
 		file.write((char*)treeMesh.foucExtraData1, sizeof(treeMesh.foucExtraData1));
 		file.write((char*)treeMesh.foucExtraData2, sizeof(treeMesh.foucExtraData2));
 		file.write((char*)treeMesh.foucExtraData3, sizeof(treeMesh.foucExtraData3));
-		file.write((char*)&treeMesh.nTrunkSurfaceId, 4);
-		file.write((char*)&treeMesh.nBranchSurfaceId, 4);
-		file.write((char*)&treeMesh.nLeafSurfaceId, 4);
+		file.write((char*)treeMesh.foucExtraData4, sizeof(treeMesh.foucExtraData4));
 	}
 	else {
 		file.write((char*)&treeMesh.nTrunkSurfaceId, 4);

@@ -365,9 +365,9 @@ struct tTreeMesh {
 	int nBVHId2; // second id in bvh array 1
 	float mMatrix[4*4];
 	float fScale[3];
-	int nTrunkSurfaceId;
-	int nBranchSurfaceId;
-	int nLeafSurfaceId;
+	int nTrunkSurfaceId = -1;
+	int nBranchSurfaceId = -1;
+	int nLeafSurfaceId = -1;
 	int nColorId;
 	int nLodId;
 	int nMaterialId;
@@ -375,6 +375,7 @@ struct tTreeMesh {
 	int foucExtraData1[9];
 	int foucExtraData2[9];
 	int foucExtraData3[4];
+	int foucExtraData4[3];
 };
 struct tModel {
 	uint32_t identifier = 0x444F4D42; // BMOD

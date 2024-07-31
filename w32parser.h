@@ -378,18 +378,10 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 		ReadFromFile(file, treeMesh.fScale, sizeof(treeMesh.fScale));
 
 		if (bIsFOUCModel) {
-			//if (treeMesh.nUnkId2 >= 0 && treeMesh.nUnkId2 < aSurfaces.size()) aSurfaces[treeMesh.nUnkId2].RegisterReference(SURFACE_REFERENCE_TREEMESH_2);
-
 			ReadFromFile(file, treeMesh.foucExtraData1, sizeof(treeMesh.foucExtraData1));
 			ReadFromFile(file, treeMesh.foucExtraData2, sizeof(treeMesh.foucExtraData2));
 			ReadFromFile(file, treeMesh.foucExtraData3, sizeof(treeMesh.foucExtraData3));
-			ReadFromFile(file, &treeMesh.nTrunkSurfaceId, 4);
-			ReadFromFile(file, &treeMesh.nBranchSurfaceId, 4);
-			ReadFromFile(file, &treeMesh.nLeafSurfaceId, 4);
-
-			if (treeMesh.nTrunkSurfaceId >= 0 && treeMesh.nTrunkSurfaceId < aSurfaces.size()) aSurfaces[treeMesh.nTrunkSurfaceId].RegisterReference(SURFACE_REFERENCE_TREEMESH_3);
-			if (treeMesh.nBranchSurfaceId >= 0 && treeMesh.nBranchSurfaceId < aSurfaces.size()) aSurfaces[treeMesh.nBranchSurfaceId].RegisterReference(SURFACE_REFERENCE_TREEMESH_4);
-			if (treeMesh.nLeafSurfaceId >= 0 && treeMesh.nLeafSurfaceId < aSurfaces.size()) aSurfaces[treeMesh.nLeafSurfaceId].RegisterReference(SURFACE_REFERENCE_TREEMESH_5);
+			ReadFromFile(file, treeMesh.foucExtraData4, sizeof(treeMesh.foucExtraData4));
 		}
 		else {
 			ReadFromFile(file, &treeMesh.nTrunkSurfaceId, 4);
