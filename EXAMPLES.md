@@ -19,7 +19,6 @@ When exporting them back, use these settings:
 - Enter `FlatOutW32BGMTool_gcp.exe path/to/track_geom.w32 -export_fbx` into a commandline prompt
 - Edit the .fbx and make your desired changes and additions
 - Enter `FlatOutW32BGMTool_gcp.exe path/to/track_geom.w32 path/to/model.fbx -import_all_surfaces -import_moved_props -import_cloned_props` into a commandline prompt
-- Enter `FlatOutW32BGMTool_gcp.exe path/to/track_bvh.gen -empty_bvh_gen` into a commandline prompt
 - If you need to remove grass or other vegetation, enter `FlatOutW32BGMTool_gcp.exe -empty_plant_db` into a commandline prompt
 - Copy the new .w32 and .gen files, rename them and put them into the game files.
 
@@ -61,7 +60,7 @@ Map shaders:
 
 ## Advanced track creation example
 - Take the Speedbowl track (arena3a, which is an ideal track as there's little to no vegetation) and export it using the tool. (If you're confident, then making a raceable copy of Stunt2A works even better)
-- Create an empty track_bvh.gen using `-empty_bvh_gen` and optionally an empty plant_vdb.gen using `-empty_plant_db` as described above.
+- Optionally create an empty plant_vdb.gen using `-empty_plant_db` as described above.
 - Take your custom track model, and if it follows the exported .fbx's hierarchy (i.e. it was exported by the tool and you didn't add any non-conforming parts) then import it with:
 `FlatOutW32BGMTool_gcp.exe path/to/speedbowl/track_geom.w32 path/to/model.fbx -import_and_match_all_surfaces -import_all_props`
 - If it doesn't follow that hierarchy (i.e. it's a custom model you created or took from somewhere) then import it with:
