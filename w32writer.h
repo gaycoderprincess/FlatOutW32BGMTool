@@ -352,8 +352,8 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			}
 			// UV2
 			if (mesh->HasTextureCoords(1)) {
-				data->vUV2[0] = mesh->mTextureCoords[0][i].x * 2048.0;
-				data->vUV2[1] = 1 - mesh->mTextureCoords[0][i].y * 2048.0;
+				data->vUV2[0] = mesh->mTextureCoords[1][i].x * 2048.0;
+				data->vUV2[1] = 1 - mesh->mTextureCoords[1][i].y * 2048.0;
 			}
 			else {
 				data->vUV2[0] = 0;
