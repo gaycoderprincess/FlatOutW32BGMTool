@@ -248,6 +248,17 @@ struct tVegVertexBuffer {
 	uint32_t vertexSize;
 	float* data;
 };
+struct tVertexDataFOUC {
+	int16_t vPos[3];
+	uint16_t nUnk32;
+	uint8_t vUnknownProllyBumpmaps[4]; // ends in FF
+	uint8_t vUnknownProllyBumpmaps2[4]; // ends in FF
+	uint8_t vNormals[4]; // ends in FF
+	uint8_t vVertexColors[4];
+	uint16_t vUV1[2];
+	uint16_t vUV2[2];
+};
+static_assert(sizeof(tVertexDataFOUC) == 32);
 struct tCrashDataWeights {
 	float vBasePos[3];
 	float vCrashPos[3];

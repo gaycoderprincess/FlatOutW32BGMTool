@@ -7,7 +7,6 @@ bool bDumpMaterialData = false;
 bool bDumpStreams = false;
 bool bDumpFOUCNormalizedStreams = false;
 bool bDumpFOUCOffsetedStreams = false;
-bool bDumpFOUCInt8Streams = false;
 bool bFBXSkipHiddenProps = false;
 int nFBXSkipHiddenPropsFlag;
 

@@ -32,11 +32,6 @@ void CMD_DumpText_Streams_FOUCNormal() {
 	bDumpFOUCNormalizedStreams = true;
 	bDumpIntoTextFile = true;
 }
-void CMD_DumpText_Streams_FOUCInt8() {
-	bDumpStreams = true;
-	bDumpFOUCInt8Streams = true;
-	bDumpIntoTextFile = true;
-}
 void CMD_W32_RemoveObjectDummies() {
 	bDisableObjects = true;
 	bDumpIntoW32 = true;
@@ -194,7 +189,6 @@ tCommandlineArgument aArguments[] = {
 		{ "-text_streams", CMD_DumpText_Streams, "Dumps all mesh data into a text file" },
 		{ "-text_streams_fouc_offseted", CMD_DumpText_Streams_FOUCOffset, "Dumps FOUC mesh data into text with offsets applied" },
 		{ "-text_streams_fouc_normalized", CMD_DumpText_Streams_FOUCNormal, "Dumps FOUC mesh data into text as normalized floating points" },
-		{ "-text_streams_fouc_int8", CMD_DumpText_Streams_FOUCInt8, "Dumps FOUC mesh data into text as a hex dump" },
 
 		{ "-log_warnings_only", CMD_LogWarningsOnly, "Only prints errors and warnings into the console", "Console logging" },
 		{ "-log_errors_only", CMD_LogErrorsOnly, "Only prints errors into the console" },
