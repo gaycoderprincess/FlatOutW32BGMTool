@@ -284,7 +284,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 		memset(vBuf.data, 0, mesh->mNumVertices * (vertexSize / 4) * sizeof(float));
 		auto vertexData = vBuf.data;
 		for (int i = 0; i < mesh->mNumVertices; i++) {
-			auto vertices = (uint16_t*)vertexData;
+			auto data = (tVertexDataFOUC*)vertexData;
 			auto srcVerts = mesh->mVertices[i];
 			srcVerts.x /= foucOffsets[3];
 			srcVerts.y /= foucOffsets[3];
@@ -292,32 +292,23 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			srcVerts.x -= foucOffsets[0];
 			srcVerts.y -= foucOffsets[1];
 			srcVerts.z += foucOffsets[2];
-			vertices[0] = srcVerts.x;
-			vertices[1] = srcVerts.y;
-			vertices[2] = -srcVerts.z;
-			vertices += 3;
+			data->vPos[0] = srcVerts.x;
+			data->vPos[1] = srcVerts.y;
+			data->vPos[2] = -srcVerts.z;
 
-			if ((flags & VERTEX_NORMAL) != 0 || bIsFOUCModel) {
-				if (!mesh->HasNormals()) {
-					WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!", LOG_ERRORS);
-					exit(0);
-				}
+			// scalar + bumpmap strength i believe
+			data->nUnk32 = 0x0400;
+			data->vUnknownProllyBumpmaps[0] = 0x00;
+			data->vUnknownProllyBumpmaps[1] = 0x00;
+			data->vUnknownProllyBumpmaps[2] = 0x00;
+			data->vUnknownProllyBumpmaps[3] = 0xFF;
+			data->vUnknownProllyBumpmaps2[0] = 0x00;
+			data->vUnknownProllyBumpmaps2[1] = 0x00;
+			data->vUnknownProllyBumpmaps2[2] = 0x00;
+			data->vUnknownProllyBumpmaps2[3] = 0xFF;
 
-				// scalar + bumpmap strength i believe
-				auto int8Vertices = (uint8_t*)vertices;
-				int8Vertices[0] = 0x00;
-				int8Vertices[1] = 0x04;
-				int8Vertices[2] = 0x00;
-				int8Vertices[3] = 0x00;
-				int8Vertices[4] = 0x00;
-				int8Vertices[5] = 0xFF;
-				int8Vertices[6] = 0x00;
-				int8Vertices[7] = 0x00;
-				int8Vertices[8] = 0x00;
-				int8Vertices[9] = 0xFF;
-				vertices += 5;
-
-				int8Vertices = (uint8_t*)vertices;
+			// normals
+			if (mesh->HasNormals()) {
 				auto normals = mesh->mNormals[i];
 				if (normals[0] > 1.0) normals[0] = 1.0;
 				if (normals[1] > 1.0) normals[1] = 1.0;
@@ -327,48 +318,46 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 				if (normals[2] < -1.0) normals[2] = -1.0;
 
 				double tmp = (-normals.z + 1) * 127.0;
-				int8Vertices[0] = tmp;
+				data->vNormals[0] = tmp;
 				tmp = (normals.y + 1) * 127.0;
-				int8Vertices[1] = tmp;
+				data->vNormals[1] = tmp;
 				tmp = (normals.x + 1) * 127.0;
-				int8Vertices[2] = tmp;
-				int8Vertices[3] = 0xFF;
-				vertices += 2;
+				data->vNormals[2] = tmp;
+				data->vNormals[3] = 0xFF;
 			}
-			if ((flags & VERTEX_COLOR) != 0) {
-				if (mesh->HasVertexColors(0)) {
-					uint8_t tmp[4] = {0, 0, 0, 0xFF};
-					tmp[0] = mesh->mColors[0][i].r * 255.0;
-					tmp[1] = mesh->mColors[0][i].g * 255.0;
-					tmp[2] = mesh->mColors[0][i].b * 255.0;
-					tmp[3] = mesh->mColors[0][i].a * 255.0;
-					*(uint32_t*)&vertices[0] = *(uint32_t*)tmp;
-				}
-				else {
-					*(uint32_t*)&vertices[0] = 0xFFFFFFFF;
-				}
-				vertices += 2; // 1 int32
+			else {
+				WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!", LOG_ERRORS);
+				exit(0);
 			}
-			if ((flags & VERTEX_UV) != 0 || (flags & VERTEX_UV2) != 0) {
-				if (!mesh->HasTextureCoords(0)) {
-					WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have UVs!", LOG_ERRORS);
-					exit(0);
-				}
-
-				vertices[0] = mesh->mTextureCoords[0][i].x * 2048.0;
-				vertices[1] = 1 - mesh->mTextureCoords[0][i].y * 2048.0;
-				vertices += 2; // 2 floats
+			// vertex color
+			if (mesh->HasVertexColors(0)) {
+				uint8_t tmp[4] = {0, 0, 0, 0xFF};
+				tmp[0] = mesh->mColors[0][i].r * 255.0;
+				tmp[1] = mesh->mColors[0][i].g * 255.0;
+				tmp[2] = mesh->mColors[0][i].b * 255.0;
+				tmp[3] = mesh->mColors[0][i].a * 255.0;
+				*(uint32_t*)data->vVertexColors = *(uint32_t*)tmp;
 			}
-			if ((flags & VERTEX_UV2) != 0) {
-				if (mesh->HasTextureCoords(1)) {
-					vertices[0] = mesh->mTextureCoords[1][i].x * 2048.0;
-					vertices[1] = 1 - mesh->mTextureCoords[1][i].y * 2048.0;
-				}
-				else {
-					vertices[0] = 0;
-					vertices[1] = 0;
-				}
-				vertices += 2; // 2 floats
+			else {
+				*(uint32_t*)data->vVertexColors = 0xFFFFFFFF;
+			}
+			// UV1
+			if (mesh->HasTextureCoords(0)) {
+				data->vUV1[0] = mesh->mTextureCoords[0][i].x * 2048.0;
+				data->vUV1[1] = 1 - mesh->mTextureCoords[0][i].y * 2048.0;
+			}
+			else {
+				WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have UVs!", LOG_ERRORS);
+				exit(0);
+			}
+			// UV2
+			if (mesh->HasTextureCoords(1)) {
+				data->vUV2[0] = mesh->mTextureCoords[0][i].x * 2048.0;
+				data->vUV2[1] = 1 - mesh->mTextureCoords[0][i].y * 2048.0;
+			}
+			else {
+				data->vUV2[0] = 0;
+				data->vUV2[1] = 0;
 			}
 			vertexData += vertexSize / 4;
 		}

@@ -71,31 +71,78 @@ void WriteW32StreamsToText() {
 						}
 					}
 					else if (bDumpStreams) {
-						auto data = (tVertexDataFOUC*)buf.data;
-						if (buf.origDataForFOUCExport) data = (tVertexDataFOUC*)buf.origDataForFOUCExport;
-						for (int k = 0; k < buf.vertexCount; k++) {
-							auto& value = data[k];
-							std::string out;
-							out += std::format("0x{:04X} ", (uint16_t)value.vPos[0]);
-							out += std::format("0x{:04X} ", (uint16_t)value.vPos[1]);
-							out += std::format("0x{:04X} ", (uint16_t)value.vPos[2]);
-							out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps[0]);
-							out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps[1]);
-							out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps[2]);
-							out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps[3]);
-							out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps2[0]);
-							out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps2[1]);
-							out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps2[2]);
-							out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps2[3]);
-							out += std::format("0x{:02X} ", value.vNormals[0]);
-							out += std::format("0x{:02X} ", value.vNormals[1]);
-							out += std::format("0x{:02X} ", value.vNormals[2]);
-							out += std::format("0x{:02X} ", value.vNormals[3]);
-							out += std::format("0x{:04X} ", value.vUV1[0]);
-							out += std::format("0x{:04X} ", value.vUV1[1]);
-							out += std::format("0x{:04X} ", value.vUV2[0]);
-							out += std::format("0x{:04X} ", value.vUV2[1]);
-							WriteFile(out);
+						if (buf.vertexSize == 32) {
+							auto data = (tVertexDataFOUC*)buf.data;
+							if (buf.origDataForFOUCExport) data = (tVertexDataFOUC*)buf.origDataForFOUCExport;
+							for (int k = 0; k < buf.vertexCount; k++) {
+								auto &value = data[k];
+								std::string out;
+								out += std::format("0x{:04X} ", (uint16_t) value.vPos[0]);
+								out += std::format("0x{:04X} ", (uint16_t) value.vPos[1]);
+								out += std::format("0x{:04X} ", (uint16_t) value.vPos[2]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps[0]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps[1]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps[2]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps[3]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps2[0]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps2[1]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps2[2]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps2[3]);
+								out += std::format("0x{:02X} ", value.vNormals[0]);
+								out += std::format("0x{:02X} ", value.vNormals[1]);
+								out += std::format("0x{:02X} ", value.vNormals[2]);
+								out += std::format("0x{:02X} ", value.vNormals[3]);
+								out += std::format("0x{:02X} ", value.vVertexColors[0]);
+								out += std::format("0x{:02X} ", value.vVertexColors[1]);
+								out += std::format("0x{:02X} ", value.vVertexColors[2]);
+								out += std::format("0x{:02X} ", value.vVertexColors[3]);
+								out += std::format("0x{:04X} ", value.vUV1[0]);
+								out += std::format("0x{:04X} ", value.vUV1[1]);
+								out += std::format("0x{:04X} ", value.vUV2[0]);
+								out += std::format("0x{:04X} ", value.vUV2[1]);
+								WriteFile(out);
+							}
+						} else if (buf.vertexSize == 24) {
+							auto data = (tVertexDataFOUC24*)buf.data;
+							if (buf.origDataForFOUCExport) data = (tVertexDataFOUC24*)buf.origDataForFOUCExport;
+							for (int k = 0; k < buf.vertexCount; k++) {
+								auto &value = data[k];
+								std::string out;
+								out += std::format("0x{:04X} ", (uint16_t)value.vPos[0]);
+								out += std::format("0x{:04X} ", (uint16_t)value.vPos[1]);
+								out += std::format("0x{:04X} ", (uint16_t)value.vPos[2]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps[0]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps[1]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps[2]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps[3]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps2[0]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps2[1]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps2[2]);
+								out += std::format("0x{:02X} ", value.vUnknownProllyBumpmaps2[3]);
+								out += std::format("0x{:02X} ", value.vNormals[0]);
+								out += std::format("0x{:02X} ", value.vNormals[1]);
+								out += std::format("0x{:02X} ", value.vNormals[2]);
+								out += std::format("0x{:02X} ", value.vNormals[3]);
+								out += std::format("0x{:04X} ", value.vUV1[0]);
+								out += std::format("0x{:04X} ", value.vUV1[1]);
+								WriteFile(out);
+							}
+						}
+						else {
+							auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(uint8_t));
+							auto data = (uint8_t*)buf.data;
+							if (buf.origDataForFOUCExport) data = (uint8_t*)buf.origDataForFOUCExport;
+
+							size_t j = 0;
+							while (j < dataSize) {
+								std::string out;
+								for (int k = 0; k < buf.vertexSize / sizeof(uint8_t); k++) {
+									out += std::format("0x{:02X}", *(uint8_t*)&data[j]);
+									out += " ";
+									j++;
+								}
+								WriteFile(out);
+							}
 						}
 					}
 				}
@@ -115,7 +162,7 @@ void WriteW32StreamsToText() {
 						std::string out;
 						for (int k = 0; k < buf.vertexSize / sizeof(float); k++) {
 							if (k == nVertexColorOffset) {
-								out += std::format("0x{:X}", *(uint32_t *) &buf.data[j]);
+								out += std::format("0x{:X}", *(uint32_t*)&buf.data[j]);
 							} else {
 								out += std::to_string(buf.data[j]);
 							}
