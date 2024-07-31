@@ -255,8 +255,41 @@ void WriteBGMMeshToFile(std::ofstream& file, tBGMMesh& mesh) {
 	}
 }
 
-void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, float foucOffset1 = 0, float foucOffset2 = 0, float foucOffset3 = 0, float foucOffset4 = fFOUCBGMScaleMultiplier) {
+void ClampMeshUVs(aiMesh* mesh, int uvChannel) {
+	if (mesh->HasTextureCoords(uvChannel)) {
+		float uvMin[2] = {99999, 99999};
+		float uvMax[2] = {-99999,-99999};
+		float uvOffset[2] = {0, 0};
+
+		for (int i = 0; i < mesh->mNumVertices; i++) {
+			auto vert = mesh->mTextureCoords[uvChannel][i];
+			uvMin[0] = std::min(vert.x, uvMin[0]);
+			uvMin[1] = std::min(vert.y, uvMin[1]);
+			uvMax[0] = std::max(vert.x, uvMax[0]);
+			uvMax[1] = std::max(vert.y, uvMax[1]);
+		}
+		while (uvMax[0] + uvOffset[0] < 0) uvOffset[0] += 1;
+		while (uvMax[1] + uvOffset[1] < 0) uvOffset[1] += 1;
+		while (uvMin[0] + uvOffset[0] > 1) uvOffset[0] -= 1;
+		while (uvMin[1] + uvOffset[1] > 1) uvOffset[1] -= 1;
+		for (int i = 0; i < mesh->mNumVertices; i++) {
+			auto vert = mesh->mTextureCoords[uvChannel][i];
+			vert.x += uvOffset[0];
+			vert.y += uvOffset[1];
+		}
+		if (uvOffset[0] != 0) {
+			WriteConsole("Moving UV of " + (std::string)mesh->mName.C_Str() + " by " + std::to_string(uvOffset[0]), LOG_ALL);
+		}
+		if (uvOffset[1] != 0) {
+			WriteConsole("Moving UV of " + (std::string)mesh->mName.C_Str() + " by " + std::to_string(uvOffset[1]), LOG_ALL);
+		}
+	}
+}
+
+void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, float foucOffset1 = 0, float foucOffset2 = 0, float foucOffset3 = 0, float foucOffset4 = fFOUCBGMScaleMultiplier, bool treeHack = false) {
 	int id = aVertexBuffers.size() + aVegVertexBuffers.size() + aIndexBuffers.size();
+
+	if (bNoTreeHack) treeHack = false;
 
 	if ((flags & VERTEX_UV2) != 0 && !mesh->HasTextureCoords(1)) {
 		WriteConsole("WARNING: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have 2 sets of UVs!", LOG_MINOR_WARNINGS);
@@ -279,6 +312,10 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 		exit(0);
 	}
 	if (bIsFOUCModel) {
+		// adjust UV coords to fit into the 2048 grid
+		ClampMeshUVs(mesh, 0);
+		ClampMeshUVs(mesh, 1);
+
 		vBuf.flags |= VERTEX_INT16;
 		vBuf.data = new float[mesh->mNumVertices * (vertexSize / 4)];
 		memset(vBuf.data, 0, mesh->mNumVertices * (vertexSize / 4) * sizeof(float));
@@ -316,6 +353,11 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 				if (normals[0] < -1.0) normals[0] = -1.0;
 				if (normals[1] < -1.0) normals[1] = -1.0;
 				if (normals[2] < -1.0) normals[2] = -1.0;
+				if (treeHack) {
+					normals.x = 0;
+					normals.y = 1;
+					normals.z = 0;
+				}
 
 				double tmp = (-normals.z + 1) * 127.0;
 				data->vNormals[0] = tmp;
@@ -542,7 +584,7 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel) {
 				mat.sName.pop_back();
 			}
 		}
-		if (mat.sName.ends_with("_dynamic_specular")) mat.nShaderId = 4; // dynamic specular, custom suffix for manual use
+		if (mat.sName.ends_with("_specular")) mat.nShaderId = 4; // dynamic specular, custom suffix for manual use
 	}
 
 	mat.nNumTextures = fbxMaterial->GetTextureCount(aiTextureType_DIFFUSE);
@@ -565,9 +607,10 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel) {
 	}
 	// FOUC doesn't seem to support trees outside of plant_geom, replace their shaders to get around this
 	if (bIsFOUCModel) {
-		if (mat.nShaderId == 19) mat.nShaderId = 0;
-		if (mat.nShaderId == 20) mat.nShaderId = 0;
-		if (mat.nShaderId == 21) mat.nShaderId = 0;
+		if (mat.nShaderId == 19 || mat.nShaderId == 20 || mat.nShaderId == 21) {
+			if (mat.nShaderId != 19) mat._bIsCustomFOUCTree = true;
+			mat.nShaderId = 0;
+		}
 	}
 	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId), LOG_ALL);
 	return mat;
@@ -828,7 +871,7 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 			vFOUCCenter = {0, 0, 0};
 		}
 
-		CreateStreamsFromFBX(mesh, bufFlags, vertexSize, vFOUCCenter.x, vFOUCCenter.y, vFOUCCenter.z, fFOUCRadius);
+		CreateStreamsFromFBX(mesh, bufFlags, vertexSize, vFOUCCenter.x, vFOUCCenter.y, vFOUCCenter.z, fFOUCRadius, aMaterials[surface->nMaterialId]._bIsCustomFOUCTree);
 		surface->foucVertexMultiplier[0] = vFOUCCenter[0];
 		surface->foucVertexMultiplier[1] = vFOUCCenter[1];
 		surface->foucVertexMultiplier[2] = vFOUCCenter[2];
@@ -1125,11 +1168,11 @@ void WriteW32(uint32_t exportMapVersion) {
 				WalkFBXTreeForMeshes(pParsedFBXScene->mRootNode);
 			}
 			else {
-				for (int i = 0; i < 9999; i++) {
-					if (auto node = FindFBXNodeForSurface(i)) {
-						for (int j = 0; j < node->mNumMeshes; j++) {
-							aUnorderedMeshImports.push_back({node, pParsedFBXScene->mMeshes[node->mMeshes[j]]});
-						}
+				auto nodes = GetAllFBXSurfaceNodes();
+				for (auto node : nodes) {
+					if (node->mNumMeshes == 0) continue;
+					for (int j = 0; j < node->mNumMeshes; j++) {
+						aUnorderedMeshImports.push_back({node, pParsedFBXScene->mMeshes[node->mMeshes[j]]});
 					}
 				}
 			}

@@ -27,6 +27,7 @@ bool bImportAndAutoMatchAllMeshesFromFBX = false;
 bool bImportDeletionFromFBX = false;
 bool bClearOriginalMaterials = false;
 bool bNoMaterialReuse = false;
+bool bNoTreeHack = false;
 bool bUngroupMovedPropsFromFBX = false;
 bool bCreateBGMFromFBX = false;
 bool bLoadFBX = false;

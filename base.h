@@ -312,6 +312,7 @@ struct tMaterial {
 
 	int _nNumReferences = 0;
 	bool _bIsCustom = false;
+	bool _bIsCustomFOUCTree = false;
 	tMaterial() {
 		memset(v108, 0, sizeof(v108));
 		memset(v109, 0, sizeof(v109));
@@ -576,6 +577,22 @@ aiNode* FindFBXNodeForSurface(int id) {
 	if (auto node = FindFBXNodeForStaticBatchSurface(name)) return node;
 	if (auto node = FindFBXNodeForTreeMeshSurface(name)) return node;
 	return nullptr;
+}
+
+std::vector<aiNode*> GetAllFBXSurfaceNodes() {
+	std::vector<aiNode*> nodes;
+	auto staticBatches = GetFBXNodeForStaticBatchArray();
+	for (int i = 0; i < staticBatches->mNumChildren; i++) {
+		nodes.push_back(staticBatches->mChildren[i]);
+	}
+	auto treeMeshes = GetFBXNodeForTreeMeshArray();
+	for (int i = 0; i < treeMeshes->mNumChildren; i++) {
+		auto treeMesh = treeMeshes->mChildren[i];
+		for (int j = 0; j < treeMesh->mNumChildren; j++) {
+			nodes.push_back(treeMesh->mChildren[j]);
+		}
+	}
+	return nodes;
 }
 
 aiMatrix4x4 GetFullMatrixFromCompactMeshObject(aiNode* node) {
