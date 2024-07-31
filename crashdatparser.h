@@ -1,4 +1,6 @@
 bool ParseCrashDat(const std::filesystem::path& fileName) {
+	WriteConsole("Parsing crash.dat...", LOG_ALWAYS);
+
 	if (fileName.extension() != ".dat") {
 		return false;
 	}
@@ -50,7 +52,5 @@ bool ParseCrashDat(const std::filesystem::path& fileName) {
 		}
 		aCrashData.push_back(data);
 	}
-
-	WriteConsole("Parsing finished", LOG_ALWAYS);
 	return true;
 }

@@ -1572,6 +1572,11 @@ void WriteBGM(uint32_t exportMapVersion) {
 }
 
 void WriteCrashDat(uint32_t exportMapVersion) {
+	if (aCrashData.empty()) {
+		WriteConsole("No crash data found, skipping crash.dat export", LOG_ALWAYS);
+		return;
+	}
+
 	WriteConsole("Writing output crash.dat file...", LOG_ALWAYS);
 
 	nExportFileVersion = exportMapVersion;
