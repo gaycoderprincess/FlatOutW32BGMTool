@@ -15,12 +15,12 @@ struct tTrackBVHNode {
 std::vector<tTrackBVHPrimitive> aBVHPrimitives;
 std::vector<tTrackBVHNode> aBVHNodes;
 
-bool ParseTrackBVH() {
-	if (sFileName.extension() != ".gen") {
+bool ParseTrackBVH(const std::filesystem::path& fileName) {
+	if (fileName.extension() != ".gen") {
 		return false;
 	}
 
-	std::ifstream fin(sFileName, std::ios::in | std::ios::binary );
+	std::ifstream fin(fileName, std::ios::in | std::ios::binary );
 	if (!fin.is_open()) return false;
 
 	uint32_t identifier;
@@ -49,6 +49,8 @@ bool ParseTrackBVH() {
 }
 
 void WriteTrackBVH() {
+	WriteConsole("Writing output track_bvh file...", LOG_ALWAYS);
+
 	std::ofstream fout(sFileNameNoExt.string() + "_bvh.gen", std::ios::out | std::ios::binary);
 	if (!fout.is_open()) return;
 
@@ -72,6 +74,40 @@ void WriteTrackBVH() {
 		fout.write((char*)&node.nUnk1, sizeof(node.nUnk1));
 		fout.write((char*)&node.nUnk2, sizeof(node.nUnk2));
 	}
+
+	WriteConsole("track_bvh export finished", LOG_ALWAYS);
+}
+
+void WriteTrackBVHToText() {
+	if (aBVHPrimitives.empty() && aBVHNodes.empty()) return;
+
+	WriteFile("");
+	WriteFile("BVH data begin");
+	WriteFile("Primitive Count: " + std::to_string(aBVHPrimitives.size()));
+	for (auto& prim : aBVHPrimitives) {
+		WriteFile("vPos.x: " + std::to_string(prim.vPos[0]));
+		WriteFile("vPos.y: " + std::to_string(prim.vPos[1]));
+		WriteFile("vPos.z: " + std::to_string(prim.vPos[2]));
+		WriteFile("vRadius.x: " + std::to_string(prim.vRadius[0]));
+		WriteFile("vRadius.y: " + std::to_string(prim.vRadius[1]));
+		WriteFile("vRadius.z: " + std::to_string(prim.vRadius[2]));
+		WriteFile("nId1: " + std::to_string(prim.nId1));
+		WriteFile("nId2: " + std::to_string(prim.nId2));
+		WriteFile("");
+	}
+	WriteFile("");
+	WriteFile("Node Count: " + std::to_string(aBVHPrimitives.size()));
+	for (auto& node : aBVHNodes) {
+		WriteFile("vPos.x: " + std::to_string(node.vPos[0]));
+		WriteFile("vPos.y: " + std::to_string(node.vPos[1]));
+		WriteFile("vPos.z: " + std::to_string(node.vPos[2]));
+		WriteFile("vRadius.x: " + std::to_string(node.vRadius[0]));
+		WriteFile("vRadius.y: " + std::to_string(node.vRadius[1]));
+		WriteFile("vRadius.z: " + std::to_string(node.vRadius[2]));
+		WriteFile("nUnknown1: " + std::to_string(node.nUnk1));
+		WriteFile("nUnknown2: " + std::to_string(node.nUnk1));
+		WriteFile("");
+	}
 }
 
 bool ReadAndEmptyTrackBVH() {
@@ -79,7 +115,7 @@ bool ReadAndEmptyTrackBVH() {
 		return false;
 	}
 
-	if (!ParseTrackBVH()) return false;
+	if (!ParseTrackBVH(sFileName)) return false;
 
 	for (auto& prim : aBVHPrimitives) {
 		prim.vRadius[0] = 10000;
@@ -93,6 +129,48 @@ bool ReadAndEmptyTrackBVH() {
 	}
 
 	WriteTrackBVH();
+	if (bDumpIntoTextFile) {
+		WriteTrackBVHToText();
+	}
 
 	return true;
+}
+
+tTrackBVHPrimitive* GetBVHPrimitiveForIDs(int id1, int id2) {
+	for (auto& prim : aBVHPrimitives) {
+		if (prim.nId1 == id1 && prim.nId2 == id2) return &prim;
+	}
+	return nullptr;
+}
+
+void UpdateTrackBVH() {
+	for (auto& batch : aStaticBatches) {
+		auto prim = GetBVHPrimitiveForIDs(batch.nBVHId1, batch.nBVHId2);
+		if (!prim) {
+			WriteConsole("ERROR: Failed to find BVH primitive for StaticBatch " + std::to_string(&batch - &aStaticBatches[0]), LOG_ERRORS);
+			continue;
+		}
+		memcpy(prim->vPos, batch.vCenter, sizeof(prim->vPos));
+		memcpy(prim->vRadius, batch.vRadius, sizeof(prim->vRadius));
+	}
+	for (auto& tree : aTreeMeshes) {
+		auto prim = GetBVHPrimitiveForIDs(tree.nBVHId1, tree.nBVHId2);
+		if (!prim) {
+			WriteConsole("ERROR: Failed to find BVH primitive for TreeMesh " + std::to_string(&tree - &aTreeMeshes[0]), LOG_ERRORS);
+			continue;
+		}
+		auto surfId = tree.nBranchSurfaceId;
+		if (surfId < 0 || surfId >= aSurfaces.size()) continue;
+
+		auto& surface = aSurfaces[surfId];
+		if (surface.vRadius[0] == 0 && surface.vRadius[1] == 0 && surface.vRadius[2] == 0) continue;
+		memcpy(prim->vPos, surface.vCenter, sizeof(prim->vPos));
+		memcpy(prim->vRadius, surface.vRadius, sizeof(prim->vRadius));
+	}
+
+	for (auto& node : aBVHNodes) {
+		node.vRadius[0] = 10000;
+		node.vRadius[1] = 10000;
+		node.vRadius[2] = 10000;
+	}
 }

@@ -887,6 +887,14 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 	surface->nStreamId[1] = streamCount + 1;
 	surface->_bIsReplacedMapSurface = true;
 	surface->_pReplacedMapSurfaceMesh = mesh;
+
+	// update bvh for associated nodes
+	for (auto& batch : aStaticBatches) {
+		if (batch.nBVHId1 == surface - &aSurfaces[0]) {
+			memcpy(batch.vCenter, surface->vCenter, sizeof(batch.vCenter));
+			memcpy(batch.vRadius, surface->vRadius, sizeof(batch.vRadius));
+		}
+	}
 }
 
 tCompactMesh* GetCompactMeshByName(const std::string& name) {
@@ -1411,6 +1419,8 @@ void WriteW32(uint32_t exportMapVersion) {
 	file.flush();
 
 	WriteConsole("W32 export finished", LOG_ALWAYS);
+
+	UpdateTrackBVH();
 }
 
 std::vector<tVertexBuffer> aConversionVertexBuffers;

@@ -17,11 +17,11 @@
 #include "base.h"
 #include "config.h"
 #include "crashdatparser.h"
+#include "trackbvh.h"
 #include "w32parser.h"
 #include "w32writer.h"
 #include "w32textexport.h"
 #include "w32fbxexport.h"
-#include "trackbvh.h"
 #include "plants.h"
 #include "commandline.h"
 
@@ -118,9 +118,15 @@ int main(int argc, char *argv[]) {
 				if (!ParseW32()) {
 					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 				} else {
-					if (bDumpIntoTextFile) WriteW32ToText();
+					if (bDumpIntoTextFile) {
+						WriteW32ToText();
+						WriteTrackBVHToText();
+					}
 					if (bDumpIntoFBX) WriteToFBX();
-					if (bDumpIntoW32) WriteW32(bConvertToFO1 ? 0x10005 : nImportFileVersion);
+					if (bDumpIntoW32) {
+						WriteW32(bConvertToFO1 ? 0x10005 : nImportFileVersion);
+						WriteTrackBVH();
+					}
 				}
 			} else {
 				WriteConsole("ERROR: Unrecognized file format for " + sFileName.string(), LOG_ERRORS);

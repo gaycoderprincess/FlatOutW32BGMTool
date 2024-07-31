@@ -631,6 +631,14 @@ bool ParseW32() {
 		}
 	}
 
+	// first look for modelname_crash.dat, then look for crash.dat in the folder
+	auto bvhPath = sFileNameNoExt.string() + "_bvh.gen";
+	if (!std::filesystem::exists(bvhPath)) bvhPath = sFileFolder.string() + "track_bvh.gen";
+
+	if (!ParseTrackBVH(bvhPath)) {
+		WriteConsole("WARNING: Failed to load " + (std::string)bvhPath + ", culling data will not be updated", LOG_WARNINGS);
+	}
+
 	if (!ParseW32Materials(fin)) return false;
 	if (!ParseW32Streams(fin)) return false;
 	if (!ParseW32Surfaces(fin, nImportFileVersion)) return false;

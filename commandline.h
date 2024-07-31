@@ -170,7 +170,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-skip_hidden_props_b", CMD_W32_FBXSkipHiddenPropsB, "Only exports the props from track variant B into the .fbx file" },
 		{ "-skip_hidden_props_c", CMD_W32_FBXSkipHiddenPropsC, "Only exports the props from track variant C into the .fbx file" },
 		{ "-enable_all_props", CMD_W32_EnableAllProps, "Enables all hidden dynamic props in an input map file" },
-		{ "-empty_bvh_gen", CMD_EmptyTrackBVH, "Takes a track_bvh.gen file as the first argument and generates a new empty one, required to avoid culling issues!" },
+		{ "-empty_bvh_gen", CMD_EmptyTrackBVH, "Takes a track_bvh.gen file as the first argument and generates a new empty one, disables all culling" },
 		{ "-empty_plant_vdb", CMD_EmptyPlantVDB, "Generates an empty plant_vdb.gen, removes all grass from the map" },
 
 		// map fbx import options
