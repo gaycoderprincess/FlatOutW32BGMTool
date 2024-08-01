@@ -17,6 +17,7 @@ void CMD_ExportBGM_FOUC() {
 }
 void CMD_ExportW32_FO1() {
 	bCreateW32FromFBX = true;
+	nImportFileVersion = 0x10005;
 	nExportFileVersion = 0x10005;
 }
 void CMD_ExportW32_FO2() {
@@ -273,6 +274,25 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 	}
 	if (bConvertToFO2) {
 		WriteConsole("WARNING: Direct conversions from Ultimate Carnage to FlatOut 2 will skip crash.dat, export the model to .fbx first to keep car damage!", LOG_ALWAYS);
+	}
+
+	if (bCreateW32FromFBX) {
+		bCreateBGMFromFBX = false;
+		//bDisableObjects = false;
+		//bDisableProps = false;
+		bEnableAllProps = false;
+		bImportPropsFromFBX = false;
+		bImportClonedPropsFromFBX = false;
+		bImportAllPropsFromFBX = false;
+		bImportAllObjectsFromFBX = false;
+		bImportSurfacesFromFBX = false;
+		bImportAllSurfacesFromFBX = false;
+		bImportAndAutoMatchAllSurfacesFromFBX = false;
+		bImportAndAutoMatchAllMeshesFromFBX = false;
+		bImportDeletionFromFBX = false;
+		bClearOriginalMaterials = false;
+		bNoMaterialReuse = false;
+		bUngroupMovedPropsFromFBX = false;
 	}
 
 	sFileName = argv[1];
