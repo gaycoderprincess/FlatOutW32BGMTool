@@ -569,13 +569,13 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 		if (mat.sName.starts_with("alpha_treesprite")) mat.nShaderId = 21; // tree leaf
 		if (mat.sName.starts_with("alpha_bushlod")) mat.nShaderId = 21; // tree leaf
 		if (mat.sName.starts_with("alpha_bushsprite")) mat.nShaderId = 21; // tree leaf
-		if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 25; // puddle : water
+		if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
 		if (mat.sName.ends_with(".001")) {
 			for (int i = 0; i < 4; i++) {
 				mat.sName.pop_back();
 			}
 		}
-		if (mat.sName == "water") mat.nShaderId = bIsFOUCModel ? 45 : 25; // puddle : water
+		if (mat.sName == "water") mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
 	}
 	else {
 		mat.nShaderId = 3; // dynamic diffuse
@@ -1053,8 +1053,44 @@ tModel* CreateModelFromMesh(aiNode* node) {
 
 std::string GetPropDynamicObjectByName(const std::string& propName) {
 	if (nExportFileVersion >= 0x20000) {
+		if (propName.starts_with("dyn_barnworshop_blank_")) return "wood_light";
+		if (propName.starts_with("dyn_cableroll")) return "wood_obstacle";
+		if (propName.starts_with("dyn_lawnmower")) return "metal_sheet";
+		if (propName.starts_with("dyn_rake_")) return "metal_sheet";
+		if (propName.starts_with("dyn_cartrailer")) return "metal_car";
+		if (propName.starts_with("dyn_watertankhut") && propName.ends_with("_tank_")) return "metal_watertank";
+		if (propName.starts_with("dyn_watertankhut") && propName.ends_with("_metal_")) return "metal_light";
+		if (propName.starts_with("dyn_watertankhut") && propName.ends_with("_hose_")) return "metal_sheet";
+		if (propName.starts_with("dyn_warningsign")) return "metal_light";
+		if (propName.starts_with("dyn_truck_n_")) return "metal_light";
+		if (propName.starts_with("dyn_bighouse_a_door")) return "metal_light";
+		if (propName.starts_with("dyn_directionsign")) return "wood_light";
+		if (propName.starts_with("dyn_plastictable")) return "plastic_light";
+		if (propName.starts_with("dyn_chainsaw")) return "metal_sheet";
+		if (propName.starts_with("dyn_startgate")) return "wood_light";
+		if (propName.starts_with("dyn_ranchgate")) return "wood_light";
+		if (propName.starts_with("dyn_new_lightflap")) return "wood_light";
+		if (propName.starts_with("dyn_forsale")) return "wood_light";
+		if (propName.starts_with("dyna_stone_")) return "rock_light";
+		if (propName.starts_with("dyn_new_open_trench")) return "wood_light";
+		if (propName.starts_with("dyn_open_trench")) return "wood_light";
+		if (propName.starts_with("dyn_bridge_covered")) return "wood_light";
+		if (propName.starts_with("dyn_plane_small_0")) return "explosive_cropduster";
+		if (propName.starts_with("dyn_plane_small_")) return "metal_sheet";
+		if (propName.starts_with("dyn_oldsmalltruck")) return "metal_heavy";
+		if (propName.starts_with("dyn_farm_hayroof_support")) return "wood_light";
+		if (propName.starts_with("dyn_farm_hayroof")) return "metal_sheet";
+		if (propName.starts_with("dyn_hayroof")) return "metal_sheet";
+		if (propName.starts_with("dyn_tractor")) return "metal_car";
+		if (propName.starts_with("dyn_cementmixer")) return "metal_medium";
+		if (propName.starts_with("dyn_metal_barrel")) return "metal_barrel";
+		if (propName.starts_with("dyn_canister")) return "metal_sheet";
+		if (propName.starts_with("dyn_square_hay")) return "hay_box";
+		if (propName.starts_with("dyn_barn_big_american_door")) return "wood_light";
+		if (propName.starts_with("dyn_plasticchair")) return "plastic_light";
 		if (propName.starts_with("dyn_pipe")) return "metal_pipes";
 		if (propName.starts_with("dyn_new_detour_sign")) return "wood_light";
+		if (propName.starts_with("dyn_detour_sign")) return "wood_light";
 		if (propName.starts_with("dyn_warning_lamp")) return "plastic_light";
 		if (propName.starts_with("light_arrows_lamp")) return "metal_sheet";
 		if (propName.starts_with("dyn_haybale")) return "hay_box";
@@ -1069,7 +1105,8 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("dyn_traficlightpole") && propName.ends_with("lights_02")) return "metal_light";
 		if (propName.starts_with("dyn_parkingmeter")) return "metal_light";
 		if (propName.find("ladder") != std::string::npos) return "metal_medium";
-		if (propName.starts_with("dyn_cardboardbox")) return "wood_light";
+		if (propName.starts_with("dyn_cardboardbox")) return "cardboard_box";
+		if (propName.starts_with("dyn_cardboard_box")) return "cardboard_box";
 		if (propName.starts_with("dyn_tent_table")) return "wood_light";
 		if (propName.find("bench") != std::string::npos) return "wood_light";
 		if (propName.starts_with("dyn_marketsign")) return "wood_light";
@@ -1118,8 +1155,44 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("dyna_house_")) return "wood_light";
 	}
 	else {
+		if (propName.starts_with("dyn_barnworshop_blank_")) return "wood_plank_light";
+		//if (propName.starts_with("dyn_cableroll")) return "";
+		//if (propName.starts_with("dyn_lawnmower")) return "";
+		//if (propName.starts_with("dyn_rake_")) return "";
+		if (propName.starts_with("dyn_cartrailer")) return "metal_car_roadrunner";
+		if (propName.starts_with("dyn_watertankhut") && propName.ends_with("_tank_")) return "metal_watertank";
+		if (propName.starts_with("dyn_watertankhut") && propName.ends_with("_metal_")) return "metal_light";
+		//if (propName.starts_with("dyn_watertankhut") && propName.ends_with("_hose_")) return "";
+		if (propName.starts_with("dyn_warningsign")) return "metal_light";
+		if (propName.starts_with("dyn_truck_n_")) return "metal_light";
+		if (propName.starts_with("dyn_bighouse_a_door")) return "metal_light";
+		if (propName.starts_with("dyn_directionsign")) return "wood_plank_light";
+		//if (propName.starts_with("dyn_plastictable")) return "";
+		//if (propName.starts_with("dyn_chainsaw")) return "";
+		if (propName.starts_with("dyn_startgate")) return "wood_plank_light";
+		if (propName.starts_with("dyn_ranchgate")) return "wood_plank_light";
+		if (propName.starts_with("dyn_new_lightflap")) return "wood_plank_light";
+		if (propName.starts_with("dyn_forsale")) return "wood_plank_light";
+		//if (propName.starts_with("dyna_stone_")) return "";
+		if (propName.starts_with("dyn_new_open_trench")) return "wood_plank_light";
+		if (propName.starts_with("dyn_open_trench")) return "wood_plank_light";
+		if (propName.starts_with("dyn_bridge_covered")) return "wood_plank_light";
+		//if (propName.starts_with("dyn_plane_small_0")) return "";
+		//if (propName.starts_with("dyn_plane_small_")) return "";
+		if (propName.starts_with("dyn_oldsmalltruck")) return "metal_car_roadrunner";
+		if (propName.starts_with("dyn_farm_hayroof_support")) return "wood_plank_light";
+		//if (propName.starts_with("dyn_farm_hayroof")) return "";
+		//if (propName.starts_with("dyn_hayroof")) return "";
+		if (propName.starts_with("dyn_tractor")) return "metal_car_roadrunner";
+		//if (propName.starts_with("dyn_cementmixer")) return "";
+		if (propName.starts_with("dyn_metal_barrel")) return "metal_light";
+		//if (propName.starts_with("dyn_canister")) return "";
+		//if (propName.starts_with("dyn_square_hay")) return "";
+		if (propName.starts_with("dyn_barn_big_american_door")) return "wood_plank_light";
+		//if (propName.starts_with("dyn_plasticchair")) return "";
 		//if (propName.starts_with("dyn_pipe")) return "";
 		if (propName.starts_with("dyn_new_detour_sign")) return "wood_plank_light";
+		if (propName.starts_with("dyn_detour_sign")) return "wood_plank_light";
 		//if (propName.starts_with("dyn_warning_lamp")) return "";
 		//if (propName.starts_with("light_arrows_lamp")) return "";
 		//if (propName.starts_with("dyn_haybale")) return "";
@@ -1136,6 +1209,7 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("dyn_parkingmeter")) return "metal_parkingmeter";
 		if (propName.find("ladder") != std::string::npos) return "metal_ladder_medium";
 		if (propName.starts_with("dyn_cardboardbox")) return "wood_market_cardboardbox_medium";
+		if (propName.starts_with("dyn_cardboard_box")) return "wood_market_cardboardbox_medium";
 		if (propName.starts_with("dyn_tent_table")) return "wood_table";
 		if (propName.find("bench") != std::string::npos) return "wood_bench";
 		if (propName.starts_with("dyn_marketsign")) return "wood_market_sign_pole";
@@ -1183,6 +1257,8 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("dyn_motelsignpost")) return "metal_sign_huge";
 		if (propName.starts_with("dyna_house_")) return "wood_board_medium";
 	}
+	if (propName.starts_with("dyn_arrowsign_metal")) return "metal_light";
+	if (propName.starts_with("dyn_arrowsign")) return "metal_light";
 	if (propName.starts_with("dyn_metal_structure")) return "metal_light";
 	if (propName.starts_with("dyn_valve")) return "metal_light";
 	if (propName.starts_with("light_arrow_support")) return "metal_light";
@@ -1253,7 +1329,9 @@ void WriteW32(uint32_t exportMapVersion) {
 		return;
 	}
 
-	std::ofstream file(sFileNameNoExt.string() + "_out.w32", std::ios::out | std::ios::binary );
+	auto outFileName = sFileNameNoExt.string() + "_out.w32";
+	if (bW32UseVanillaNames) outFileName = bIsFOUCModel ? "track_geom_w2.w32" : "track_geom.w32";
+	std::ofstream file(outFileName, std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 
 	file.write((char*)&nExportFileVersion, 4);

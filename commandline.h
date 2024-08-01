@@ -158,6 +158,9 @@ void CMD_LogWarningsOnly() {
 void CMD_LogErrorsOnly() {
 	nLoggingSeverity = LOG_ERRORS;
 }
+void CMD_W32_UseVanillaNames() {
+	bW32UseVanillaNames = true;
+}
 
 struct tCommandlineArgument {
 	std::string name;
@@ -208,6 +211,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-no_material_reuse", CMD_W32_NoMaterialReuse, "Ignores all original w32 materials, instead always importing new ones from the .fbx" },
 		{ "-no_tree_hack", CMD_W32_NoTreeHack, "Disables the adjusting of normal vectors for tree shaders in Ultimate Carnage" },
 		{ "-import_deletions", CMD_W32_ImportDeletions, "Deletes surfaces that have been deleted in an .fbx, takes an .fbx file as the second argument" },
+		{ "-use_vanilla_names", CMD_W32_UseVanillaNames, "Exports the files as their original names, e.g. track_geom.w32, track_bvh.gen" },
 
 		// text options
 		{ "-text_materials", CMD_DumpText_Materials, "Dumps all material data into a text file", "Text dumps" },

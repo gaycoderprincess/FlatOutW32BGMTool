@@ -33,6 +33,7 @@ bool bNoTreeHack = false;
 bool bUngroupMovedPropsFromFBX = false;
 bool bCreateBGMFromFBX = false;
 bool bCreateW32FromFBX = false;
+bool bW32UseVanillaNames = false;
 bool bLoadFBX = false;
 
 // special options

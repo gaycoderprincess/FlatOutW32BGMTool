@@ -56,7 +56,9 @@ void WriteTrackBVH() {
 
 	WriteConsole("Writing output track_bvh file...", LOG_ALWAYS);
 
-	std::ofstream fout(sFileNameNoExt.string() + "_out_bvh.gen", std::ios::out | std::ios::binary);
+	auto outFileName = sFileNameNoExt.string() + "_out_bvh.gen";
+	if (bW32UseVanillaNames) outFileName = "track_bvh.gen";
+	std::ofstream fout(outFileName, std::ios::out | std::ios::binary);
 	if (!fout.is_open()) return;
 
 	uint32_t identifier = 0xDEADC0DE;
