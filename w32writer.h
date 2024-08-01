@@ -587,11 +587,13 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel) {
 
 		if (i == 0 && (texName == "colormap.tga" || texName == "Colormap.tga")) {
 			mat.nUseColormap = 1;
+			if (mat.nShaderId == 0) mat.nShaderId = 1; // terrain shader
 
 			// hack to load colormapped textures properly when the fbx has texture2 stripped
 			if (mat.nNumTextures == 1) {
 				mat.sTextureNames[1] = mat.sName + ".tga";
-				if (mat.sTextureNames[1].starts_with("terrain_")) mat.sTextureNames[1] = "dm_" + mat.sTextureNames[1];
+				//if (mat.sTextureNames[1].starts_with("terrain_")) mat.sTextureNames[1] = "dm_" + mat.sTextureNames[1];
+				if (!mat.sName.starts_with("dm_") && !mat.sName.starts_with("sdm_")) mat.sTextureNames[1] = "dm_" + mat.sName + ".tga";
 				mat.nNumTextures = 2;
 				break;
 			}
@@ -1046,6 +1048,7 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("dyn_marketsign")) return "wood_light";
 		if (propName.starts_with("dyn_markettable")) return "wood_light";
 		if (propName.starts_with("dyn_woodbox")) return "wood_light";
+		if (propName.starts_with("dyn_woodenbox")) return "wood_light";
 		if (propName.starts_with("dyn_fruit")) return "rubber_cone";
 		if (propName.starts_with("dyn_chair")) return "plastic_light";
 		if (propName.starts_with("dyn_trashcan")) return "metal_medium";
@@ -1103,6 +1106,7 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("dyn_marketsign")) return "wood_market_sign_pole";
 		if (propName.starts_with("dyn_markettable")) return "wood_market_table_top";
 		if (propName.starts_with("dyn_woodbox")) return "wood_market_fruitholder";
+		if (propName.starts_with("dyn_woodenbox")) return "wood_market_fruitholder";
 		if (propName.starts_with("dyn_fruit")) return "wood_market_fruit_medium";
 		if (propName.starts_with("dyn_chair")) return "wood_market_chair";
 		if (propName.starts_with("dyn_trashcan")) return "metal_trashcan_medium";

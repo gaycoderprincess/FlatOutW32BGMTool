@@ -461,6 +461,9 @@ aiScene GenerateScene() {
 		node->mName = "Objects";
 		scene.mRootNode->addChildren(1, &node);
 		for (auto& object : aObjects) {
+			uint32_t tmpFlags = object.nFlags - (object.nFlags % 0x1000);
+			if (bFBXSkipHiddenProps && tmpFlags != 0xE000 && tmpFlags != nFBXSkipHiddenPropsFlag) continue;
+
 			auto objectNode = new aiNode();
 			objectNode->mName = object.sName1;
 			FO2MatrixToFBXMatrix(object.mMatrix, &objectNode->mTransformation);
