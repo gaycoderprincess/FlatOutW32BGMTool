@@ -538,6 +538,8 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	if (mat.sName.starts_with("shearhock")) mat.nAlpha = 0;
 	// fouc tire_01 hack
 	if (bIsFOUCModel && mat.sTextureNames[0] == "tire_01.tga") mat.sTextureNames[0] = "tire.tga";
+	// custom alpha suffix
+	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
 	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId), LOG_ALL);
 	return mat;
 }

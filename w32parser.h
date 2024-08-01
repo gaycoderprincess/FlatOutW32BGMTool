@@ -724,6 +724,7 @@ void PreParseBGMForFileVersion() {
 
 	if (!ParseW32Materials(fin, false)) return;
 	PreParseW32Streams(fin);
+	aMaterials.clear();
 }
 
 bool ParseBGM() {
