@@ -276,6 +276,7 @@ void ClampMeshUVs(aiMesh* mesh, int uvChannel) {
 	}
 }
 
+bool bTmpFlipImportedModels = false;
 void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, float foucOffset1 = 0, float foucOffset2 = 0, float foucOffset3 = 0, float foucOffset4 = fFOUCBGMScaleMultiplier, bool treeHack = false) {
 	int id = aVertexBuffers.size() + aIndexBuffers.size();
 
@@ -475,9 +476,16 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			WriteConsole("ERROR: Non-tri found in FBX mesh while exporting!", LOG_ERRORS);
 			continue;
 		}
-		indexData[0] = face.mIndices[2];
-		indexData[1] = face.mIndices[1];
-		indexData[2] = face.mIndices[0];
+		if (bTmpFlipImportedModels) {
+			indexData[0] = face.mIndices[0];
+			indexData[1] = face.mIndices[1];
+			indexData[2] = face.mIndices[2];
+		}
+		else {
+			indexData[0] = face.mIndices[2];
+			indexData[1] = face.mIndices[1];
+			indexData[2] = face.mIndices[0];
+		}
 		indexData += 3;
 	}
 	aVertexBuffers.push_back(vBuf);
@@ -544,7 +552,7 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	return mat;
 }
 
-tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel) {
+tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, bool disallowTrees) {
 	tMaterial mat;
 	auto matName = fbxMaterial->GetName().C_Str();
 	mat.sName = matName;
@@ -604,11 +612,19 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel) {
 		mat.nShaderId = 34; // reflecting window shader (static)
 	}
 	if (mat.sTextureNames[0].starts_with("alpha") || mat.sTextureNames[0].starts_with("Alpha")) mat.nAlpha = 1;
-	// FOUC doesn't seem to support trees outside of plant_geom, replace their shaders to get around this
-	if (bIsFOUCModel) {
+	// Trees outside of TreeMesh don't draw, replace their shaders to get around this
+	if (disallowTrees) {
 		if (mat.nShaderId == 19 || mat.nShaderId == 20 || mat.nShaderId == 21) {
 			if (mat.nShaderId != 19) mat._bIsCustomFOUCTree = true;
 			mat.nShaderId = 0;
+		}
+	}
+	else {
+		// water is a window in fo1/fo2, lol
+		if (mat.sTextureNames[0] == "puddle_normal.tga") {
+			mat.sTextureNames[0] = "alpha_windowshader.tga";
+			mat.nShaderId = 34; // reflecting window shader (static)
+			mat.nAlpha = 1;
 		}
 	}
 	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId), LOG_ALL);
@@ -810,7 +826,11 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 	auto material = FindMaterialIDByName(fbxMaterial->GetName().C_Str(), bNoMaterialReuse);
 	if (material < 0) {
 		material = aMaterials.size();
-		auto newMat = GetMapMaterialFromFBX(fbxMaterial, isStaticModel);
+		bool isTree = false;
+		if (surface->_nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_3] > 0) isTree = true;
+		if (surface->_nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_4] > 0) isTree = true;
+		if (surface->_nNumReferencesByType[SURFACE_REFERENCE_TREEMESH_5] > 0) isTree = true;
+		auto newMat = GetMapMaterialFromFBX(fbxMaterial, isStaticModel, !isTree);
 		newMat._bIsCustom = true;
 		aMaterials.push_back(newMat);
 	}
@@ -1033,6 +1053,13 @@ tModel* CreateModelFromMesh(aiNode* node) {
 
 std::string GetPropDynamicObjectByName(const std::string& propName) {
 	if (nExportFileVersion >= 0x20000) {
+		if (propName.starts_with("dyn_pipe")) return "metal_pipes";
+		if (propName.starts_with("dyn_new_detour_sign")) return "wood_light";
+		if (propName.starts_with("dyn_warning_lamp")) return "plastic_light";
+		if (propName.starts_with("light_arrows_lamp")) return "metal_sheet";
+		if (propName.starts_with("dyn_haybale")) return "hay_box";
+		if (propName.starts_with("dyn_wooden_startgate")) return "wood_light";
+		if (propName.starts_with("dyn_new_arrowsign")) return "wood_light";
 		if (propName.starts_with("dyn_streetlight")) return "metal_trafficlightpole";
 		if (propName.ends_with("traffictraficlightpole_")) return "metal_trafficlightpole";
 		if (propName.ends_with("traffictraficlightpole_01")) return "metal_trafficlightpole";
@@ -1091,6 +1118,14 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("dyna_house_")) return "wood_light";
 	}
 	else {
+		//if (propName.starts_with("dyn_pipe")) return "";
+		if (propName.starts_with("dyn_new_detour_sign")) return "wood_plank_light";
+		//if (propName.starts_with("dyn_warning_lamp")) return "";
+		//if (propName.starts_with("light_arrows_lamp")) return "";
+		//if (propName.starts_with("dyn_haybale")) return "";
+		//if (propName.starts_with("light_arrows_lamp")) return "";
+		if (propName.starts_with("dyn_wooden_startgate")) return "wood_plank_light";
+		if (propName.starts_with("dyn_new_arrowsign")) return "wood_plank_light";
 		if (propName.starts_with("dyn_streetlight")) return "metal_streetlight";
 		if (propName.ends_with("traffictraficlightpole_")) return "metal_streetlight";
 		if (propName.ends_with("traffictraficlightpole_01")) return "metal_streetlight";
@@ -1148,6 +1183,10 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("dyn_motelsignpost")) return "metal_sign_huge";
 		if (propName.starts_with("dyna_house_")) return "wood_board_medium";
 	}
+	if (propName.starts_with("dyn_metal_structure")) return "metal_light";
+	if (propName.starts_with("dyn_valve")) return "metal_light";
+	if (propName.starts_with("light_arrow_support")) return "metal_light";
+	if (propName.starts_with("light_arrows_leg")) return "metal_light";
 	if (propName.starts_with("dyna_workshop_")) return "metal_gate_180";
 	if (propName.starts_with("dyn_concrete_block")) return "rock_obstacle";
 	if (propName.starts_with("dyn_scaffold")) return "metal_light";
@@ -1726,6 +1765,18 @@ void WriteCrashDat(uint32_t exportMapVersion) {
 	WriteConsole("crash.dat export finished", LOG_ALWAYS);
 }
 
+void ImportNewStaticBatchFromFBX(aiNode* node, int meshId) {
+	tSurface tmp;
+	aSurfaces.push_back(tmp);
+	auto& surface = aSurfaces[aSurfaces.size() - 1];
+	ImportSurfaceFromFBX(&surface, node, true, pParsedFBXScene->mMeshes[node->mMeshes[meshId]]);
+	tStaticBatch batch;
+	batch.nBVHId1 = batch.nBVHId2 = batch.nId1 = aStaticBatches.size();
+	memcpy(batch.vCenter, surface.vCenter, sizeof(batch.vCenter));
+	memcpy(batch.vRadius, surface.vRadius, sizeof(batch.vRadius));
+	aStaticBatches.push_back(batch);
+}
+
 void FillW32FromFBX() {
 	WriteConsole("Creating W32 data...", LOG_ALWAYS);
 
@@ -1734,25 +1785,31 @@ void FillW32FromFBX() {
 	auto staticBatch = GetFBXNodeForStaticBatchArray();
 	for (int i = 0; i < staticBatch->mNumChildren; i++) {
 		auto node = staticBatch->mChildren[i];
-		tSurface tmp;
-		aSurfaces.push_back(tmp);
-		auto& surface = aSurfaces[aSurfaces.size() - 1];
-		ImportSurfaceFromFBX(&surface, node, true, pParsedFBXScene->mMeshes[node->mMeshes[0]]);
-		tStaticBatch batch;
-		batch.nId1 = i;
-		batch.nBVHId1 = i; // surface id
-		batch.nBVHId2 = i; // bvh primitive id
-		memcpy(batch.vCenter, surface.vCenter, sizeof(batch.vCenter));
-		memcpy(batch.vRadius, surface.vRadius, sizeof(batch.vRadius));
-		aStaticBatches.push_back(batch);
+		for (int j = 0; j < node->mNumMeshes; j++) {
+			ImportNewStaticBatchFromFBX(node, j);
+		}
 	}
 
-	// todo tree meshes, this'll require tree colors and leaves to work
-	//auto treeMeshes = GetFBXNodeForTreeMeshArray();
-	//for (int i = 0; i < treeMeshes->mNumMeshes; i++) {
-	//	auto treeMesh = treeMeshes->mChildren[i];
-	//	if (treeMesh->mNumChildren <= 0) continue;
-	//}
+	// todo actual tree meshes, this'll require tree colors and leaves to work
+	auto treeMeshes = GetFBXNodeForTreeMeshArray();
+	for (int i = 0; i < treeMeshes->mNumChildren; i++) {
+		auto treeMeshNode = treeMeshes->mChildren[i];
+		for (int j = 0; j < treeMeshNode->mNumMeshes; j++) {
+			bTmpFlipImportedModels = true;
+			ImportNewStaticBatchFromFBX(treeMeshNode, j);
+			bTmpFlipImportedModels = false;
+			ImportNewStaticBatchFromFBX(treeMeshNode, j);
+		}
+		for (int j = 0; j < treeMeshNode->mNumChildren; j++) {
+			auto treeMeshChild = treeMeshNode->mChildren[j];
+			for (int k = 0; k < treeMeshChild->mNumMeshes; k++) {
+				bTmpFlipImportedModels = true;
+				ImportNewStaticBatchFromFBX(treeMeshChild, k);
+				bTmpFlipImportedModels = false;
+				ImportNewStaticBatchFromFBX(treeMeshChild, k);
+			}
+		}
+	}
 
 	WriteConsole("Creating object dummies...", LOG_ALWAYS);
 	CreateW32ObjectsFromFBX();
