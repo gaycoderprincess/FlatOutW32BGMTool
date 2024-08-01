@@ -675,11 +675,7 @@ bool ParseW32() {
 
 	WriteConsole("Parsing unknown data...", LOG_ALWAYS);
 	if (nImportFileVersion >= 0x10004) {
-		for (int i = 0; i < 16; i++) {
-			float value;
-			ReadFromFile(fin, &value, sizeof(value));
-			aUnknownArray3.push_back(value);
-		}
+		ReadFromFile(fin, aTrackCollisionOffsetMatrix, sizeof(aTrackCollisionOffsetMatrix));
 	}
 
 	if (!ParseW32Models(fin)) return false;

@@ -346,15 +346,13 @@ void WriteW32TreeMeshesToText() {
 	WriteFile("");
 }
 
-void WriteW32UnknownArray3ToText() {
-	WriteFile("Unknown Array 3 begin");
-	WriteFile("Count: " + std::to_string(aUnknownArray3.size()));
-	WriteFile("");
-	for (auto& value : aUnknownArray3) {
-		WriteFile(std::to_string(value));
-	}
-	WriteFile("");
-	WriteFile("Unknown Array 3 end");
+void WriteW32CollisionOffsetsToText() {
+	WriteFile("Collision Offset Matrix:");
+	auto matrix = aTrackCollisionOffsetMatrix;
+	WriteFile(std::format("{}, {}, {}, {}", matrix[0], matrix[1], matrix[2], matrix[3]));
+	WriteFile(std::format("{}, {}, {}, {}", matrix[4], matrix[5], matrix[6], matrix[7]));
+	WriteFile(std::format("{}, {}, {}, {}", matrix[8], matrix[9], matrix[10], matrix[11]));
+	WriteFile(std::format("{}, {}, {}, {}", matrix[12], matrix[13], matrix[14], matrix[15]));
 	WriteFile("");
 }
 
@@ -506,7 +504,7 @@ void WriteW32ToText() {
 	WriteW32TreeColorsToText();
 	WriteW32TreeLODsToText();
 	WriteW32TreeMeshesToText();
-	WriteW32UnknownArray3ToText();
+	WriteW32CollisionOffsetsToText();
 	WriteW32ModelsToText();
 	WriteW32ObjectsToText();
 	WriteW32CollidableModelsToText();

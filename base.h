@@ -317,7 +317,7 @@ struct tMaterial {
 	}
 };
 struct tSurface {
-	int nIsVegetation;
+	int nIsVegetation = 0;
 	int nMaterialId;
 	int nVertexCount;
 	int nFlags;
@@ -436,7 +436,7 @@ std::vector<tStaticBatch> aStaticBatches;
 std::vector<uint32_t> aTreeColors;
 std::vector<tTreeLOD> aTreeLODs;
 std::vector<tTreeMesh> aTreeMeshes;
-std::vector<float> aUnknownArray3;
+float aTrackCollisionOffsetMatrix[4*4];
 std::vector<tModel> aModels;
 std::vector<tObject> aObjects;
 std::vector<tCompactMesh> aCompactMeshes;

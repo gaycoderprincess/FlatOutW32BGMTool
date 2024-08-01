@@ -15,6 +15,15 @@ void CMD_ExportBGM_FOUC() {
 	nExportFileVersion = 0x20000;
 	bIsFOUCModel = true;
 }
+void CMD_ExportW32_FO1() {
+	bCreateW32FromFBX = true;
+	nExportFileVersion = 0x10005;
+}
+void CMD_ExportW32_FO2() {
+	bCreateW32FromFBX = true;
+	nImportFileVersion = 0x20001;
+	nExportFileVersion = 0x20001;
+}
 void CMD_DumpText_Streams() {
 	bDumpStreams = true;
 	bDumpIntoTextFile = true;
@@ -57,6 +66,10 @@ void CMD_W32_FBXExportBVHNodes() {
 }
 void CMD_W32_EnableAllProps() {
 	bEnableAllProps = true;
+	bDumpIntoW32 = true;
+}
+void CMD_W32_DisableCarCollisions() {
+	bDisableCarCollisions = true;
 	bDumpIntoW32 = true;
 }
 void CMD_ConvertToFO1() {
@@ -161,6 +174,8 @@ tCommandlineArgument aArguments[] = {
 		{ "-create_fo1_bgm", CMD_ExportBGM_FO1, "Creates a FlatOut 1 .bgm from an input .fbx file", "FBX to BGM" },
 		{ "-create_fo2_bgm", CMD_ExportBGM_FO2, "Creates a FlatOut 2 .bgm from an input .fbx file" },
 		{ "-create_fouc_bgm", CMD_ExportBGM_FOUC, "Creates a FlatOut: Ultimate Carnage .bgm from an input .fbx file" },
+		{ "-create_fo1_w32", CMD_ExportW32_FO1, "Creates a FlatOut 1 .w32 from an input .fbx file" },
+		{ "-create_fo2_w32", CMD_ExportW32_FO2, "Creates a FlatOut 2 .w32 from an input .fbx file" },
 
 		// static common options
 		{ "-convert_to_fo1", CMD_ConvertToFO1, "Converts an input car model to the FlatOut 1 format", "In-place BGM conversions" },
@@ -174,6 +189,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-skip_hidden_props_c", CMD_W32_FBXSkipHiddenPropsC, "Only exports the props from track variant C into the .fbx file" },
 		{ "-export_bvh_nodes", CMD_W32_FBXExportBVHNodes, "Exports BVH culling zones into the .fbx file" },
 		{ "-enable_all_props", CMD_W32_EnableAllProps, "Enables all hidden dynamic props in an input map file" },
+		{ "-disable_car_collisions", CMD_W32_DisableCarCollisions, "Disables car-to-car collisions in an input map file" },
 		{ "-empty_bvh_gen", CMD_EmptyTrackBVH, "Takes a track_bvh.gen file as the first argument and generates a new empty one, disables all culling" },
 		{ "-empty_plant_vdb", CMD_EmptyPlantVDB, "Generates an empty plant_vdb.gen, removes all grass from the map" },
 
@@ -249,7 +265,7 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 	}
 
 	// do dummy checks and then process the input filename
-	if (!bDumpIntoW32 && !bDumpIntoBGM && !bDumpIntoFBX && !bDumpIntoTextFile && !bCreateBGMFromFBX && !bEmptyOutTrackBVH) {
+	if (!bDumpIntoW32 && !bDumpIntoBGM && !bDumpIntoFBX && !bDumpIntoTextFile && !bCreateBGMFromFBX && !bCreateW32FromFBX && !bEmptyOutTrackBVH) {
 		WriteConsole("WARNING: No export output specified, the tool will not generate any files!", LOG_ALWAYS);
 	}
 	if (bUngroupMovedPropsFromFBX && !bImportPropsFromFBX) {
@@ -260,7 +276,7 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 	}
 
 	sFileName = argv[1];
-	if (bCreateBGMFromFBX) {
+	if (bCreateBGMFromFBX || bCreateW32FromFBX) {
 		sFBXFileName = argv[1];
 	}
 	else if (bLoadFBX) {

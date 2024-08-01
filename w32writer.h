@@ -597,6 +597,11 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel) {
 			}
 		}
 	}
+	if (mat.sTextureNames[0] == "null.tga") {
+		mat.sTextureNames[0] = "";
+		mat.nShaderId = 34; // reflecting window shader (static)
+	}
+	if (mat.sTextureNames[0].starts_with("alpha") || mat.sTextureNames[0].starts_with("Alpha")) mat.nAlpha = 1;
 	// FOUC doesn't seem to support trees outside of plant_geom, replace their shaders to get around this
 	if (bIsFOUCModel) {
 		if (mat.nShaderId == 19 || mat.nShaderId == 20 || mat.nShaderId == 21) {
@@ -884,6 +889,7 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 	surface->nPolyCount = mesh->mNumFaces;
 	surface->nNumIndicesUsed = mesh->mNumFaces * 3;
 	surface->nPolyMode = 4;
+	surface->nNumStreamsUsed = 2;
 	surface->nStreamOffset[0] = surface->nStreamOffset[1] = 0;
 	surface->nStreamId[0] = streamCount;
 	surface->nStreamId[1] = streamCount + 1;
@@ -944,6 +950,14 @@ tSurface* ReplaceNextAvailableSurface(aiNode* node, aiMesh* mesh, bool allowMode
 		if (surface.nNumStreamsUsed != 2) continue;
 		if (surface._bIsReplacedMapSurface) continue;
 
+		ImportSurfaceFromFBX(&surface, node, !allowModelSurfaces, mesh);
+		return &surface;
+	}
+
+	if (bCreateW32FromFBX) {
+		tSurface tmp;
+		aSurfaces.push_back(tmp);
+		auto& surface = aSurfaces[aSurfaces.size() - 1];
 		ImportSurfaceFromFBX(&surface, node, !allowModelSurfaces, mesh);
 		return &surface;
 	}
@@ -1142,6 +1156,51 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 	return "metal_light";
 }
 
+void CreateW32ObjectsFromFBX() {
+	auto objectsArray = GetFBXNodeForObjectsArray();
+	for (int i = 0; i < objectsArray->mNumChildren; i++) {
+		auto prop = objectsArray->mChildren[i];
+		tObject object;
+		object.sName1 = prop->mName.C_Str();
+		object.nFlags = 0xE0F9;
+		FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(prop), object.mMatrix);
+		aObjects.push_back(object);
+	}
+}
+
+void CreateW32CompactMeshesFromFBX() {
+	auto node = GetFBXNodeForCompactMeshArray();
+	for (int i = 0; i < node->mNumChildren; i++) {
+		auto prop = node->mChildren[i];
+		if (auto model = CreateModelFromMesh(prop)) {
+			tCompactMesh mesh;
+			mesh.sName1 = prop->mName.C_Str();
+			mesh.sName2 = GetPropDynamicObjectByName(mesh.sName1);
+			FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(prop), mesh.mMatrix);
+			mesh.nGroup = -1;
+			mesh.nFlags = 0xE000;
+			mesh.nUnk1 = 1;
+			mesh.aLODMeshIds.push_back(model - &aModels[0]);
+			mesh.nDamageAssocId = aMeshDamageAssoc.size();
+			aCompactMeshes.push_back(mesh);
+
+			tMeshDamageAssoc assoc;
+			assoc.sName = mesh.sName1;
+			assoc.nIds[0] = aCollidableModels.size();
+			assoc.nIds[1] = -1;
+			aMeshDamageAssoc.push_back(assoc);
+
+			tCollidableModel col;
+			memcpy(col.vRadius, model->vRadius, sizeof(col.vRadius));
+			memcpy(col.vCenter, model->vCenter, sizeof(col.vCenter));
+			col.aModels.push_back(model - &aModels[0]);
+			aCollidableModels.push_back(col);
+
+			WriteConsole("Created new prop " + mesh.sName1 + " with properties from " + mesh.sName2, LOG_ALL);
+		}
+	}
+}
+
 void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("Writing output w32 file...", LOG_ALWAYS);
 
@@ -1214,52 +1273,14 @@ void WriteW32(uint32_t exportMapVersion) {
 
 	if (bImportAllObjectsFromFBX) {
 		aObjects.clear();
-		auto node = GetFBXNodeForObjectsArray();
-		for (int i = 0; i < node->mNumChildren; i++) {
-			auto prop = node->mChildren[i];
-			tObject object;
-			object.sName1 = prop->mName.C_Str();
-			object.nFlags = 0xE0F9;
-			FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(prop), object.mMatrix);
-			aObjects.push_back(object);
-		}
+		CreateW32ObjectsFromFBX();
 	}
 
 	if (bImportAllPropsFromFBX) {
 		aMeshDamageAssoc.clear();
 		aCollidableModels.clear();
 		aCompactMeshes.clear();
-
-		auto node = GetFBXNodeForCompactMeshArray();
-		for (int i = 0; i < node->mNumChildren; i++) {
-			auto prop = node->mChildren[i];
-			if (auto model = CreateModelFromMesh(prop)) {
-				tCompactMesh mesh;
-				mesh.sName1 = prop->mName.C_Str();
-				mesh.sName2 = GetPropDynamicObjectByName(mesh.sName1);
-				FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(prop), mesh.mMatrix);
-				mesh.nGroup = -1;
-				mesh.nFlags = 0xE000;
-				mesh.nUnk1 = 1;
-				mesh.aLODMeshIds.push_back(model - &aModels[0]);
-				mesh.nDamageAssocId = aMeshDamageAssoc.size();
-				aCompactMeshes.push_back(mesh);
-
-				tMeshDamageAssoc assoc;
-				assoc.sName = mesh.sName1;
-				assoc.nIds[0] = aCollidableModels.size();
-				assoc.nIds[1] = -1;
-				aMeshDamageAssoc.push_back(assoc);
-
-				tCollidableModel col;
-				memcpy(col.vRadius, model->vRadius, sizeof(col.vRadius));
-				memcpy(col.vCenter, model->vCenter, sizeof(col.vCenter));
-				col.aModels.push_back(model - &aModels[0]);
-				aCollidableModels.push_back(col);
-
-				WriteConsole("Created new prop " + mesh.sName1 + " with properties from " + mesh.sName2, LOG_ALL);
-			}
-		}
+		CreateW32CompactMeshesFromFBX();
 	}
 
 	if (bImportAndAutoMatchAllSurfacesFromFBX || bImportAndAutoMatchAllMeshesFromFBX) {
@@ -1329,9 +1350,8 @@ void WriteW32(uint32_t exportMapVersion) {
 	}
 
 	if (nExportFileVersion >= 0x10004) {
-		for (int i = 0; i < 16; i++) {
-			file.write((char*)&aUnknownArray3[i], 4);
-		}
+		if (bDisableCarCollisions) memset(aTrackCollisionOffsetMatrix, 0, sizeof(aTrackCollisionOffsetMatrix));
+		file.write((char*)&aTrackCollisionOffsetMatrix, sizeof(aTrackCollisionOffsetMatrix));
 	}
 
 	uint32_t modelCount = aModels.size();
@@ -1700,4 +1720,58 @@ void WriteCrashDat(uint32_t exportMapVersion) {
 	file.flush();
 
 	WriteConsole("crash.dat export finished", LOG_ALWAYS);
+}
+
+void FillW32FromFBX() {
+	WriteConsole("Creating W32 data...", LOG_ALWAYS);
+
+	WriteConsole("Creating static batches...", LOG_ALWAYS);
+
+	auto staticBatch = GetFBXNodeForStaticBatchArray();
+	for (int i = 0; i < staticBatch->mNumChildren; i++) {
+		auto node = staticBatch->mChildren[i];
+		tSurface tmp;
+		aSurfaces.push_back(tmp);
+		auto& surface = aSurfaces[aSurfaces.size() - 1];
+		ImportSurfaceFromFBX(&surface, node, true, pParsedFBXScene->mMeshes[node->mMeshes[0]]);
+		tStaticBatch batch;
+		batch.nId1 = i;
+		batch.nBVHId1 = i; // surface id
+		batch.nBVHId2 = i; // bvh primitive id
+		memcpy(batch.vCenter, surface.vCenter, sizeof(batch.vCenter));
+		memcpy(batch.vRadius, surface.vRadius, sizeof(batch.vRadius));
+		aStaticBatches.push_back(batch);
+	}
+
+	// todo tree meshes, this'll require tree colors and leaves to work
+	//auto treeMeshes = GetFBXNodeForTreeMeshArray();
+	//for (int i = 0; i < treeMeshes->mNumMeshes; i++) {
+	//	auto treeMesh = treeMeshes->mChildren[i];
+	//	if (treeMesh->mNumChildren <= 0) continue;
+	//}
+
+	WriteConsole("Creating object dummies...", LOG_ALWAYS);
+	CreateW32ObjectsFromFBX();
+
+	WriteConsole("Creating compact meshes...", LOG_ALWAYS);
+	CreateW32CompactMeshesFromFBX();
+
+	aTrackCollisionOffsetMatrix[0] = 0.560662;
+	aTrackCollisionOffsetMatrix[1] = 0.000000;
+	aTrackCollisionOffsetMatrix[2] = 0.828045;
+	aTrackCollisionOffsetMatrix[3] = 0.000000;
+	aTrackCollisionOffsetMatrix[4] = 0.000000;
+	aTrackCollisionOffsetMatrix[5] = 1.000000;
+	aTrackCollisionOffsetMatrix[6] = 0.000000;
+	aTrackCollisionOffsetMatrix[7] = 0.000000;
+	aTrackCollisionOffsetMatrix[8] = -0.828045;
+	aTrackCollisionOffsetMatrix[9] = 0.000000;
+	aTrackCollisionOffsetMatrix[10] = 0.560662;
+	aTrackCollisionOffsetMatrix[11] = 0.000000;
+	aTrackCollisionOffsetMatrix[12] = 0.000000;
+	aTrackCollisionOffsetMatrix[13] = 0.000000;
+	aTrackCollisionOffsetMatrix[14] = 0.000000;
+	aTrackCollisionOffsetMatrix[15] = 1.000000;
+
+	WriteConsole("W32 data created", LOG_ALWAYS);
 }

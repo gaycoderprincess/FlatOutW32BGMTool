@@ -73,7 +73,20 @@ int main(int argc, char *argv[]) {
 		WriteConsole("ERROR: Failed to load " + std::filesystem::absolute(sFileName).string() + "! (File doesn't exist)", LOG_ERRORS);
 		exit(0);
 	}
-	if (bCreateBGMFromFBX) {
+	if (bCreateW32FromFBX) {
+		if (!ParseFBX()) {
+			WriteConsole("ERROR: Failed to load " + sFBXFileName.string() + "!", LOG_ERRORS);
+			exit(0);
+		}
+		else {
+			WriteConsole("Parsing finished", LOG_ALWAYS);
+
+			FillW32FromFBX();
+			WriteW32(nExportFileVersion);
+			WriteTrackBVH();
+		}
+	}
+	else if (bCreateBGMFromFBX) {
 		if (!ParseFBX()) {
 			WriteConsole("ERROR: Failed to load " + sFBXFileName.string() + "!", LOG_ERRORS);
 			exit(0);

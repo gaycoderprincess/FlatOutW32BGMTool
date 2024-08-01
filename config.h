@@ -15,6 +15,7 @@ bool bFBXExportBVHNodes = false;
 bool bDisableObjects = false;
 bool bDisableProps = false;
 bool bEnableAllProps = false;
+bool bDisableCarCollisions = false;
 bool bConvertToFO1 = false;
 bool bConvertToFO2 = false;
 bool bImportPropsFromFBX = false;
@@ -31,6 +32,7 @@ bool bNoMaterialReuse = false;
 bool bNoTreeHack = false;
 bool bUngroupMovedPropsFromFBX = false;
 bool bCreateBGMFromFBX = false;
+bool bCreateW32FromFBX = false;
 bool bLoadFBX = false;
 
 // special options
