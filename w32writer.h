@@ -619,13 +619,16 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 			mat.nShaderId = 0;
 		}
 	}
-	else {
-		// water is a window in fo1/fo2, lol
-		if (mat.sTextureNames[0] == "puddle_normal.tga") {
-			mat.sTextureNames[0] = "alpha_windowshader.tga";
-			mat.nShaderId = 34; // reflecting window shader (static)
-			mat.nAlpha = 1;
-		}
+	// water is a window in fo1/fo2, lol
+	if (!bIsFOUCModel && mat.sTextureNames[0] == "puddle_normal.tga") {
+		mat.sTextureNames[0] = "alpha_windowshader.tga";
+		mat.nShaderId = 34; // reflecting window shader (static)
+		mat.nAlpha = 1;
+	}
+	if (bIsFOUCModel && mat.sTextureNames[0] == "alpha_windowshader.tga") {
+		mat.sTextureNames[0] = "puddle_normal.tga";
+		mat.nShaderId = 45; // puddle
+		mat.nAlpha = 1;
 	}
 	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId), LOG_ALL);
 	return mat;
@@ -1330,7 +1333,7 @@ void WriteW32(uint32_t exportMapVersion) {
 	}
 
 	auto outFileName = sFileNameNoExt.string() + "_out.w32";
-	if (bW32UseVanillaNames) outFileName = bIsFOUCModel ? "track_geom_w2.w32" : "track_geom.w32";
+	if (bW32UseVanillaNames) outFileName = sFileFolder.string() + (bIsFOUCModel ? "track_geom_w2.w32" : "track_geom.w32");
 	std::ofstream file(outFileName, std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 

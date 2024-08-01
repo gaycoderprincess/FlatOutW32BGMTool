@@ -25,6 +25,12 @@ void CMD_ExportW32_FO2() {
 	nImportFileVersion = 0x20001;
 	nExportFileVersion = 0x20001;
 }
+void CMD_ExportW32_FOUC() {
+	bCreateW32FromFBX = true;
+	bIsFOUCModel = true;
+	nImportFileVersion = 0x20002;
+	nExportFileVersion = 0x20002;
+}
 void CMD_DumpText_Streams() {
 	bDumpStreams = true;
 	bDumpIntoTextFile = true;
@@ -180,6 +186,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-create_fouc_bgm", CMD_ExportBGM_FOUC, "Creates a FlatOut: Ultimate Carnage .bgm from an input .fbx file" },
 		{ "-create_fo1_w32", CMD_ExportW32_FO1, "Creates a FlatOut 1 .w32 from an input .fbx file" },
 		{ "-create_fo2_w32", CMD_ExportW32_FO2, "Creates a FlatOut 2 .w32 from an input .fbx file" },
+		{ "-create_fouc_w32", CMD_ExportW32_FOUC, "Creates a FlatOut: Ultimate Carnage .w32 from an input .fbx file" },
 
 		// static common options
 		{ "-convert_to_fo1", CMD_ConvertToFO1, "Converts an input car model to the FlatOut 1 format", "In-place BGM conversions" },

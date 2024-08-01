@@ -630,7 +630,7 @@ bool ParseW32() {
 		if (!std::filesystem::exists(vertexColorsPath)) vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
 		if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
 			WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);
-			return false;
+			exit(0);
 		}
 	}
 

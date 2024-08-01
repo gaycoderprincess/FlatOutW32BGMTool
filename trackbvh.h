@@ -57,7 +57,7 @@ void WriteTrackBVH() {
 	WriteConsole("Writing output track_bvh file...", LOG_ALWAYS);
 
 	auto outFileName = sFileNameNoExt.string() + "_out_bvh.gen";
-	if (bW32UseVanillaNames) outFileName = "track_bvh.gen";
+	if (bW32UseVanillaNames) outFileName = sFileFolder.string() + "track_bvh.gen";
 	std::ofstream fout(outFileName, std::ios::out | std::ios::binary);
 	if (!fout.is_open()) return;
 
@@ -191,7 +191,7 @@ void UpdateTrackBVHFOUC() {
 }
 
 void UpdateTrackBVH() {
-	if (bIsFOUCModel) return UpdateTrackBVHFOUC();
+	if (!bCreateW32FromFBX) return UpdateTrackBVHFOUC();
 
 	aBVHPrimitives.clear();
 	for (auto& batch : aStaticBatches) {
