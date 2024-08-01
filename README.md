@@ -6,16 +6,12 @@ For a quick guide on how to get started with the tool, check out the [examples &
 
 This tool is currently capable of:
 - Parsing and recreating the formats from memory
-- Importing vehicle models into FlatOut 1, 2 and Ultimate Carnage
+- Exporting cars and tracks to .fbx
 - Converting FlatOut 2 tracks to FlatOut 1
 - Converting FlatOut: Ultimate Carnage cars to FlatOut 1 and 2
-- Exporting cars and tracks to .fbx
-- Editing track meshes
-- Deleting track meshes
-- Moving track props
-- Deleting track props
-- Adding new track props
-- Creating a dummy track_bvh.gen
+- Editing tracks in FlatOut 1, 2 and Ultimate Carnage
+- Importing new tracks into FlatOut 1, 2 and Ultimate Carnage
+- Importing vehicle models into FlatOut 1, 2 and Ultimate Carnage
 
 Thanks to Gulbroz for their existing work on this format, it was a great jumping-off point.
 
@@ -30,6 +26,9 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 
 ## W32 Arguments
 
+- `-create_fo1_w32` - Exports an .fbx into a FlatOut 1 track w32
+- `-create_fo2_w32` - Exports an .fbx into a FlatOut 2 track w32
+- `-create_fouc_w32` - Exports an .fbx into a FlatOut: Ultimate Carnage track w32
 - `-export_fbx` - Exports the map into a viewable .fbx file
 - `-export_w32` - Exports the map into a .w32 file (this should yield an identical file if there are no additional arguments, if it doesn't then file a bug report!)
 - `-export_text` - Exports the map into a human-readable text file
@@ -41,6 +40,7 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-remove_object_dummies` - Creates a new .w32 file of the map with all objects and object dummies removed (e.g. menu cameras in FOUC)
 - `-remove_props` - Creates a new .w32 file of the map with all props removed
 - `-enable_all_props` - Creates a new .w32 file of the map with all props visible (BugBear left a lot of props hidden in each track)
+- `-disable_car_collisions` - Creates a new .w32 file of the map with car-to-car collisions disabled
 - `-convert_to_fo1` - Creates a new .w32 file of the map that can be loaded by FlatOut 1
 - `-skip_hidden_props_a` - Only exports the props from track variant A into the .fbx file
 - `-skip_hidden_props_b` - Only exports the props from track variant B into the .fbx file
@@ -61,6 +61,7 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-no_material_reuse` - Makes imported meshes not use any original w32 materials, instead always importing new ones from the .fbx
 - `-no_tree_hack` - Disables the adjusting of normal vectors for tree shaders in Ultimate Carnage
 - `-import_deletions` - Deletes surfaces and props that have been deleted from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_deletions`
+- `-use_vanilla_names` - Exports the files as their original names, e.g. track_geom.w32, track_bvh.gen
 
 ## BGM Arguments
 - `-create_fo1_bgm` - Exports an .fbx into a FlatOut 1 car bgm
