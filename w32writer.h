@@ -876,9 +876,9 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 	surface->vCenter[0] = vCenter[0];
 	surface->vCenter[1] = vCenter[1];
 	surface->vCenter[2] = vCenter[2];
-	surface->vRadius[0] = vRadius[0];
-	surface->vRadius[1] = vRadius[1];
-	surface->vRadius[2] = vRadius[2];
+	surface->vRadius[0] = vRadius[0] * 0.5;
+	surface->vRadius[1] = vRadius[1] * 0.5;
+	surface->vRadius[2] = vRadius[2] * 0.5;
 	surface->nFlags = bufFlags;
 	surface->nVertexCount = mesh->mNumVertices;
 	surface->nPolyCount = mesh->mNumFaces;

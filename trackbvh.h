@@ -9,8 +9,8 @@ struct tTrackBVHPrimitive {
 struct tTrackBVHNode {
 	float vPos[3];
 	float vRadius[3];
-	int nUnk1;
-	int nUnk2;
+	int nUnk1; // primitive offset? * 32
+	int nUnk2; // primitive count?
 };
 std::vector<tTrackBVHPrimitive> aBVHPrimitives;
 std::vector<tTrackBVHNode> aBVHNodes;
@@ -56,7 +56,7 @@ void WriteTrackBVH() {
 
 	WriteConsole("Writing output track_bvh file...", LOG_ALWAYS);
 
-	std::ofstream fout(sFileNameNoExt.string() + "_bvh.gen", std::ios::out | std::ios::binary);
+	std::ofstream fout(sFileNameNoExt.string() + "_out_bvh.gen", std::ios::out | std::ios::binary);
 	if (!fout.is_open()) return;
 
 	uint32_t identifier = 0xDEADC0DE;
@@ -110,7 +110,7 @@ void WriteTrackBVHToText() {
 		WriteFile("vRadius.y: " + std::to_string(node.vRadius[1]));
 		WriteFile("vRadius.z: " + std::to_string(node.vRadius[2]));
 		WriteFile("nUnknown1: " + std::to_string(node.nUnk1));
-		WriteFile("nUnknown2: " + std::to_string(node.nUnk1));
+		WriteFile("nUnknown2: " + std::to_string(node.nUnk2));
 		WriteFile("");
 	}
 }
@@ -141,43 +141,53 @@ bool ReadAndEmptyTrackBVH() {
 	return true;
 }
 
-tTrackBVHPrimitive* GetBVHPrimitiveForIDs(int id1, int id2) {
-	for (auto& prim : aBVHPrimitives) {
-		if (prim.nId1 == id1 && prim.nId2 == id2) return &prim;
-	}
-	return nullptr;
-}
-
 void UpdateTrackBVH() {
-	if (aBVHPrimitives.empty() && aBVHNodes.empty()) return;
-
+	aBVHPrimitives.clear();
 	for (auto& batch : aStaticBatches) {
-		auto prim = GetBVHPrimitiveForIDs(batch.nBVHId1, batch.nBVHId2);
-		if (!prim) {
-			WriteConsole("ERROR: Failed to find BVH primitive for StaticBatch " + std::to_string(&batch - &aStaticBatches[0]), LOG_ERRORS);
-			continue;
-		}
-		memcpy(prim->vPos, batch.vCenter, sizeof(prim->vPos));
-		memcpy(prim->vRadius, batch.vRadius, sizeof(prim->vRadius));
+		tTrackBVHPrimitive prim;
+		prim.nId1 = batch.nBVHId1;
+		prim.nId2 = batch.nBVHId2;
+		memcpy(prim.vPos, batch.vCenter, sizeof(prim.vPos));
+		memcpy(prim.vRadius, batch.vRadius, sizeof(prim.vRadius));
+		aBVHPrimitives.push_back(prim);
 	}
 	for (auto& tree : aTreeMeshes) {
-		auto prim = GetBVHPrimitiveForIDs(tree.nBVHId1, tree.nBVHId2);
-		if (!prim) {
-			WriteConsole("ERROR: Failed to find BVH primitive for TreeMesh " + std::to_string(&tree - &aTreeMeshes[0]), LOG_ERRORS);
-			continue;
-		}
+		tTrackBVHPrimitive prim;
+		prim.nId1 = tree.nBVHId1;
+		prim.nId2 = tree.nBVHId2;
 		auto surfId = tree.nBranchSurfaceId;
 		if (surfId < 0 || surfId >= aSurfaces.size()) continue;
-
 		auto& surface = aSurfaces[surfId];
-		if (surface.vRadius[0] == 0 && surface.vRadius[1] == 0 && surface.vRadius[2] == 0) continue;
-		memcpy(prim->vPos, surface.vCenter, sizeof(prim->vPos));
-		memcpy(prim->vRadius, surface.vRadius, sizeof(prim->vRadius));
+		memcpy(prim.vPos, surface.vCenter, sizeof(prim.vPos));
+		memcpy(prim.vRadius, surface.vRadius, sizeof(prim.vRadius));
+
+		// bushes don't have this data since they're always in the vegetation buffer and so are not imported
+		if (prim.vRadius[0] == 0 && prim.vRadius[1] == 0 && prim.vRadius[2] == 0) {
+			prim.vPos[0] = tree.mMatrix[12];
+			prim.vPos[1] = tree.mMatrix[13];
+			prim.vPos[2] = tree.mMatrix[14];
+			prim.vRadius[0] = 10;
+			prim.vRadius[1] = 10;
+			prim.vRadius[2] = 10;
+		}
+		aBVHPrimitives.push_back(prim);
 	}
 
-	for (auto& node : aBVHNodes) {
-		node.vRadius[0] = 10000;
-		node.vRadius[1] = 10000;
-		node.vRadius[2] = 10000;
-	}
+	struct
+	{
+		bool operator()(tTrackBVHPrimitive a, tTrackBVHPrimitive b) const { return a.nId2 < b.nId2; }
+	} sort;
+	std::sort(aBVHPrimitives.begin(), aBVHPrimitives.end(), sort);
+
+	aBVHNodes.clear();
+	tTrackBVHNode node;
+	node.vPos[0] = 0;
+	node.vPos[1] = 0;
+	node.vPos[2] = 0;
+	node.vRadius[0] = 10000;
+	node.vRadius[1] = 10000;
+	node.vRadius[2] = 10000;
+	node.nUnk1 = 0;
+	node.nUnk2 = aBVHPrimitives.size();
+	aBVHNodes.push_back(node);
 }

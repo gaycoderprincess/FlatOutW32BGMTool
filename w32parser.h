@@ -626,9 +626,11 @@ bool ParseW32() {
 	if (nImportFileVersion > 0x20000) ReadFromFile(fin, &nSomeMapValue, 4);
 	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
 	else {
-		auto vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
+		auto vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors.w32";
+		if (!std::filesystem::exists(vertexColorsPath)) vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
 		if (!ParseVertexColors(vertexColorsPath)) {
-			WriteConsole("WARNING: Failed to load " + (std::string)vertexColorsPath + ", vertex colors will not be exported", LOG_WARNINGS);
+			WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);
+			return false;
 		}
 	}
 
