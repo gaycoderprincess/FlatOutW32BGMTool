@@ -18,6 +18,13 @@ When exporting them back, use these settings:
 ## Exporting and importing a track
 - Enter `FlatOutW32BGMTool_gcp.exe path/to/track_geom.w32 -export_fbx` into a commandline prompt
 - Edit the .fbx and make your desired changes and additions
+- Enter `FlatOutW32BGMTool_gcp.exe path/to/model.fbx -create_fouc_w32` into a commandline prompt (Available formats are `-create_fo1_w32`, `-create_fo2_w32` and `-create_fouc_w32`)
+- If you need to remove grass or other vegetation, enter `FlatOutW32BGMTool_gcp.exe -empty_plant_db` into a commandline prompt
+- Copy the new .w32 and .gen files, rename them and put them into the game files.
+
+## Exporting and importing a track while keeping trees intact in FOUC
+- Enter `FlatOutW32BGMTool_gcp.exe path/to/track_geom.w32 -export_fbx` into a commandline prompt
+- Edit the .fbx and make your desired changes and additions
 - Enter `FlatOutW32BGMTool_gcp.exe path/to/track_geom.w32 path/to/model.fbx -import_all_surfaces -import_moved_props -import_cloned_props` into a commandline prompt
 - If you need to remove grass or other vegetation, enter `FlatOutW32BGMTool_gcp.exe -empty_plant_db` into a commandline prompt
 - Copy the new .w32 and .gen files, rename them and put them into the game files.
@@ -58,11 +65,3 @@ Map shaders:
 - Water: Name your material `water` or give it the `puddle` prefix
 - Dynamic objects: `_dynamic` suffix
 - Dynamic objects with specular: `_dynamic_specular` suffix
-
-## Advanced track creation example
-- Take the Speedbowl track (arena3a, which is an ideal track as there's little to no vegetation) and export it using the tool. (If you're confident, then making a raceable copy of Stunt2A works even better)
-- Optionally create an empty plant_vdb.gen using `-empty_plant_db` as described above.
-- Take your custom track model, and if it follows the exported .fbx's hierarchy (i.e. it was exported by the tool and you didn't add any non-conforming parts) then import it with:
-`FlatOutW32BGMTool_gcp.exe path/to/speedbowl/track_geom.w32 path/to/model.fbx -import_and_match_all_surfaces -import_all_props`
-- If it doesn't follow that hierarchy (i.e. it's a custom model you created or took from somewhere) then import it with:
-`FlatOutW32BGMTool_gcp.exe path/to/speedbowl/track_geom.w32 path/to/model.fbx -import_and_match_all_meshes -remove_props`
