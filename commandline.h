@@ -52,6 +52,9 @@ void CMD_W32_FBXSkipHiddenPropsC() {
 	bFBXSkipHiddenProps = true;
 	nFBXSkipHiddenPropsFlag = 0x8000;
 }
+void CMD_W32_FBXExportBVHNodes() {
+	bFBXExportBVHNodes = true;
+}
 void CMD_W32_EnableAllProps() {
 	bEnableAllProps = true;
 	bDumpIntoW32 = true;
@@ -169,6 +172,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-skip_hidden_props_a", CMD_W32_FBXSkipHiddenPropsA, "Only exports the props from track variant A into the .fbx file" },
 		{ "-skip_hidden_props_b", CMD_W32_FBXSkipHiddenPropsB, "Only exports the props from track variant B into the .fbx file" },
 		{ "-skip_hidden_props_c", CMD_W32_FBXSkipHiddenPropsC, "Only exports the props from track variant C into the .fbx file" },
+		{ "-export_bvh_nodes", CMD_W32_FBXExportBVHNodes, "Exports BVH culling zones into the .fbx file" },
 		{ "-enable_all_props", CMD_W32_EnableAllProps, "Enables all hidden dynamic props in an input map file" },
 		{ "-empty_bvh_gen", CMD_EmptyTrackBVH, "Takes a track_bvh.gen file as the first argument and generates a new empty one, disables all culling" },
 		{ "-empty_plant_vdb", CMD_EmptyPlantVDB, "Generates an empty plant_vdb.gen, removes all grass from the map" },

@@ -49,6 +49,11 @@ bool ParseTrackBVH(const std::filesystem::path& fileName) {
 }
 
 void WriteTrackBVH() {
+	if (aBVHPrimitives.empty() && aBVHNodes.empty()) {
+		WriteConsole("WARNING: No track_bvh.gen data loaded, culling data will not be exported", LOG_WARNINGS);
+		return;
+	}
+
 	WriteConsole("Writing output track_bvh file...", LOG_ALWAYS);
 
 	std::ofstream fout(sFileNameNoExt.string() + "_bvh.gen", std::ios::out | std::ios::binary);
@@ -144,6 +149,8 @@ tTrackBVHPrimitive* GetBVHPrimitiveForIDs(int id1, int id2) {
 }
 
 void UpdateTrackBVH() {
+	if (aBVHPrimitives.empty() && aBVHNodes.empty()) return;
+
 	for (auto& batch : aStaticBatches) {
 		auto prim = GetBVHPrimitiveForIDs(batch.nBVHId1, batch.nBVHId2);
 		if (!prim) {

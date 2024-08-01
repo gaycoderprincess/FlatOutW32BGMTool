@@ -17,6 +17,31 @@ aiNode* CreateNodeForTreeMesh(aiScene* scene, const tTreeMesh& treeMesh) {
 	return node;
 }
 
+aiNode* CreateNodeForBVHNode(aiScene* scene, const tTrackBVHNode& bvhNode) {
+	auto node = new aiNode();
+	node->mName = "BVHNode" + std::to_string(&bvhNode - &aBVHNodes[0]) + "_" + std::to_string(bvhNode.nUnk1) + "_" + std::to_string(bvhNode.nUnk2);
+	node->mMeshes = new uint32_t[1];
+	node->mMeshes[0] = scene->mNumMeshes - 1;
+	node->mNumMeshes = 1;
+	node->mTransformation.a1 = bvhNode.vRadius[0];
+	node->mTransformation.a2 = 0;
+	node->mTransformation.a3 = 0;
+	node->mTransformation.a4 = 0;
+	node->mTransformation.b1 = 0;
+	node->mTransformation.b2 = bvhNode.vRadius[1];
+	node->mTransformation.b3 = 0;
+	node->mTransformation.b4 = 0;
+	node->mTransformation.c1 = 0;
+	node->mTransformation.c2 = 0;
+	node->mTransformation.c3 = bvhNode.vRadius[2];
+	node->mTransformation.c4 = 0;
+	node->mTransformation.a4 = bvhNode.vPos[0];
+	node->mTransformation.b4 = bvhNode.vPos[1];
+	node->mTransformation.c4 = -bvhNode.vPos[2];
+	node->mTransformation.d4 = 1;
+	return node;
+}
+
 void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBuf, tSurface& src, uint32_t vertexOffset, tCrashDataWeights* aCrashWeightsFO2 = nullptr, tCrashDataWeightsFOUC* aCrashWeightsFOUC = nullptr) {
 	auto stride = vBuf->vertexSize;
 	uintptr_t vertexData = ((uintptr_t)vBuf->data) + vertexOffset;
@@ -246,6 +271,67 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 	}
 }
 
+void CreateFBXCube(aiScene* scene) {
+	std::vector<aiVector3D> aVertices;
+	aVertices.push_back({ 1, 1, 1 });
+	aVertices.push_back({ -1, 1, 1 });
+	aVertices.push_back({ -1, -1, 1 });
+	aVertices.push_back({ 1, -1, 1 });
+	aVertices.push_back({ 1, -1, -1 });
+	aVertices.push_back({ 1, -1, 1 });
+	aVertices.push_back({ -1, -1, 1 });
+	aVertices.push_back({ -1, -1, -1 });
+	aVertices.push_back({ -1, -1, -1 });
+	aVertices.push_back({ -1, -1, 1 });
+	aVertices.push_back({ -1, 1, 1 });
+	aVertices.push_back({ -1, 1, -1 });
+	aVertices.push_back({ -1, 1, -1 });
+	aVertices.push_back({ 1, 1, -1 });
+	aVertices.push_back({ 1, -1, -1 });
+	aVertices.push_back({ -1, -1, -1 });
+	aVertices.push_back({ 1, 1, -1 });
+	aVertices.push_back({ 1, 1, 1 });
+	aVertices.push_back({ 1, -1, 1 });
+	aVertices.push_back({ 1, -1, -1 });
+	aVertices.push_back({ -1, 1, -1 });
+	aVertices.push_back({ -1, 1, 1 });
+	aVertices.push_back({ 1, 1, 1 });
+	aVertices.push_back({ 1, 1, -1 });
+	std::vector<aiVector3D> aIndices;
+	aIndices.push_back({ 0, 1, 2 });
+	aIndices.push_back({ 0, 2, 3 });
+	aIndices.push_back({ 4, 5, 6 });
+	aIndices.push_back({ 4, 6, 7 });
+	aIndices.push_back({ 8, 9, 10 });
+	aIndices.push_back({ 8, 10, 11 });
+	aIndices.push_back({ 12, 13, 14 });
+	aIndices.push_back({ 12, 14, 15 });
+	aIndices.push_back({ 16, 17, 18 });
+	aIndices.push_back({ 16, 18, 19 });
+	aIndices.push_back({ 20, 21, 22 });
+	aIndices.push_back({ 20, 22, 23 });
+
+	if (auto mesh = new aiMesh) {
+		mesh->mVertices = new aiVector3D[aVertices.size()];
+		mesh->mNumVertices = aVertices.size();
+		mesh->mFaces = new aiFace[aIndices.size()];
+		mesh->mNumFaces = aIndices.size();
+
+		for (int i = 0; i < mesh->mNumVertices; i++) {
+			mesh->mVertices[i] = aVertices[i];
+		}
+		for (int i = 0; i < mesh->mNumFaces; i++) {
+			mesh->mFaces[i].mIndices = new uint32_t[3];
+			mesh->mFaces[i].mIndices[0] = aIndices[i].x;
+			mesh->mFaces[i].mIndices[1] = aIndices[i].y;
+			mesh->mFaces[i].mIndices[2] = aIndices[i].z;
+			mesh->mFaces[i].mNumIndices = 3;
+		}
+
+		scene->mMeshes[scene->mNumMeshes - 1] = mesh;
+	}
+}
+
 aiScene GenerateScene() {
 	aiScene scene;
 	scene.mRootNode = new aiNode();
@@ -293,8 +379,15 @@ aiScene GenerateScene() {
 	}
 	WriteConsole(std::to_string(numBaseSurfaces) + " surfaces of " + std::to_string(aSurfaces.size()) + " can be exported", LOG_ALWAYS);
 
-	scene.mMeshes = new aiMesh*[numSurfaces];
-	scene.mNumMeshes = numSurfaces;
+	if (bFBXExportBVHNodes) {
+		scene.mMeshes = new aiMesh*[numSurfaces + 1];
+		scene.mNumMeshes = numSurfaces + 1;
+		CreateFBXCube(&scene);
+	}
+	else {
+		scene.mMeshes = new aiMesh*[numSurfaces];
+		scene.mNumMeshes = numSurfaces;
+	}
 
 	int counter = 0;
 	for (auto& src : aSurfaces) {
@@ -347,6 +440,18 @@ aiScene GenerateScene() {
 			for (auto &treeMesh: aTreeMeshes) {
 				if (auto treeNode = CreateNodeForTreeMesh(&scene, treeMesh)) {
 					node->addChildren(1, &treeNode);
+				}
+			}
+		}
+
+		if (bFBXExportBVHNodes) {
+			if (auto node = new aiNode()) {
+				node->mName = "BVHNode";
+				scene.mRootNode->addChildren(1, &node);
+				for (auto &bvh: aBVHNodes) {
+					if (auto bvhNode = CreateNodeForBVHNode(&scene, bvh)) {
+						node->addChildren(1, &bvhNode);
+					}
 				}
 			}
 		}

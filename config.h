@@ -9,6 +9,7 @@ bool bDumpFOUCNormalizedStreams = false;
 bool bDumpFOUCOffsetedStreams = false;
 bool bFBXSkipHiddenProps = false;
 int nFBXSkipHiddenPropsFlag;
+bool bFBXExportBVHNodes = false;
 
 // export options
 bool bDisableObjects = false;
