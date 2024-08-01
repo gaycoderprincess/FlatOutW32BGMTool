@@ -210,6 +210,7 @@ bool ParseW32Streams(std::ifstream& file) {
 			ReadFromFile(file, &buf.foucExtraFormat, 4);
 			ReadFromFile(file, &buf.vertexCount, 4);
 			ReadFromFile(file, &buf.vertexSize, 4);
+			buf.flags = 0;
 
 			auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
 			auto data = new float[dataSize];

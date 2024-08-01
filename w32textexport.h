@@ -46,14 +46,16 @@ void WriteW32StreamsToText() {
 				if (bIsFOUCModel) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
 				WriteFile(std::format("Vertex Size: {}", buf.vertexSize));
 				WriteFile(std::format("Vertex Count: {}", buf.vertexCount));
-				std::string uvFlagsReadable;
-				if ((buf.flags & VERTEX_POSITION) != 0) uvFlagsReadable += "Position ";
-				if ((buf.flags & VERTEX_NORMAL) != 0) uvFlagsReadable += "Normals ";
-				if ((buf.flags & VERTEX_COLOR) != 0) uvFlagsReadable += "VertexColor ";
-				if ((buf.flags & VERTEX_UV) != 0) uvFlagsReadable += "UVMap ";
-				if ((buf.flags & VERTEX_UV2) != 0) uvFlagsReadable += "DoubleUVMap ";
-				if ((buf.flags & VERTEX_INT16) != 0) uvFlagsReadable += "Int16 ";
-				WriteFile(std::format("nFlags: 0x{:X} {}", buf.flags, uvFlagsReadable));
+				if (!buf.isVegetation) {
+					std::string uvFlagsReadable;
+					if ((buf.flags & VERTEX_POSITION) != 0) uvFlagsReadable += "Position ";
+					if ((buf.flags & VERTEX_NORMAL) != 0) uvFlagsReadable += "Normals ";
+					if ((buf.flags & VERTEX_COLOR) != 0) uvFlagsReadable += "VertexColor ";
+					if ((buf.flags & VERTEX_UV) != 0) uvFlagsReadable += "UVMap ";
+					if ((buf.flags & VERTEX_UV2) != 0) uvFlagsReadable += "DoubleUVMap ";
+					if ((buf.flags & VERTEX_INT16) != 0) uvFlagsReadable += "Int16 ";
+					WriteFile(std::format("nFlags: 0x{:X} {}", buf.flags, uvFlagsReadable));
+				}
 
 				if ((buf.flags & VERTEX_INT16) != 0) {
 					if (bDumpFOUCOffsetedStreams && !buf._coordsAfterFOUCMult.empty()) {

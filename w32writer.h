@@ -43,7 +43,7 @@ void WriteVertexBufferToFile(std::ofstream& file, tVertexBuffer& buf) {
 	file.write((char*)&buf.foucExtraFormat, 4);
 	file.write((char*)&buf.vertexCount, 4);
 	file.write((char*)&buf.vertexSize, 4);
-	file.write((char*)&buf.flags, 4);
+	if (!buf.isVegetation) file.write((char*)&buf.flags, 4);
 	if (bRemoveNormals) {
 		int numWritten = 0;
 
