@@ -45,6 +45,7 @@ BGM shaders:
 
 Additional notes:
 - Materials with the `scaleshock` and `shearhock` prefix are configured to have no alpha
+- Materials with the `_alpha` suffix are forced to have alpha regardless of the prefix
 
 Map shaders:
 - Default without keywords: Static prelit
