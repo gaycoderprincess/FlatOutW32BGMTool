@@ -814,6 +814,18 @@ bool ParseW32() {
 				exit(0);
 			}
 		}
+
+		auto splitPointsPath = sFileNameNoExt.string() + "_splitpoints.bed";
+		if (!std::filesystem::exists(splitPointsPath)) splitPointsPath = sFileFolder.string() + "splitpoints.bed";
+		if (!ParseSplitpoints(splitPointsPath)) {
+			WriteConsole("WARNING: Failed to load " + (std::string)splitPointsPath + "!", LOG_WARNINGS);
+		}
+
+		auto startPointsPath = sFileNameNoExt.string() + "_startpoints.bed";
+		if (!std::filesystem::exists(startPointsPath)) startPointsPath = sFileFolder.string() + "startpoints.bed";
+		if (!ParseStartpoints(startPointsPath)) {
+			WriteConsole("WARNING: Failed to load " + (std::string)startPointsPath + "!", LOG_WARNINGS);
+		}
 	}
 
 	// first look for modelname_crash.dat, then look for crash.dat in the folder

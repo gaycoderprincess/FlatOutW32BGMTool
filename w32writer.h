@@ -1137,6 +1137,7 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.find("_tank_") != std::string::npos) return "metal_watertank";
 		if (propName.starts_with("dyna_watertankhut")) return "metal_medium";
 		if (propName.starts_with("dyn_fence")) return "fence_wood";
+		if (propName.starts_with("dyn_wood_fence")) return "fence_wood";
 		if (propName.starts_with("dyn_electricpole")) return "wood_electricpole";
 		if (propName.starts_with("dyn_car_")) return "metal_car";
 		if (propName.starts_with("dyn_trashbag")) return "plastic_light";
@@ -1172,8 +1173,37 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("Wooden_block")) return "wood_light";
 		if (propName.starts_with("Wooden_Block")) return "wood_light";
 		if (propName.starts_with("Wooden_roadblock")) return "wood_light";
+		if (propName.starts_with("dyn_dumpsterlid")) return "metal_sheet";
+		if (propName.starts_with("dyn_trashcan")) return "metal_barrel";
+		if (propName.starts_with("dyn_shelves")) return "metal_sheet";
+		if (propName.starts_with("dyn_folder")) return "silent_box";
+		if (propName.starts_with("dyn_lightpolelight")) return "metal_sheet";
+		if (propName.starts_with("dyn_lightpole")) return "wood_electricpole_crossbar";
+		if (propName.starts_with("dyn_h_advertisement")) return "metal_sheet";
+		if (propName.starts_with("dyn_window_")) return "window";
+		if (propName.starts_with("dyn_table_")) return "wood_light";
+		if (propName.starts_with("dyn_bistroumbrella")) return "silent_box";
+		if (propName.starts_with("dyn_bistrochair")) return "metal_sheet";
+		if (propName.starts_with("dyn_bistrotable")) return "metal_sheet";
+		if (propName.starts_with("dyn_gutter")) return "metal_pipes";
+		if (propName.starts_with("dyn_houseplant")) return "hay_box";
+		if (propName.starts_with("dyn_picket_fence_post")) return "wood_light";
+		if (propName.starts_with("dyn_picket_fence")) return "fence_wood";
+		if (propName.starts_with("dyn_tunnel_fence")) return "metal_sheet";
 	}
 	else {
+		if (propName.starts_with("dyn_tunnel_fence")) return "metal_light";
+		if (propName.starts_with("dyn_picket_fence_post")) return "wood_plank_light";
+		if (propName.starts_with("dyn_picket_fence")) return "wood_board_small";
+		//if (propName.starts_with("dyn_houseplant")) return "";
+		//if (propName.starts_with("dyn_gutter")) return "";
+		if (propName.starts_with("dyn_bistrochair")) return "metal_light";
+		if (propName.starts_with("dyn_bistrotable")) return "metal_light";
+		if (propName.starts_with("dyn_table_")) return "wood_plank_light";
+		//if (propName.starts_with("dyn_window_")) return "";
+		if (propName.starts_with("dyn_h_advertisement")) return "metal_light";
+		if (propName.starts_with("dyn_lightpolelight")) return "metal_light";
+		//if (propName.starts_with("dyn_lightpole")) return "";
 		if (propName.starts_with("dyn_barnworshop_blank_")) return "wood_plank_light";
 		//if (propName.starts_with("dyn_cableroll")) return "";
 		//if (propName.starts_with("dyn_lawnmower")) return "";
@@ -1248,6 +1278,7 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.find("_tank_") != std::string::npos) return "metal_watertank";
 		if (propName.starts_with("dyna_watertankhut")) return "metal_watertank_leg";
 		if (propName.starts_with("dyn_fence")) return "wood_board_small";
+		if (propName.starts_with("dyn_wood_fence")) return "wood_board_small";
 		if (propName.starts_with("dyn_electricpole")) return "wood_electricpole_tilt";
 		if (propName.starts_with("dyn_car_")) return "metal_car_roadrunner";
 		if (propName.starts_with("dyn_trashbag")) return "plastic_trashbag";
@@ -1283,7 +1314,11 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("Wooden_block")) return "wood_board_small";
 		if (propName.starts_with("Wooden_Block")) return "wood_board_small";
 		if (propName.starts_with("Wooden_roadblock")) return "wood_board_small";
+		if (propName.starts_with("dyn_dumpsterlid")) return "metal_light";
+		if (propName.starts_with("dyn_trashcan")) return "metal_light";
+		if (propName.starts_with("dyn_shelves")) return "metal_light";
 	}
+	if (propName.starts_with("dyn_dumpster")) return "metal_watertank";
 	if (propName.starts_with("dyn_arrowsign_metal")) return "metal_light";
 	if (propName.starts_with("dyn_arrowsign")) return "metal_light";
 	if (propName.starts_with("dyn_metal_structure")) return "metal_light";
@@ -1296,6 +1331,7 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 	if (propName.starts_with("dyn_trackside_advert")) return "metal_light";
 	if (propName.starts_with("box")) return "metal_light";
 	if (propName.starts_with("dyn_tire")) return "rubber_tire";
+	if (propName.starts_with("dyn_tyre")) return "rubber_tire";
 	if (propName.starts_with("tire_")) return "rubber_tire";
 	if (propName.starts_with("dyn_cone")) return "rubber_cone";
 	if (propName.starts_with("Cone_")) return "rubber_cone";
@@ -1368,6 +1404,42 @@ void WriteW32(uint32_t exportMapVersion) {
 
 	file.write((char*)&nExportFileVersion, 4);
 	if (nExportFileVersion >= 0x20000) file.write((char*)&nSomeMapValue, 4);
+
+	if (auto node = GetFBXNodeForSplitpointsArray()) {
+		aSplitpoints.clear();
+		for (int i = 0; i < 9999; i++) {
+			auto pos = FindFBXNodeForSplitpointPos(i);
+			auto left = FindFBXNodeForSplitpointLeft(i);
+			auto right = FindFBXNodeForSplitpointRight(i);
+			if (!pos) continue;
+			if (!left) continue;
+			if (!right) continue;
+
+			tSplitpoint splitPoint;
+			splitPoint.pos.x = pos->mTransformation.a4;
+			splitPoint.pos.y = pos->mTransformation.b4;
+			splitPoint.pos.z = -pos->mTransformation.c4;
+			splitPoint.left.x = left->mTransformation.a4;
+			splitPoint.left.y = left->mTransformation.b4;
+			splitPoint.left.z = -left->mTransformation.c4;
+			splitPoint.right.x = right->mTransformation.a4;
+			splitPoint.right.y = right->mTransformation.b4;
+			splitPoint.right.z = -right->mTransformation.c4;
+			aSplitpoints.push_back(splitPoint);
+		}
+	}
+
+	if (auto node = GetFBXNodeForStartpointsArray()) {
+		aStartpoints.clear();
+		for (int i = 0; i < 9999; i++) {
+			auto pos = FindFBXNodeForStartpoint(i);
+			if (!pos) continue;
+
+			tStartpoint startPoint;
+			FBXMatrixToFO2Matrix(pos->mTransformation, startPoint.mMatrix);
+			aStartpoints.push_back(startPoint);
+		}
+	}
 
 	if (bImportSurfacesFromFBX) {
 		if (bImportAndAutoMatchAllMeshesFromFBX || bImportAndAutoMatchAllSurfacesFromFBX) {
@@ -1596,6 +1668,9 @@ void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("W32 export finished", LOG_ALWAYS);
 
 	UpdateTrackBVH();
+	WriteTrackBVH();
+	WriteSplitpoints();
+	WriteStartpoints();
 }
 
 std::vector<tVertexBuffer> aConversionVertexBuffers;

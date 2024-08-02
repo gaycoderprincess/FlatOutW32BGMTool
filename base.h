@@ -529,6 +529,56 @@ aiNode* GetFBXNodeForObjectsArray() { return FindFBXNodeFromRoot("Objects"); }
 aiNode* GetFBXNodeForCompactMeshArray() { return FindFBXNodeFromRoot("CompactMesh"); }
 aiNode* GetFBXNodeForStaticBatchArray() { return FindFBXNodeFromRoot("StaticBatch"); }
 aiNode* GetFBXNodeForTreeMeshArray() { return FindFBXNodeFromRoot("TreeMesh"); }
+aiNode* GetFBXNodeForSplitpointsArray() { return FindFBXNodeFromRoot("Splitpoints"); }
+aiNode* GetFBXNodeForStartpointsArray() { return FindFBXNodeFromRoot("Startpoints"); }
+
+aiNode* FindFBXNodeForStartpoint(int id) {
+	auto root = GetFBXNodeForStartpointsArray();
+	if (!root) return nullptr;
+
+	auto targetName = "Startpoint" + std::to_string(id + 1);
+	for (int i = 0; i < root->mNumChildren; i++) {
+		auto node = root->mChildren[i];
+		if (node->mName.C_Str() == targetName) return node;
+	}
+	return nullptr;
+}
+
+aiNode* FindFBXNodeForSplitpointLeft(int id) {
+	auto root = GetFBXNodeForSplitpointsArray();
+	if (!root) return nullptr;
+
+	auto targetName = "Splitpoint" + std::to_string(id + 1) + "_Left";
+	for (int i = 0; i < root->mNumChildren; i++) {
+		auto node = root->mChildren[i];
+		if (node->mName.C_Str() == targetName) return node;
+	}
+	return nullptr;
+}
+
+aiNode* FindFBXNodeForSplitpointRight(int id) {
+	auto root = GetFBXNodeForSplitpointsArray();
+	if (!root) return nullptr;
+
+	auto targetName = "Splitpoint" + std::to_string(id + 1) + "_Right";
+	for (int i = 0; i < root->mNumChildren; i++) {
+		auto node = root->mChildren[i];
+		if (node->mName.C_Str() == targetName) return node;
+	}
+	return nullptr;
+}
+
+aiNode* FindFBXNodeForSplitpointPos(int id) {
+	auto root = GetFBXNodeForSplitpointsArray();
+	if (!root) return nullptr;
+
+	auto targetName = "Splitpoint" + std::to_string(id + 1) + "_Position";
+	for (int i = 0; i < root->mNumChildren; i++) {
+		auto node = root->mChildren[i];
+		if (node->mName.C_Str() == targetName) return node;
+	}
+	return nullptr;
+}
 
 aiNode* FindFBXNodeForCompactMesh(const std::string& name) {
 	auto root = GetFBXNodeForCompactMeshArray();

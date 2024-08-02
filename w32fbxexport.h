@@ -332,6 +332,15 @@ void CreateFBXCube(aiScene* scene) {
 	}
 }
 
+aiNode* CreateFBXNodeAtPosition(aiVector3D pos) {
+	auto node = new aiNode();
+	node->mTransformation.a4 = pos.x;
+	node->mTransformation.b4 = pos.y;
+	node->mTransformation.c4 = -pos.z;
+	node->mTransformation.d4 = 1;
+	return node;
+}
+
 aiScene GenerateScene() {
 	aiScene scene;
 	scene.mRootNode = new aiNode();
@@ -452,6 +461,39 @@ aiScene GenerateScene() {
 					if (auto bvhNode = CreateNodeForBVHNode(&scene, bvh)) {
 						node->addChildren(1, &bvhNode);
 					}
+				}
+			}
+		}
+
+		if (!aSplitpoints.empty()) {
+			if (auto node = new aiNode()) {
+				node->mName = "Splitpoints";
+				scene.mRootNode->addChildren(1, &node);
+				for (auto& point: aSplitpoints) {
+					auto baseName = "Splitpoint" + std::to_string((&point - &aSplitpoints[0]) + 1);
+
+					auto pNode = CreateFBXNodeAtPosition(point.pos);
+					auto lNode = CreateFBXNodeAtPosition(point.left);
+					auto rNode = CreateFBXNodeAtPosition(point.right);
+					pNode->mName = baseName + "_Position";
+					lNode->mName = baseName + "_Left";
+					rNode->mName = baseName + "_Right";
+					node->addChildren(1, &pNode);
+					node->addChildren(1, &lNode);
+					node->addChildren(1, &rNode);
+				}
+			}
+		}
+
+		if (!aStartpoints.empty()) {
+			if (auto node = new aiNode()) {
+				node->mName = "Startpoints";
+				scene.mRootNode->addChildren(1, &node);
+				for (auto& point: aStartpoints) {
+					auto pNode = new aiNode();
+					FO2MatrixToFBXMatrix(point.mMatrix, &pNode->mTransformation);
+					pNode->mName = "Startpoint" + std::to_string((&point - &aStartpoints[0]) + 1);
+					node->addChildren(1, &pNode);
 				}
 			}
 		}

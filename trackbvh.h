@@ -16,6 +16,8 @@ std::vector<tTrackBVHPrimitive> aBVHPrimitives;
 std::vector<tTrackBVHNode> aBVHNodes;
 
 bool ParseTrackBVH(const std::filesystem::path& fileName) {
+	WriteConsole("Parsing BVH data...", LOG_ALWAYS);
+
 	if (fileName.extension() != ".gen") {
 		return false;
 	}

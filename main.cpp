@@ -18,6 +18,7 @@
 #include "config.h"
 #include "crashdatparser.h"
 #include "trackbvh.h"
+#include "splitpoints.h"
 #include "w32parser.h"
 #include "w32writer.h"
 #include "w32textexport.h"
@@ -83,7 +84,6 @@ int main(int argc, char *argv[]) {
 
 			FillW32FromFBX();
 			WriteW32(nExportFileVersion);
-			WriteTrackBVH();
 		}
 	}
 	else if (bCreateBGMFromFBX) {
@@ -134,7 +134,6 @@ int main(int argc, char *argv[]) {
 					if (bDumpIntoFBX) WriteToFBX();
 					if (bDumpIntoW32) {
 						WriteW32(bConvertToFO1 ? 0x10005 : nImportFileVersion);
-						WriteTrackBVH();
 					}
 				}
 
