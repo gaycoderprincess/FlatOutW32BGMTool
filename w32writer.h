@@ -576,10 +576,6 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 			}
 		}
 		if (mat.sName == "water") mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
-
-		// retro demo
-		if (mat.sName.starts_with("road_tarmac")) mat.nShaderId = 1; // terrain
-		if (mat.sName.starts_with("road_gravel")) mat.nShaderId = 1; // terrain
 	}
 	else {
 		mat.nShaderId = 3; // dynamic diffuse
@@ -590,6 +586,14 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 		}
 		if (mat.sName.ends_with("_specular")) mat.nShaderId = 4; // dynamic specular, custom suffix for manual use
 	}
+
+	// retro demo
+	if (mat.sName.starts_with("road_tarmac")) mat.nShaderId = 1; // terrain
+	if (mat.sName.starts_with("road_gravel")) mat.nShaderId = 1; // terrain
+	if (mat.sName.starts_with("poles_wire")) mat.nAlpha = 1;
+	if (mat.sName.starts_with("forest_mixed_")) mat.nAlpha = 1;
+	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
+	if (mat.sName.ends_with("_alpha1")) mat.nAlpha = 1;
 
 	mat.nNumTextures = fbxMaterial->GetTextureCount(aiTextureType_DIFFUSE);
 	if (mat.nNumTextures > 3) mat.nNumTextures = 3;
@@ -1091,6 +1095,8 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("dyn_tractor")) return "metal_car";
 		if (propName.starts_with("dyn_cementmixer")) return "metal_medium";
 		if (propName.starts_with("dyn_metal_barrel")) return "metal_barrel";
+		if (propName.starts_with("dyn_barrel")) return "metal_barrel";
+		if (propName.starts_with("barrel_")) return "metal_barrel";
 		if (propName.starts_with("dyn_canister")) return "metal_sheet";
 		if (propName.starts_with("dyn_square_hay")) return "hay_box";
 		if (propName.starts_with("dyn_barn_big_american_door")) return "wood_light";
@@ -1160,6 +1166,12 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.find("_garagedoor_") != std::string::npos) return "wood_heavy";
 		if (propName.starts_with("dyn_motelsignpost")) return "metal_medium";
 		if (propName.starts_with("dyna_house_")) return "wood_light";
+		if (propName.starts_with("Wooden_Fence")) return "fence_wood";
+		if (propName.starts_with("lauta")) return "wood_light";
+		if (propName.starts_with("Sponsor_sign")) return "wood_light";
+		if (propName.starts_with("Wooden_block")) return "wood_light";
+		if (propName.starts_with("Wooden_Block")) return "wood_light";
+		if (propName.starts_with("Wooden_roadblock")) return "wood_light";
 	}
 	else {
 		if (propName.starts_with("dyn_barnworshop_blank_")) return "wood_plank_light";
@@ -1193,6 +1205,8 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.starts_with("dyn_tractor")) return "metal_car_roadrunner";
 		//if (propName.starts_with("dyn_cementmixer")) return "";
 		if (propName.starts_with("dyn_metal_barrel")) return "metal_light";
+		if (propName.starts_with("dyn_barrel")) return "metal_light";
+		if (propName.starts_with("barrel_")) return "metal_light";
 		//if (propName.starts_with("dyn_canister")) return "";
 		//if (propName.starts_with("dyn_square_hay")) return "";
 		if (propName.starts_with("dyn_barn_big_american_door")) return "wood_plank_light";
@@ -1263,6 +1277,12 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 		if (propName.find("_garagedoor_") != std::string::npos) return "wood_garagedoor";
 		if (propName.starts_with("dyn_motelsignpost")) return "metal_sign_huge";
 		if (propName.starts_with("dyna_house_")) return "wood_board_medium";
+		if (propName.starts_with("Wooden_Fence")) return "wood_board_small";
+		if (propName.starts_with("lauta")) return "wood_board_small";
+		if (propName.starts_with("Sponsor_sign")) return "wood_board_small";
+		if (propName.starts_with("Wooden_block")) return "wood_board_small";
+		if (propName.starts_with("Wooden_Block")) return "wood_board_small";
+		if (propName.starts_with("Wooden_roadblock")) return "wood_board_small";
 	}
 	if (propName.starts_with("dyn_arrowsign_metal")) return "metal_light";
 	if (propName.starts_with("dyn_arrowsign")) return "metal_light";
@@ -1275,9 +1295,10 @@ std::string GetPropDynamicObjectByName(const std::string& propName) {
 	if (propName.starts_with("dyn_scaffold")) return "metal_light";
 	if (propName.starts_with("dyn_trackside_advert")) return "metal_light";
 	if (propName.starts_with("box")) return "metal_light";
-	if (propName.starts_with("dyn_barrel")) return "metal_light";
 	if (propName.starts_with("dyn_tire")) return "rubber_tire";
+	if (propName.starts_with("tire_")) return "rubber_tire";
 	if (propName.starts_with("dyn_cone")) return "rubber_cone";
+	if (propName.starts_with("Cone_")) return "rubber_cone";
 	WriteConsole("WARNING: Prop " + propName + " has unrecognized prefix, defaulting to metal_light", LOG_WARNINGS);
 	return "metal_light";
 }
