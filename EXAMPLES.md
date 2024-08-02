@@ -16,17 +16,19 @@ When exporting them back, use these settings:
 - Take the files ending in `_out.bgm` and `_out_crash.dat`, rename them and put them into the game files.
 
 ## Exporting and importing a track
-- Enter `FlatOutW32BGMTool_gcp.exe path/to/track_geom.w32 -export_fbx` into a commandline prompt
+- Enter `FlatOutW32BGMTool_gcp.exe path/to/track_geom.w32 -export_fbx -skip_hidden_props_a` into a commandline prompt (for track variant B or C use `-skip_hidden_props_b` or `-skip_hidden_props_c`)
 - Edit the .fbx and make your desired changes and additions
 - Enter `FlatOutW32BGMTool_gcp.exe path/to/model.fbx -create_fouc_w32` into a commandline prompt (Available formats are `-create_fo1_w32`, `-create_fo2_w32` and `-create_fouc_w32`)
 - If you need to remove grass or other vegetation, enter `FlatOutW32BGMTool_gcp.exe -empty_plant_db` into a commandline prompt
+- If you experience culling issues, delete `track_spvs.gen` from your track geometry folder.
 - Copy the new .w32 and .gen files, rename them and put them into the game files.
 
 ## Exporting and importing a track while keeping trees intact in FOUC
-- Enter `FlatOutW32BGMTool_gcp.exe path/to/track_geom.w32 -export_fbx` into a commandline prompt
+- Enter `FlatOutW32BGMTool_gcp.exe path/to/track_geom.w32 -export_fbx -skip_hidden_props_a` into a commandline prompt (for track variant B or C use `-skip_hidden_props_b` or `-skip_hidden_props_c`)
 - Edit the .fbx and make your desired changes and additions
 - Enter `FlatOutW32BGMTool_gcp.exe path/to/track_geom.w32 path/to/model.fbx -import_all_surfaces -import_moved_props -import_cloned_props` into a commandline prompt
 - If you need to remove grass or other vegetation, enter `FlatOutW32BGMTool_gcp.exe -empty_plant_db` into a commandline prompt
+- If you experience culling issues, delete `track_spvs.gen` from your track geometry folder.
 - Copy the new .w32 and .gen files, rename them and put them into the game files.
 
 ## Converting a vehicle between games
