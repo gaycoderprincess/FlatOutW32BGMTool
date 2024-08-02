@@ -794,7 +794,7 @@ bool ParseW32() {
 	if (nImportFileVersion > 0x20000) ReadFromFile(fin, &nSomeMapValue, 4);
 	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
 	else {
-		if (nImportFileVersion == 0x10003) {
+		if (nImportFileVersion <= 0x10003) {
 			auto vertexColorsPath = sFileNameNoExt.string() + "_sky_vtx.rad";
 			if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
 				WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);

@@ -68,7 +68,7 @@ std::string GetFileVersion(int value) {
 int nImportFileVersion;
 int nExportFileVersion;
 std::string GetShaderName(int value) {
-	if (nImportFileVersion < 0x10004) {
+	if (nImportFileVersion <= 0x10003) {
 		switch (value) {
 			case 0: return "default static";
 			case 1: return "default dynamic";

@@ -1356,6 +1356,10 @@ void WriteW32(uint32_t exportMapVersion) {
 		WriteConsole("ERROR: FOUC conversions are currently not supported!", LOG_ERRORS);
 		return;
 	}
+	if (nExportFileVersion <= 0x10003 || nImportFileVersion <= 0x10003) {
+		WriteConsole("ERROR: Retro Demo / Tough Trucks conversions are currently not supported!", LOG_ERRORS);
+		return;
+	}
 
 	auto outFileName = sFileNameNoExt.string() + "_out.w32";
 	if (bW32UseVanillaNames) outFileName = sFileFolder.string() + (bIsFOUCModel ? "track_geom_w2.w32" : "track_geom.w32");

@@ -490,6 +490,8 @@ void WriteBGMMeshesToText() {
 }
 
 void WriteW32ToText() {
+	if (aMaterials.empty() && aSurfaces.empty()) return;
+
 	WriteConsole("Writing text file...", LOG_ALWAYS);
 
 	WriteFile(std::format("nFileVersion: 0x{:X} {}", nImportFileVersion, GetFileVersion(nImportFileVersion)));
