@@ -826,6 +826,12 @@ bool ParseW32() {
 		if (!ParseStartpoints(startPointsPath)) {
 			WriteConsole("WARNING: Failed to load " + (std::string)startPointsPath + "!", LOG_WARNINGS);
 		}
+
+		auto splinesPath = sFileNameNoExt.string() + "_splines.ai";
+		if (!std::filesystem::exists(splinesPath)) splinesPath = sFileFolder.string() + "splines.ai";
+		if (!ParseSplines(splinesPath)) {
+			WriteConsole("WARNING: Failed to load " + (std::string)splinesPath + "!", LOG_WARNINGS);
+		}
 	}
 
 	// first look for modelname_crash.dat, then look for crash.dat in the folder

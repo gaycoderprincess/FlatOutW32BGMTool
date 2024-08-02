@@ -341,6 +341,24 @@ aiNode* CreateFBXNodeAtPosition(aiVector3D pos) {
 	return node;
 }
 
+void CreateSplineArrayForVector(aiScene* scene, std::vector<aiVector3D>& vec, const std::string& name) {
+	if (!vec.empty()) {
+		if (auto node = new aiNode()) {
+			node->mName = name;
+			scene->mRootNode->addChildren(1, &node);
+			for (auto& point: vec) {
+				auto pNode = new aiNode();
+				pNode->mTransformation.a4 = point.x;
+				pNode->mTransformation.b4 = point.y;
+				pNode->mTransformation.c4 = -point.z;
+				pNode->mTransformation.d4 = 1;
+				pNode->mName = name + "_Node" + std::to_string((&point - &vec[0]) + 1);
+				node->addChildren(1, &pNode);
+			}
+		}
+	}
+}
+
 aiScene GenerateScene() {
 	aiScene scene;
 	scene.mRootNode = new aiNode();
@@ -497,6 +515,17 @@ aiScene GenerateScene() {
 				}
 			}
 		}
+
+		CreateSplineArrayForVector(&scene, aAIBorderLineLeft, "AIBorderLineLeft");
+		CreateSplineArrayForVector(&scene, aAIBorderLineLeft2, "AIBorderLineLeft2");
+		CreateSplineArrayForVector(&scene, aAIBorderLineLeft3, "AIBorderLineLeft3");
+		CreateSplineArrayForVector(&scene, aAIBorderLineLeft4, "AIBorderLineLeft4");
+		CreateSplineArrayForVector(&scene, aAIBorderLineLeft5, "AIBorderLineLeft5");
+		CreateSplineArrayForVector(&scene, aAIBorderLineRight, "AIBorderLineRight");
+		CreateSplineArrayForVector(&scene, aAIBorderLineRight2, "AIBorderLineRight2");
+		CreateSplineArrayForVector(&scene, aAIBorderLineRight3, "AIBorderLineRight3");
+		CreateSplineArrayForVector(&scene, aAIBorderLineRight4, "AIBorderLineRight4");
+		CreateSplineArrayForVector(&scene, aAIBorderLineRight5, "AIBorderLineRight5");
 	}
 
 	if (auto node = new aiNode()) {

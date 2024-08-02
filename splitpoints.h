@@ -10,6 +10,17 @@ struct tStartpoint {
 };
 std::vector<tStartpoint> aStartpoints;
 
+std::vector<aiVector3D> aAIBorderLineLeft;
+std::vector<aiVector3D> aAIBorderLineLeft2;
+std::vector<aiVector3D> aAIBorderLineLeft3;
+std::vector<aiVector3D> aAIBorderLineLeft4;
+std::vector<aiVector3D> aAIBorderLineLeft5;
+std::vector<aiVector3D> aAIBorderLineRight;
+std::vector<aiVector3D> aAIBorderLineRight2;
+std::vector<aiVector3D> aAIBorderLineRight3;
+std::vector<aiVector3D> aAIBorderLineRight4;
+std::vector<aiVector3D> aAIBorderLineRight5;
+
 bool IsBedLine(std::string& line, const std::string& value) {
 	if (line.starts_with(value)) {
 		line.erase(line.begin(), line.begin() + value.length());
@@ -100,6 +111,35 @@ void ParseStartpointsLine(const std::string& line) {
 	}
 }
 
+void ParseSplinesLine(const std::string& line) {
+	static auto dest = &aAIBorderLineLeft;
+
+	auto tmp = line;
+	if (IsBedLine(tmp, "\t[\"AIBorderLineLeft\"] = {")) { dest = &aAIBorderLineLeft; return; }
+	if (IsBedLine(tmp, "\t[\"AIBorderLineLeft2\"] = {")) { dest = &aAIBorderLineLeft2; return; }
+	if (IsBedLine(tmp, "\t[\"AIBorderLineLeft3\"] = {")) { dest = &aAIBorderLineLeft3; return; }
+	if (IsBedLine(tmp, "\t[\"AIBorderLineLeft4\"] = {")) { dest = &aAIBorderLineLeft4; return; }
+	if (IsBedLine(tmp, "\t[\"AIBorderLineLeft5\"] = {")) { dest = &aAIBorderLineLeft5; return; }
+	if (IsBedLine(tmp, "\t[\"AIBorderLineRight\"] = {")) { dest = &aAIBorderLineRight; return; }
+	if (IsBedLine(tmp, "\t[\"AIBorderLineRight2\"] = {")) { dest = &aAIBorderLineRight2; return; }
+	if (IsBedLine(tmp, "\t[\"AIBorderLineRight3\"] = {")) { dest = &aAIBorderLineRight3; return; }
+	if (IsBedLine(tmp, "\t[\"AIBorderLineRight4\"] = {")) { dest = &aAIBorderLineRight4; return; }
+	if (IsBedLine(tmp, "\t[\"AIBorderLineRight5\"] = {")) { dest = &aAIBorderLineRight5; return; }
+	if (IsBedLine(tmp, "\t\t\t[")) {
+		tmp.erase(tmp.begin(), tmp.begin() + tmp.find(']') + 1);
+		if (IsBedLine(tmp, " = { ")) {
+			aiVector3D vec;
+			vec.x = std::stof(tmp);
+			tmp.erase(tmp.begin(), tmp.begin() + tmp.find(',') + 1);
+			vec.y = std::stof(tmp);
+			tmp.erase(tmp.begin(), tmp.begin() + tmp.find(',') + 1);
+			vec.z = std::stof(tmp);
+			dest->push_back(vec);
+			return;
+		}
+	}
+}
+
 bool ParseSplitpoints(const std::filesystem::path& fileName) {
 	if (fileName.extension() != ".bed") {
 		return false;
@@ -129,6 +169,23 @@ bool ParseStartpoints(const std::filesystem::path& fileName) {
 
 	for (std::string line; std::getline(fin, line); ) {
 		ParseStartpointsLine(line);
+	}
+
+	return true;
+}
+
+bool ParseSplines(const std::filesystem::path& fileName) {
+	if (fileName.extension() != ".ai") {
+		return false;
+	}
+
+	WriteConsole("Parsing splines...", LOG_ALWAYS);
+
+	std::ifstream fin(fileName, std::ios::in );
+	if (!fin.is_open()) return false;
+
+	for (std::string line; std::getline(fin, line); ) {
+		ParseSplinesLine(line);
 	}
 
 	return true;
@@ -190,5 +247,59 @@ void WriteStartpoints() {
 		fout << "\n\t\t},";
 		fout << "\n\n\t},";
 	}
+	fout << "\n}";
+}
+
+void WriteSpline(std::ofstream& fout, std::vector<aiVector3D>& vec, const std::string& name) {
+	if (vec.empty()) return;
+
+	fout << "\n\t[\"" + name + "\"] = {";
+	fout << "\n\t\tCount = " + std::to_string(vec.size());
+	fout << "\n\t\tControlPoints = {";
+	for (auto& pos : vec) {
+		fout << std::format("\n\t\t\t[{}] = {{ {}, {}, {} }},", std::to_string((&pos - &vec[0]) + 1), pos.x, pos.y, pos.z);
+	}
+	fout << "\n\t\t},";
+	fout << "\n\t},\n";
+}
+
+void WriteSplines() {
+	int count = 0;
+	if (!aAIBorderLineLeft.empty()) count++;
+	if (!aAIBorderLineLeft2.empty()) count++;
+	if (!aAIBorderLineLeft3.empty()) count++;
+	if (!aAIBorderLineLeft4.empty()) count++;
+	if (!aAIBorderLineLeft5.empty()) count++;
+	if (!aAIBorderLineRight.empty()) count++;
+	if (!aAIBorderLineRight2.empty()) count++;
+	if (!aAIBorderLineRight3.empty()) count++;
+	if (!aAIBorderLineRight4.empty()) count++;
+	if (!aAIBorderLineRight5.empty()) count++;
+	if (!count) {
+		WriteConsole("WARNING: No splines.ai data loaded, AI pathing data will not be exported", LOG_WARNINGS);
+		return;
+	}
+
+	WriteConsole("Writing output splines.ai file...", LOG_ALWAYS);
+
+	auto outFileName = sFileNameNoExt.string() + "_splines.ai";
+	if (bW32UseVanillaNames) outFileName = sFileFolder.string() + "splines.ai";
+	std::ofstream fout(outFileName, std::ios::out);
+	if (!fout.is_open()) return;
+
+	fout << "Count = " + std::to_string(count);
+	fout << "\n\nSplines = {";
+
+	WriteSpline(fout, aAIBorderLineLeft, "AIBorderLineLeft");
+	WriteSpline(fout, aAIBorderLineLeft2, "AIBorderLineLeft2");
+	WriteSpline(fout, aAIBorderLineLeft3, "AIBorderLineLeft3");
+	WriteSpline(fout, aAIBorderLineLeft4, "AIBorderLineLeft4");
+	WriteSpline(fout, aAIBorderLineLeft5, "AIBorderLineLeft5");
+	WriteSpline(fout, aAIBorderLineRight, "AIBorderLineRight");
+	WriteSpline(fout, aAIBorderLineRight2, "AIBorderLineRight2");
+	WriteSpline(fout, aAIBorderLineRight3, "AIBorderLineRight3");
+	WriteSpline(fout, aAIBorderLineRight4, "AIBorderLineRight4");
+	WriteSpline(fout, aAIBorderLineRight5, "AIBorderLineRight5");
+
 	fout << "\n}";
 }

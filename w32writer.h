@@ -1384,6 +1384,19 @@ void CreateW32CompactMeshesFromFBX() {
 	}
 }
 
+void ReadSplineFromFBX(aiNode*(*pFunction)(int), std::vector<aiVector3D>& vec) {
+	for (int i = 0; i < 9999; i++) {
+		auto pos = pFunction(i);
+		if (!pos) continue;
+
+		aiVector3D v;
+		v.x = pos->mTransformation.a4;
+		v.y = pos->mTransformation.b4;
+		v.z = -pos->mTransformation.c4;
+		vec.push_back(v);
+	}
+}
+
 void WriteW32(uint32_t exportMapVersion) {
 	WriteConsole("Writing output w32 file...", LOG_ALWAYS);
 
@@ -1440,6 +1453,17 @@ void WriteW32(uint32_t exportMapVersion) {
 			aStartpoints.push_back(startPoint);
 		}
 	}
+
+	if (auto node = GetFBXNodeForAIBorderLineLeftArray()) ReadSplineFromFBX(FindFBXNodeForAIBorderLineLeft, aAIBorderLineLeft);
+	if (auto node = GetFBXNodeForAIBorderLineLeft2Array()) ReadSplineFromFBX(FindFBXNodeForAIBorderLine2Left, aAIBorderLineLeft2);
+	if (auto node = GetFBXNodeForAIBorderLineLeft3Array()) ReadSplineFromFBX(FindFBXNodeForAIBorderLine3Left, aAIBorderLineLeft3);
+	if (auto node = GetFBXNodeForAIBorderLineLeft4Array()) ReadSplineFromFBX(FindFBXNodeForAIBorderLine4Left, aAIBorderLineLeft4);
+	if (auto node = GetFBXNodeForAIBorderLineLeft5Array()) ReadSplineFromFBX(FindFBXNodeForAIBorderLine5Left, aAIBorderLineLeft5);
+	if (auto node = GetFBXNodeForAIBorderLineRightArray()) ReadSplineFromFBX(FindFBXNodeForAIBorderLineRight, aAIBorderLineRight);
+	if (auto node = GetFBXNodeForAIBorderLineRight2Array()) ReadSplineFromFBX(FindFBXNodeForAIBorderLine2Right, aAIBorderLineRight2);
+	if (auto node = GetFBXNodeForAIBorderLineRight3Array()) ReadSplineFromFBX(FindFBXNodeForAIBorderLine3Right, aAIBorderLineRight3);
+	if (auto node = GetFBXNodeForAIBorderLineRight4Array()) ReadSplineFromFBX(FindFBXNodeForAIBorderLine4Right, aAIBorderLineRight4);
+	if (auto node = GetFBXNodeForAIBorderLineRight5Array()) ReadSplineFromFBX(FindFBXNodeForAIBorderLine5Right, aAIBorderLineRight5);
 
 	if (bImportSurfacesFromFBX) {
 		if (bImportAndAutoMatchAllMeshesFromFBX || bImportAndAutoMatchAllSurfacesFromFBX) {
@@ -1671,6 +1695,7 @@ void WriteW32(uint32_t exportMapVersion) {
 	WriteTrackBVH();
 	WriteSplitpoints();
 	WriteStartpoints();
+	WriteSplines();
 }
 
 std::vector<tVertexBuffer> aConversionVertexBuffers;
