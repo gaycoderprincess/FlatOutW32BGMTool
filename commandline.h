@@ -179,6 +179,7 @@ tCommandlineArgument aArguments[] = {
 		// export formats
 		{ "-export_fbx", CMD_ExportFBX, "Exports the input file into an .fbx model", "Export formats" },
 		{ "-export_text", CMD_ExportText, "Exports the input file into a text dump" },
+		{ "-use_vanilla_names", CMD_W32_UseVanillaNames, "Exports the files as their original names, e.g. track_geom.w32, track_bvh.gen" },
 
 		// export bgm versions
 		{ "-create_fo1_bgm", CMD_ExportBGM_FO1, "Creates a FlatOut 1 .bgm from an input .fbx file", "FBX to BGM" },
@@ -207,7 +208,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-empty_plant_vdb", CMD_EmptyPlantVDB, "Generates an empty plant_vdb.gen, removes all grass from the map" },
 
 		// map fbx import options
-		{ "-import_moved_props", CMD_W32_ImportMovedProps, "Imports moved prop positions from an .fbx, takes an .fbx file as the second argument", "FBX to W32" },
+		{ "-import_moved_props", CMD_W32_ImportMovedProps, "Imports moved prop positions from an .fbx, takes an .fbx file as the second argument", "W32 + FBX editing" },
 		{ "-ungroup_moved_props", CMD_W32_UngroupMovedProps, "Ungroups props that have been moved via -import_moved_props, fixes some physics behavior" },
 		{ "-import_cloned_props", CMD_W32_ImportClonedProps, "Imports new cloned props from an .fbx, takes an .fbx file as the second argument" },
 		{ "-import_all_props", CMD_W32_ImportAllProps, "Imports all props from an .fbx and deletes the original w32 ones, takes an .fbx file as the second argument" },
@@ -216,11 +217,10 @@ tCommandlineArgument aArguments[] = {
 		{ "-import_all_surfaces", CMD_W32_ImportAllSurfaces, "Imports all modified surfaces from an .fbx, takes an .fbx file as the second argument" },
 		{ "-import_and_match_all_surfaces", CMD_W32_ImportAndAutoMatchAllSurfaces, "Imports all surfaces from an .fbx and matches them up to any valid w32 surface, takes an .fbx file as the second argument" },
 		{ "-import_and_match_all_meshes", CMD_W32_ImportAndAutoMatchAllMeshesFromFBX, "Imports all meshes from an .fbx and matches them up to any valid w32 surface, takes an .fbx file as the second argument" },
+		{ "-import_deletions", CMD_W32_ImportDeletions, "Deletes surfaces that have been deleted in an .fbx, takes an .fbx file as the second argument" },
 		{ "-clear_old_materials", CMD_W32_ClearOriginalMaterials, "Removes all original materials from the w32 before importing the ones from the .fbx" },
 		{ "-no_material_reuse", CMD_W32_NoMaterialReuse, "Ignores all original w32 materials, instead always importing new ones from the .fbx" },
 		{ "-no_tree_hack", CMD_W32_NoTreeHack, "Disables the adjusting of normal vectors for tree shaders in Ultimate Carnage" },
-		{ "-import_deletions", CMD_W32_ImportDeletions, "Deletes surfaces that have been deleted in an .fbx, takes an .fbx file as the second argument" },
-		{ "-use_vanilla_names", CMD_W32_UseVanillaNames, "Exports the files as their original names, e.g. track_geom.w32, track_bvh.gen" },
 
 		// text options
 		{ "-text_materials", CMD_DumpText_Materials, "Dumps all material data into a text file", "Text dumps" },
