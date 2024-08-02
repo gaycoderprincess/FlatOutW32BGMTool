@@ -11,13 +11,24 @@ bool ParseW32Materials(std::ifstream& file, bool print = true) {
 
 		material.sName = ReadStringFromFile(file);
 		ReadFromFile(file, &material.nAlpha, 4);
-		ReadFromFile(file, &material.v92, 4);
-		ReadFromFile(file, &material.nNumTextures, 4);
-		ReadFromFile(file, &material.nShaderId, 4);
-		ReadFromFile(file, &material.nUseColormap, 4);
-		ReadFromFile(file, &material.v74, 4);
-		ReadFromFile(file, material.v108, 12);
-		ReadFromFile(file, material.v109, 12);
+		if (nImportFileVersion >= 0x10004) {
+			ReadFromFile(file, &material.v92, 4);
+			ReadFromFile(file, &material.nNumTextures, 4);
+			ReadFromFile(file, &material.nShaderId, 4);
+			ReadFromFile(file, &material.nUseColormap, 4);
+			ReadFromFile(file, &material.v74, 4);
+			ReadFromFile(file, material.v108, 12);
+			ReadFromFile(file, material.v109, 12);
+		}
+		else {
+			int tmp = 0;
+			ReadFromFile(file, &tmp, 4); // 1
+			ReadFromFile(file, &tmp, 4); // 0
+			ReadFromFile(file, &tmp, 4); // 2
+			ReadFromFile(file, &material.nShaderId, 4); // 2
+			ReadFromFile(file, &material.nUseColormap, 4); // 1
+			ReadFromFile(file, &material.v108, 4);
+		}
 		ReadFromFile(file, material.v98, 16);
 		ReadFromFile(file, material.v99, 16);
 		ReadFromFile(file, material.v100, 16);
@@ -608,8 +619,81 @@ bool ParseBGMMeshes(std::ifstream& file) {
 	return true;
 }
 
+bool ParseW32RetroDemoSurfaces(std::ifstream& file) {
+	uint32_t count;
+	ReadFromFile(file, &count, 4);
+	for (int i = 0; i < count; i++) {
+		tModel model;
+		ReadFromFile(file, &model.identifier, 4);
+		int tmp;
+		ReadFromFile(file, &tmp, 4);
+		ReadFromFile(file, model.vCenter, sizeof(model.vCenter));
+		ReadFromFile(file, model.vRadius, sizeof(model.vRadius));
+		uint32_t surfaceCount;
+		ReadFromFile(file, &surfaceCount, 4);
+		model.aSurfaces.reserve(surfaceCount);
+		for (int j = 0; j < surfaceCount; j++) {
+			int id = aVertexBuffers.size() + aIndexBuffers.size();
+
+			tSurface surface;
+
+			tVertexBuffer buf;
+			buf.id = id;
+			ReadFromFile(file, &tmp, 4); // identifier, BATC
+			ReadFromFile(file, &buf.foucExtraFormat, 4);
+			ReadFromFile(file, &surface.nMaterialId, 4);
+			ReadFromFile(file, &buf.vertexCount, 4);
+			ReadFromFile(file, &buf.flags, 4);
+			uint32_t dataSize;
+			ReadFromFile(file, &dataSize, 4);
+			buf.vertexSize = dataSize / buf.vertexCount;
+			buf.data = new float[dataSize / 4];
+			ReadFromFile(file, buf.data, dataSize);
+
+			tIndexBuffer iBuf;
+			iBuf.id = id + 1;
+			ReadFromFile(file, &tmp, 4);
+			ReadFromFile(file, &surface.nPolyMode, 4);
+			ReadFromFile(file, &dataSize, 4);
+			iBuf.indexCount = dataSize / 2;
+			iBuf.data = new uint16_t[dataSize / 2];
+			ReadFromFile(file, iBuf.data, dataSize);
+
+			surface.nVertexCount = buf.vertexCount;
+			surface.nFlags = buf.flags;
+			surface.nNumIndicesUsed = iBuf.indexCount;
+			surface.nPolyCount = surface.nPolyMode == 4 ? iBuf.indexCount / 3 : iBuf.indexCount - 2;
+			if (surface.nPolyMode == 0) {
+				surface.nPolyCount = 0;
+				buf.isVegetation = true;
+			}
+			surface.nNumStreamsUsed = 2;
+			surface.nStreamId[0] = id;
+			surface.nStreamId[1] = id + 1;
+			surface.nStreamOffset[0] = 0;
+			surface.nStreamOffset[1] = 0;
+			surface.RegisterReference(SURFACE_REFERENCE_STATICBATCH);
+			ReadFromFile(file, surface.vCenter, sizeof(surface.vCenter));
+			ReadFromFile(file, surface.vRadius, sizeof(surface.vRadius));
+
+			tStaticBatch batch;
+			batch.nBVHId1 = aSurfaces.size();
+			memcpy(batch.vCenter, surface.vCenter, sizeof(batch.vCenter));
+			memcpy(batch.vRadius, surface.vRadius, sizeof(batch.vRadius));
+			aStaticBatches.push_back(batch);
+
+			model.aSurfaces.push_back(aSurfaces.size());
+			aSurfaces.push_back(surface);
+
+			aVertexBuffers.push_back(buf);
+			aIndexBuffers.push_back(iBuf);
+		}
+	}
+	return true;
+}
+
 bool ParseW32() {
-	if (sFileName.extension() != ".w32") {
+	if (sFileName.extension() != ".w32" && sFileName.extension() != ".trk") {
 		return false;
 	}
 
@@ -628,7 +712,7 @@ bool ParseW32() {
 	else {
 		auto vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors.w32";
 		if (!std::filesystem::exists(vertexColorsPath)) vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
-		if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
+		if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX && nImportFileVersion >= 0x10004) {
 			WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);
 			exit(0);
 		}
@@ -643,6 +727,12 @@ bool ParseW32() {
 	}
 
 	if (!ParseW32Materials(fin)) return false;
+
+	if (nImportFileVersion <= 0x10003) {
+		if (!ParseW32RetroDemoSurfaces(fin)) false;
+		return true;
+	}
+
 	if (!ParseW32Streams(fin)) return false;
 	if (!ParseW32Surfaces(fin, nImportFileVersion)) return false;
 	if (!ParseW32StaticBatches(fin, nImportFileVersion)) return false;

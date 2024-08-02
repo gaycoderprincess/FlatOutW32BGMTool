@@ -65,8 +65,29 @@ std::string GetFileVersion(int value) {
 	return "Unknown FlatOut 1";
 }
 
+int nImportFileVersion;
+int nExportFileVersion;
 std::string GetShaderName(int value) {
-	if (bIsFOUCModel) {
+	if (nImportFileVersion < 0x10004) {
+		switch (value) {
+			case 0: return "default static";
+			case 1: return "default dynamic";
+			case 2: return "lightmapped";
+			case 3: return "car body";
+			case 4: return "car window";
+			case 5: return "rendertarget shadow";
+			case 6: return "sunmap 1";
+			case 7: return "sunmap 2";
+			case 8: return "sunmap 3";
+			case 9: return "sunmap track 1";
+			case 10: return "sunmap track 2";
+			case 11: return "intensity map";
+			case 12: return "sunflare";
+			case 13: return "default static";
+			default: return "UNKNOWN";
+		}
+	}
+	else if (bIsFOUCModel) {
 		switch (value) {
 			case 0: return "static prelit";
 			case 1: return "terrain";
@@ -172,7 +193,7 @@ std::string GetShaderName(int value) {
 			default: return "UNKNOWN";
 		}
 	}
-	return "Unknown";
+	return "UNKNOWN";
 }
 
 std::string GetFBXTextureInFO2Style(aiMaterial* material, int id) {
@@ -424,8 +445,6 @@ struct tBGMMesh {
 	float mMatrix[4*4];
 	std::vector<int> aModels;
 };
-int nImportFileVersion;
-int nExportFileVersion;
 int nSomeMapValue = 1; // always 1 in FO2, doesn't exist in FO1
 std::vector<tVertexBuffer> aVertexBuffers;
 std::vector<tIndexBuffer> aIndexBuffers;

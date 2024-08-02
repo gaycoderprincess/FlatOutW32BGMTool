@@ -59,8 +59,8 @@ bool ParseFBX() {
 
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
-		WriteConsole("Usage: FlatOut2W32BGMTool_gcp.exe <filename>", LOG_ALWAYS);
-		WriteConsole("Run FlatOut2W32BGMTool_gcp.exe -help for a list of arguments", LOG_ALWAYS);
+		WriteConsole("Usage: FlatOutW32BGMTool_gcp.exe <filename>", LOG_ALWAYS);
+		WriteConsole("Run FlatOutW32BGMTool_gcp.exe -help for a list of arguments", LOG_ALWAYS);
 		return 0;
 	}
 	ProcessCommandlineArguments(argc, argv);
@@ -127,19 +127,20 @@ int main(int argc, char *argv[]) {
 						WriteBGM(version);
 					}
 				}
-			} else if (sFileName.extension() == ".w32") {
+			} else if (sFileName.extension() == ".w32" || sFileName.extension() == ".trk") {
 				if (!ParseW32()) {
 					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 				} else {
-					if (bDumpIntoTextFile) {
-						WriteW32ToText();
-						WriteTrackBVHToText();
-					}
 					if (bDumpIntoFBX) WriteToFBX();
 					if (bDumpIntoW32) {
 						WriteW32(bConvertToFO1 ? 0x10005 : nImportFileVersion);
 						WriteTrackBVH();
 					}
+				}
+
+				if (bDumpIntoTextFile) {
+					WriteW32ToText();
+					WriteTrackBVHToText();
 				}
 			} else {
 				WriteConsole("ERROR: Unrecognized file format for " + sFileName.string(), LOG_ERRORS);

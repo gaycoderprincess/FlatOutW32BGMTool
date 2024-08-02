@@ -184,7 +184,9 @@ tCommandlineArgument aArguments[] = {
 		{ "-create_fo1_bgm", CMD_ExportBGM_FO1, "Creates a FlatOut 1 .bgm from an input .fbx file", "FBX to BGM" },
 		{ "-create_fo2_bgm", CMD_ExportBGM_FO2, "Creates a FlatOut 2 .bgm from an input .fbx file" },
 		{ "-create_fouc_bgm", CMD_ExportBGM_FOUC, "Creates a FlatOut: Ultimate Carnage .bgm from an input .fbx file" },
-		{ "-create_fo1_w32", CMD_ExportW32_FO1, "Creates a FlatOut 1 .w32 from an input .fbx file" },
+
+		// export w32 versions
+		{ "-create_fo1_w32", CMD_ExportW32_FO1, "Creates a FlatOut 1 .w32 from an input .fbx file", "FBX to W32" },
 		{ "-create_fo2_w32", CMD_ExportW32_FO2, "Creates a FlatOut 2 .w32 from an input .fbx file" },
 		{ "-create_fouc_w32", CMD_ExportW32_FOUC, "Creates a FlatOut: Ultimate Carnage .w32 from an input .fbx file" },
 
@@ -250,7 +252,7 @@ void PrintCommandlineHelp() {
 }
 
 void ProcessCommandlineArguments(int argc, char* argv[]) {
-	WriteConsole("FlatOut 2 W32 & BGM Tool by Chloe @ gaycoderprincess\n", LOG_ALWAYS);
+	WriteConsole("FlatOut W32 & BGM Tool by Chloe @ gaycoderprincess\n", LOG_ALWAYS);
 
 	// display argument list and exit
 	if (!strcmp(argv[1], "-help")) {
