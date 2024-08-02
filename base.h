@@ -531,16 +531,7 @@ aiNode* GetFBXNodeForStaticBatchArray() { return FindFBXNodeFromRoot("StaticBatc
 aiNode* GetFBXNodeForTreeMeshArray() { return FindFBXNodeFromRoot("TreeMesh"); }
 aiNode* GetFBXNodeForSplitpointsArray() { return FindFBXNodeFromRoot("Splitpoints"); }
 aiNode* GetFBXNodeForStartpointsArray() { return FindFBXNodeFromRoot("Startpoints"); }
-aiNode* GetFBXNodeForAIBorderLineLeftArray() { return FindFBXNodeFromRoot("AIBorderLineLeft"); }
-aiNode* GetFBXNodeForAIBorderLineLeft2Array() { return FindFBXNodeFromRoot("AIBorderLineLeft2"); }
-aiNode* GetFBXNodeForAIBorderLineLeft3Array() { return FindFBXNodeFromRoot("AIBorderLineLeft3"); }
-aiNode* GetFBXNodeForAIBorderLineLeft4Array() { return FindFBXNodeFromRoot("AIBorderLineLeft4"); }
-aiNode* GetFBXNodeForAIBorderLineLeft5Array() { return FindFBXNodeFromRoot("AIBorderLineLeft5"); }
-aiNode* GetFBXNodeForAIBorderLineRightArray() { return FindFBXNodeFromRoot("AIBorderLineRight"); }
-aiNode* GetFBXNodeForAIBorderLineRight2Array() { return FindFBXNodeFromRoot("AIBorderLineRight2"); }
-aiNode* GetFBXNodeForAIBorderLineRight3Array() { return FindFBXNodeFromRoot("AIBorderLineRight3"); }
-aiNode* GetFBXNodeForAIBorderLineRight4Array() { return FindFBXNodeFromRoot("AIBorderLineRight4"); }
-aiNode* GetFBXNodeForAIBorderLineRight5Array() { return FindFBXNodeFromRoot("AIBorderLineRight5"); }
+aiNode* GetFBXNodeForSplinesArray() { return FindFBXNodeFromRoot("Splines"); }
 
 aiNode* FindFBXNodeInChild(aiNode* root, const std::string& targetName) {
 	if (!root) return nullptr;
@@ -551,17 +542,6 @@ aiNode* FindFBXNodeInChild(aiNode* root, const std::string& targetName) {
 	}
 	return nullptr;
 }
-
-aiNode* FindFBXNodeForAIBorderLineLeft(int id) { return FindFBXNodeInChild(GetFBXNodeForAIBorderLineLeftArray(), "AIBorderLineLeft_Node" + std::to_string(id + 1)); }
-aiNode* FindFBXNodeForAIBorderLine2Left(int id) { return FindFBXNodeInChild(GetFBXNodeForAIBorderLineLeft2Array(), "AIBorderLineLeft2_Node" + std::to_string(id + 1)); }
-aiNode* FindFBXNodeForAIBorderLine3Left(int id) { return FindFBXNodeInChild(GetFBXNodeForAIBorderLineLeft3Array(), "AIBorderLineLeft3_Node" + std::to_string(id + 1)); }
-aiNode* FindFBXNodeForAIBorderLine4Left(int id) { return FindFBXNodeInChild(GetFBXNodeForAIBorderLineLeft4Array(), "AIBorderLineLeft4_Node" + std::to_string(id + 1)); }
-aiNode* FindFBXNodeForAIBorderLine5Left(int id) { return FindFBXNodeInChild(GetFBXNodeForAIBorderLineLeft5Array(), "AIBorderLineLeft5_Node" + std::to_string(id + 1)); }
-aiNode* FindFBXNodeForAIBorderLineRight(int id) { return FindFBXNodeInChild(GetFBXNodeForAIBorderLineRightArray(), "AIBorderLineRight_Node" + std::to_string(id + 1)); }
-aiNode* FindFBXNodeForAIBorderLine2Right(int id) { return FindFBXNodeInChild(GetFBXNodeForAIBorderLineRight2Array(), "AIBorderLineRight2_Node" + std::to_string(id + 1)); }
-aiNode* FindFBXNodeForAIBorderLine3Right(int id) { return FindFBXNodeInChild(GetFBXNodeForAIBorderLineRight3Array(), "AIBorderLineRight3_Node" + std::to_string(id + 1)); }
-aiNode* FindFBXNodeForAIBorderLine4Right(int id) { return FindFBXNodeInChild(GetFBXNodeForAIBorderLineRight4Array(), "AIBorderLineRight4_Node" + std::to_string(id + 1)); }
-aiNode* FindFBXNodeForAIBorderLine5Right(int id) { return FindFBXNodeInChild(GetFBXNodeForAIBorderLineRight5Array(), "AIBorderLineRight5_Node" + std::to_string(id + 1)); }
 
 aiNode* FindFBXNodeForStartpoint(int id) {
 	return FindFBXNodeInChild(GetFBXNodeForStartpointsArray(), "Startpoint" + std::to_string(id + 1));

@@ -341,20 +341,20 @@ aiNode* CreateFBXNodeAtPosition(aiVector3D pos) {
 	return node;
 }
 
-void CreateSplineArrayForVector(aiScene* scene, std::vector<aiVector3D>& vec, const std::string& name) {
-	if (!vec.empty()) {
-		if (auto node = new aiNode()) {
-			node->mName = name;
-			scene->mRootNode->addChildren(1, &node);
-			for (auto& point: vec) {
-				auto pNode = new aiNode();
-				pNode->mTransformation.a4 = point.x;
-				pNode->mTransformation.b4 = point.y;
-				pNode->mTransformation.c4 = -point.z;
-				pNode->mTransformation.d4 = 1;
-				pNode->mName = name + "_Node" + std::to_string((&point - &vec[0]) + 1);
-				node->addChildren(1, &pNode);
-			}
+void CreateSplineArrayForVector(aiNode* rootNode, std::vector<aiVector3D>& vec, const std::string& name) {
+	if (vec.empty()) return;
+
+	if (auto node = new aiNode()) {
+		node->mName = name;
+		rootNode->addChildren(1, &node);
+		for (auto& point: vec) {
+			auto pNode = new aiNode();
+			pNode->mTransformation.a4 = point.x;
+			pNode->mTransformation.b4 = point.y;
+			pNode->mTransformation.c4 = -point.z;
+			pNode->mTransformation.d4 = 1;
+			pNode->mName = name + "_Node" + std::to_string((&point - &vec[0]) + 1);
+			node->addChildren(1, &pNode);
 		}
 	}
 }
@@ -516,16 +516,13 @@ aiScene GenerateScene() {
 			}
 		}
 
-		CreateSplineArrayForVector(&scene, aAIBorderLineLeft, "AIBorderLineLeft");
-		CreateSplineArrayForVector(&scene, aAIBorderLineLeft2, "AIBorderLineLeft2");
-		CreateSplineArrayForVector(&scene, aAIBorderLineLeft3, "AIBorderLineLeft3");
-		CreateSplineArrayForVector(&scene, aAIBorderLineLeft4, "AIBorderLineLeft4");
-		CreateSplineArrayForVector(&scene, aAIBorderLineLeft5, "AIBorderLineLeft5");
-		CreateSplineArrayForVector(&scene, aAIBorderLineRight, "AIBorderLineRight");
-		CreateSplineArrayForVector(&scene, aAIBorderLineRight2, "AIBorderLineRight2");
-		CreateSplineArrayForVector(&scene, aAIBorderLineRight3, "AIBorderLineRight3");
-		CreateSplineArrayForVector(&scene, aAIBorderLineRight4, "AIBorderLineRight4");
-		CreateSplineArrayForVector(&scene, aAIBorderLineRight5, "AIBorderLineRight5");
+		if (auto node = new aiNode()) {
+			node->mName = "Splines";
+			scene.mRootNode->addChildren(1, &node);
+			for (auto& spline : aAISplines) {
+				CreateSplineArrayForVector(node, spline.values, spline.name);
+			}
+		}
 	}
 
 	if (auto node = new aiNode()) {
@@ -546,7 +543,7 @@ aiScene GenerateScene() {
 		if (auto node = new aiNode()) {
 			node->mName = "BGMMesh";
 			scene.mRootNode->addChildren(1, &node);
-			for (auto &compactMesh: aBGMMeshes) {
+			for (auto& compactMesh: aBGMMeshes) {
 				auto meshNode = new aiNode();
 				meshNode->mName = compactMesh.sName1;
 				FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
@@ -577,13 +574,17 @@ aiScene GenerateScene() {
 		if (auto node = new aiNode()) {
 			node->mName = "CompactMesh";
 			scene.mRootNode->addChildren(1, &node);
-			for (auto &compactMesh: aCompactMeshes) {
+			for (auto& compactMesh: aCompactMeshes) {
 				if (bFBXSkipHiddenProps && compactMesh.nFlags != 0xE000 && compactMesh.nFlags != nFBXSkipHiddenPropsFlag) continue;
 
 				auto meshNode = new aiNode();
 				meshNode->mName = compactMesh.sName1;
 				FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
 				node->addChildren(1, &meshNode);
+
+				auto typeNode = new aiNode();
+				typeNode->mName = std::format("{}TYPE_{}", &compactMesh - &aCompactMeshes[0], compactMesh.sName2);
+				meshNode->addChildren(1, &typeNode);
 
 				// not loading the damaged or lod parts here
 				if (!compactMesh.aLODMeshIds.empty()) {
