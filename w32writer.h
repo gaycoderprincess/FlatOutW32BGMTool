@@ -576,6 +576,10 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 			}
 		}
 		if (mat.sName == "water") mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
+
+		// retro demo
+		if (mat.sName.starts_with("road_tarmac")) mat.nShaderId = 1; // terrain
+		if (mat.sName.starts_with("road_gravel")) mat.nShaderId = 1; // terrain
 	}
 	else {
 		mat.nShaderId = 3; // dynamic diffuse

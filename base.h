@@ -421,7 +421,7 @@ struct tCompactMesh {
 	std::string sName1;
 	std::string sName2;
 	uint32_t nFlags;
-	int nGroup;
+	int nGroup = -1;
 	float mMatrix[4*4];
 	uint32_t nUnk1;
 	uint32_t nDamageAssocId;
@@ -445,6 +445,12 @@ struct tBGMMesh {
 	float mMatrix[4*4];
 	std::vector<int> aModels;
 };
+struct tRetroDemoTMOD {
+	uint32_t identifier; // TMOD
+	uint32_t someId;
+	std::vector<aiVector3D> aVertices;
+	std::vector<int> aIndices;
+};
 int nSomeMapValue = 1; // always 1 in FO2, doesn't exist in FO1
 std::vector<tVertexBuffer> aVertexBuffers;
 std::vector<tIndexBuffer> aIndexBuffers;
@@ -465,6 +471,7 @@ std::vector<tBGMMesh> aBGMMeshes;
 std::vector<uint32_t> aVertexColors;
 //std::vector<tVertexBuffer> aCrashVertexBuffers;
 std::vector<tCrashData> aCrashData;
+std::vector<tRetroDemoTMOD> aRetroDemoTMOD;
 uint32_t nCompactMeshGroupCount;
 
 tVertexBuffer* FindVertexBuffer(int id) {

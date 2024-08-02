@@ -581,11 +581,22 @@ bool ParseVertexColors(const std::string& fileName) {
 	size_t fileSize = file.tellg();
 	file.seekg(0, std::ios::beg);
 
-	aVertexColors.reserve(fileSize / 4);
-	for (int i = 0; i < fileSize / 4; i++) {
-		uint32_t color;
-		file.read((char*)&color, sizeof(color));
-		aVertexColors.push_back(color);
+	if (nImportFileVersion <= 0x10003) {
+		aVertexColors.reserve(fileSize);
+		for (int i = 0; i < fileSize; i++) {
+			uint8_t color;
+			file.read((char*)&color, sizeof(color));
+			uint8_t tmp[] = {color,color,color,color};
+			aVertexColors.push_back(*(uint32_t*)tmp);
+		}
+	}
+	else {
+		aVertexColors.reserve(fileSize / 4);
+		for (int i = 0; i < fileSize / 4; i++) {
+			uint32_t color;
+			file.read((char*)&color, sizeof(color));
+			aVertexColors.push_back(color);
+		}
 	}
 	return true;
 }
@@ -663,30 +674,103 @@ bool ParseW32RetroDemoSurfaces(std::ifstream& file) {
 			surface.nFlags = buf.flags;
 			surface.nNumIndicesUsed = iBuf.indexCount;
 			surface.nPolyCount = surface.nPolyMode == 4 ? iBuf.indexCount / 3 : iBuf.indexCount - 2;
+			surface.nNumStreamsUsed = 2;
 			if (surface.nPolyMode == 0) {
 				surface.nPolyCount = 0;
 				buf.isVegetation = true;
+				surface.nNumStreamsUsed = 1;
 			}
-			surface.nNumStreamsUsed = 2;
 			surface.nStreamId[0] = id;
 			surface.nStreamId[1] = id + 1;
 			surface.nStreamOffset[0] = 0;
 			surface.nStreamOffset[1] = 0;
-			surface.RegisterReference(SURFACE_REFERENCE_STATICBATCH);
 			ReadFromFile(file, surface.vCenter, sizeof(surface.vCenter));
 			ReadFromFile(file, surface.vRadius, sizeof(surface.vRadius));
-
-			tStaticBatch batch;
-			batch.nBVHId1 = aSurfaces.size();
-			memcpy(batch.vCenter, surface.vCenter, sizeof(batch.vCenter));
-			memcpy(batch.vRadius, surface.vRadius, sizeof(batch.vRadius));
-			aStaticBatches.push_back(batch);
 
 			model.aSurfaces.push_back(aSurfaces.size());
 			aSurfaces.push_back(surface);
 
 			aVertexBuffers.push_back(buf);
 			aIndexBuffers.push_back(iBuf);
+		}
+		aModels.push_back(model);
+	}
+	return true;
+}
+
+bool ParseW32RetroDemoTMOD(std::ifstream& file) {
+	uint32_t count;
+	ReadFromFile(file, &count, 4);
+	for (int i = 0; i < count; i++) {
+		tRetroDemoTMOD tmod;
+		ReadFromFile(file, &tmod.identifier, 4); // TMOD
+		ReadFromFile(file, &tmod.someId, 4);
+
+		int numVertices;
+		ReadFromFile(file, &numVertices, 4);
+		tmod.aVertices.reserve(numVertices);
+		for (int j = 0; j < numVertices; j++) {
+			float aTmp[3];
+			ReadFromFile(file, &aTmp, 0xC);
+			tmod.aVertices.push_back({aTmp[0],aTmp[1],aTmp[2]});
+		}
+
+		int numIndices;
+		ReadFromFile(file, &numIndices, 4);
+		for (int j = 0; j < numIndices; j++) {
+			int aTmp[3];
+			ReadFromFile(file, &aTmp, 0xC);
+			tmod.aIndices.push_back(aTmp[0]);
+			tmod.aIndices.push_back(aTmp[1]);
+			tmod.aIndices.push_back(aTmp[2]);
+		}
+		aRetroDemoTMOD.push_back(tmod);
+	}
+	return true;
+}
+
+bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
+	uint32_t count;
+	ReadFromFile(file, &count, 4);
+	for (int i = 0; i < count; i++) {
+		tCompactMesh mesh;
+		ReadFromFile(file, &mesh.identifier, 4);
+		mesh.sName1 = ReadStringFromFile(file);
+		mesh.sName2 = ReadStringFromFile(file);
+		ReadFromFile(file, &mesh.nFlags, 4);
+		ReadFromFile(file, mesh.mMatrix, sizeof(mesh.mMatrix));
+		uint32_t numModels;
+		ReadFromFile(file, &numModels, 4);
+		mesh.aLODMeshIds.reserve(numModels);
+		for (int j = 0; j < numModels; j++) {
+			uint32_t tmp;
+			ReadFromFile(file, &tmp, 4);
+			mesh.aLODMeshIds.push_back(tmp);
+
+			for (auto& id : aModels[tmp].aSurfaces) {
+				aSurfaces[id].RegisterReference(SURFACE_REFERENCE_MODEL);
+			}
+		}
+
+		// todo what are these?
+		int32_t tmp;
+		ReadFromFile(file, &tmp, 4);
+		ReadFromFile(file, &tmp, 4);
+		if (mesh.sName2.empty()) {
+			for (auto& lod : mesh.aLODMeshIds) {
+				for (auto& id : aModels[lod].aSurfaces) {
+					tStaticBatch batch;
+					batch.nId1 = aStaticBatches.size();
+					batch.nBVHId1 = id;
+					auto& surface = aSurfaces[0];
+					memcpy(batch.vCenter, surface.vCenter, sizeof(batch.vCenter));
+					memcpy(batch.vRadius, surface.vRadius, sizeof(batch.vRadius));
+					aStaticBatches.push_back(batch);
+				}
+			}
+		}
+		else {
+			aCompactMeshes.push_back(mesh);
 		}
 	}
 	return true;
@@ -710,11 +794,25 @@ bool ParseW32() {
 	if (nImportFileVersion > 0x20000) ReadFromFile(fin, &nSomeMapValue, 4);
 	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
 	else {
-		auto vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors.w32";
-		if (!std::filesystem::exists(vertexColorsPath)) vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
-		if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX && nImportFileVersion >= 0x10004) {
-			WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);
-			exit(0);
+		if (nImportFileVersion == 0x10003) {
+			auto vertexColorsPath = sFileNameNoExt.string() + "_sky_vtx.rad";
+			if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
+				WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);
+				exit(0);
+			}
+			//vertexColorsPath = sFileNameNoExt.string() + "_sun1_vtx.rad";
+			//if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
+			//	WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);
+			//	exit(0);
+			//}
+		}
+		else {
+			auto vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors.w32";
+			if (!std::filesystem::exists(vertexColorsPath)) vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
+			if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
+				WriteConsole("ERROR: Failed to load " + (std::string) vertexColorsPath + "!", LOG_ERRORS);
+				exit(0);
+			}
 		}
 	}
 
@@ -729,7 +827,9 @@ bool ParseW32() {
 	if (!ParseW32Materials(fin)) return false;
 
 	if (nImportFileVersion <= 0x10003) {
-		if (!ParseW32RetroDemoSurfaces(fin)) false;
+		if (!ParseW32RetroDemoSurfaces(fin)) return false;
+		if (!ParseW32RetroDemoTMOD(fin)) return false;
+		if (!ParseW32RetroDemoCompactMeshes(fin)) return false;
 		return true;
 	}
 
