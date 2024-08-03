@@ -11,7 +11,7 @@ void WriteW32MaterialsToText() {
 			WriteFile("nUnknown1: " + std::to_string(material.v92));
 			WriteFile("nNumTextures: " + std::to_string(material.nNumTextures));
 		}
-		WriteFile("nShaderId: " + std::to_string(material.nShaderId) + " (" + GetShaderName(material.nShaderId) + ")");
+		WriteFile("nShaderId: " + std::to_string(material.nShaderId) + " (" + GetShaderName(material.nShaderId, nImportFileVersion) + ")");
 		WriteFile("nUseColormap: " + std::to_string(material.nUseColormap));
 		if (bDumpMaterialData) {
 			WriteFile("nUnknown4: " + std::to_string(material.v74));

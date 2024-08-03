@@ -199,8 +199,8 @@ void WriteSplitpoints() {
 
 	WriteConsole("Writing output splitpoints.bed file...", LOG_ALWAYS);
 
-	auto outFileName = sFileNameNoExt.string() + "_splitpoints.bed";
-	if (bW32UseVanillaNames) outFileName = sFileFolder.string() + "splitpoints.bed";
+	auto outFileName = sFileNameNoExt.string() + "_out_splitpoints.bed";
+	if (bUseVanillaNames) outFileName = sFileFolder.string() + "splitpoints.bed";
 	std::ofstream fout(outFileName, std::ios::out);
 	if (!fout.is_open()) return;
 
@@ -225,8 +225,8 @@ void WriteStartpoints() {
 
 	WriteConsole("Writing output startpoints.bed file...", LOG_ALWAYS);
 
-	auto outFileName = sFileNameNoExt.string() + "_startpoints.bed";
-	if (bW32UseVanillaNames) outFileName = sFileFolder.string() + "startpoints.bed";
+	auto outFileName = sFileNameNoExt.string() + "_out_startpoints.bed";
+	if (bUseVanillaNames) outFileName = sFileFolder.string() + "startpoints.bed";
 	std::ofstream fout(outFileName, std::ios::out);
 	if (!fout.is_open()) return;
 
@@ -271,8 +271,8 @@ void WriteSplines() {
 
 	WriteConsole("Writing output splines.ai file...", LOG_ALWAYS);
 
-	auto outFileName = sFileNameNoExt.string() + "_splines.ai";
-	if (bW32UseVanillaNames) outFileName = sFileFolder.string() + "splines.ai";
+	auto outFileName = sFileNameNoExt.string() + "_out_splines.ai";
+	if (bUseVanillaNames) outFileName = sFileFolder.string() + "splines.ai";
 	std::ofstream fout(outFileName, std::ios::out);
 	if (!fout.is_open()) return;
 

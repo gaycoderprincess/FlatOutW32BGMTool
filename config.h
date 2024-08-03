@@ -3,6 +3,7 @@ bool bDumpIntoTextFile = false;
 bool bDumpIntoFBX = false;
 bool bDumpIntoW32 = false;
 bool bDumpIntoBGM = false;
+bool bDumpIntoBMP = false;
 bool bDumpMaterialData = false;
 bool bDumpStreams = false;
 bool bDumpFOUCNormalizedStreams = false;
@@ -33,7 +34,7 @@ bool bNoTreeHack = false;
 bool bUngroupMovedPropsFromFBX = false;
 bool bCreateBGMFromFBX = false;
 bool bCreateW32FromFBX = false;
-bool bW32UseVanillaNames = false;
+bool bUseVanillaNames = false;
 bool bLoadFBX = false;
 
 // special options

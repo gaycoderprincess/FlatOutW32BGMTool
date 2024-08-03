@@ -2,6 +2,7 @@ void CMD_ExportFBX() { bDumpIntoFBX = true; }
 void CMD_ExportW32() { bDumpIntoW32 = true; }
 void CMD_ExportBGM() { bDumpIntoBGM = true; }
 void CMD_ExportText() { bDumpIntoTextFile = true; }
+void CMD_ExportBMP() { bDumpIntoBMP = true; }
 void CMD_ExportBGM_FO1() {
 	bCreateBGMFromFBX = true;
 	nExportFileVersion = 0x10004;
@@ -164,8 +165,8 @@ void CMD_LogWarningsOnly() {
 void CMD_LogErrorsOnly() {
 	nLoggingSeverity = LOG_ERRORS;
 }
-void CMD_W32_UseVanillaNames() {
-	bW32UseVanillaNames = true;
+void CMD_UseVanillaNames() {
+	bUseVanillaNames = true;
 }
 
 struct tCommandlineArgument {
@@ -179,7 +180,8 @@ tCommandlineArgument aArguments[] = {
 		// export formats
 		{ "-export_fbx", CMD_ExportFBX, "Exports the input file into an .fbx model", "Export formats" },
 		{ "-export_text", CMD_ExportText, "Exports the input file into a text dump" },
-		{ "-use_vanilla_names", CMD_W32_UseVanillaNames, "Exports the files as their original names, e.g. track_geom.w32, track_bvh.gen" },
+		{ "-export_bmp", CMD_ExportBMP, "Exports the input .4b file into a BMP image" },
+		{ "-use_vanilla_names", CMD_UseVanillaNames, "Exports the files as their original names, e.g. track_geom.w32, track_bvh.gen" },
 
 		// export bgm versions
 		{ "-create_fo1_bgm", CMD_ExportBGM_FO1, "Creates a FlatOut 1 .bgm from an input .fbx file", "FBX to BGM" },
@@ -279,7 +281,7 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 	}
 
 	// do dummy checks and then process the input filename
-	if (!bDumpIntoW32 && !bDumpIntoBGM && !bDumpIntoFBX && !bDumpIntoTextFile && !bCreateBGMFromFBX && !bCreateW32FromFBX && !bEmptyOutTrackBVH) {
+	if (!bDumpIntoW32 && !bDumpIntoBGM && !bDumpIntoBMP && !bDumpIntoFBX && !bDumpIntoTextFile && !bCreateBGMFromFBX && !bCreateW32FromFBX && !bEmptyOutTrackBVH) {
 		WriteConsole("WARNING: No export output specified, the tool will not generate any files!", LOG_ALWAYS);
 	}
 	if (bUngroupMovedPropsFromFBX && !bImportPropsFromFBX) {

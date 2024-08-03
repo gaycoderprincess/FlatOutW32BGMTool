@@ -18,6 +18,7 @@
 #include "config.h"
 #include "crashdatparser.h"
 #include "trackbvh.h"
+#include "track4b.h"
 #include "splitpoints.h"
 #include "w32parser.h"
 #include "w32writer.h"
@@ -114,7 +115,15 @@ int main(int argc, char *argv[]) {
 			}
 			return 0;
 		} else {
-			if (sFileName.extension() == ".bgm" || sFileName.extension() == ".car") {
+			if (sFileName.extension() == ".4b") {
+				if (!Parse4B()) {
+					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
+				}
+				else {
+					if (bDumpIntoBMP) Write4BToBMP();
+				}
+			}
+			else if (sFileName.extension() == ".bgm" || sFileName.extension() == ".car") {
 				if (!ParseBGM()) {
 					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 				} else {

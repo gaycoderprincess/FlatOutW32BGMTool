@@ -548,7 +548,7 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	if (bIsFOUCModel && mat.sTextureNames[0] == "tire_01.tga") mat.sTextureNames[0] = "tire.tga";
 	// custom alpha suffix
 	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
-	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId), LOG_ALL);
+	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId, nExportFileVersion), LOG_ALL);
 	return mat;
 }
 
@@ -638,7 +638,7 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 		mat.nShaderId = 45; // puddle
 		mat.nAlpha = 1;
 	}
-	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId), LOG_ALL);
+	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId, nExportFileVersion), LOG_ALL);
 	return mat;
 }
 
@@ -1153,7 +1153,7 @@ void WriteW32(uint32_t exportMapVersion) {
 	}
 
 	auto outFileName = sFileNameNoExt.string() + "_out.w32";
-	if (bW32UseVanillaNames) outFileName = sFileFolder.string() + (bIsFOUCModel ? "track_geom_w2.w32" : "track_geom.w32");
+	if (bUseVanillaNames) outFileName = sFileFolder.string() + (bIsFOUCModel ? "track_geom_w2.w32" : "track_geom.w32");
 	std::ofstream file(outFileName, std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
 
@@ -1616,23 +1616,25 @@ void WriteBGM(uint32_t exportMapVersion) {
 	WriteConsole("BGM export finished", LOG_ALWAYS);
 }
 
-void WriteCrashDat(uint32_t exportMapVersion) {
-	if (aCrashData.empty()) {
+void WriteCrashDat(uint32_t exportVersion) {
+	int numModels = 0;
+	for (auto& model : aModels) {
+		if (!model.aCrashSurfaces.empty()) numModels++;
+	}
+
+	if (numModels <= 0) {
 		WriteConsole("No crash data found, skipping crash.dat export", LOG_ALWAYS);
 		return;
 	}
 
 	WriteConsole("Writing output crash.dat file...", LOG_ALWAYS);
 
-	nExportFileVersion = exportMapVersion;
+	nExportFileVersion = exportVersion;
 
-	std::ofstream file(sFileNameNoExt.string() + "_out_crash.dat", std::ios::out | std::ios::binary );
+	auto fileName = sFileNameNoExt.string() + "_out_crash.dat";
+	if (bUseVanillaNames) fileName = sFileFolder.string() + "crash.dat";
+	std::ofstream file(fileName, std::ios::out | std::ios::binary );
 	if (!file.is_open()) return;
-
-	int numModels = 0;
-	for (auto& model : aModels) {
-		if (!model.aCrashSurfaces.empty()) numModels++;
-	}
 
 	file.write((char*)&numModels, 4);
 	for (auto& model : aModels) {

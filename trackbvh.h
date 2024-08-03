@@ -59,7 +59,7 @@ void WriteTrackBVH() {
 	WriteConsole("Writing output track_bvh file...", LOG_ALWAYS);
 
 	auto outFileName = sFileNameNoExt.string() + "_out_bvh.gen";
-	if (bW32UseVanillaNames) outFileName = sFileFolder.string() + "track_bvh.gen";
+	if (bUseVanillaNames) outFileName = sFileFolder.string() + "track_bvh.gen";
 	std::ofstream fout(outFileName, std::ios::out | std::ios::binary);
 	if (!fout.is_open()) return;
 
