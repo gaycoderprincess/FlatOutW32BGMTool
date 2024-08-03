@@ -61,7 +61,6 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-no_material_reuse` - Makes imported meshes not use any original w32 materials, instead always importing new ones from the .fbx
 - `-no_tree_hack` - Disables the adjusting of normal vectors for tree shaders in Ultimate Carnage
 - `-import_deletions` - Deletes surfaces and props that have been deleted from an .fbx file, usage: `FlatOutW32BGMTool_gcp.exe (w32 filename) (fbx filename) -import_deletions`
-- `-use_vanilla_names` - Exports the files as their original names, e.g. track_geom.w32, track_bvh.gen
 
 ## BGM Arguments
 - `-create_fo1_bgm` - Exports an .fbx into a FlatOut 1 car bgm
@@ -78,9 +77,13 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-convert_to_fo1` - Converts the car from the FlatOut 2 or Ultimate Carnage format to the FlatOut 1 format
 - `-convert_to_fo2` - Converts the car from the Ultimate Carnage format to the FlatOut 2 format
 
+## 4B Arguments
+- `-export_bmp` - Exports the .4b file into a BMP image
+
 ## Other Arguments
 - `-log_warnings_only` - Only prints errors and warnings into the console
 - `-log_errors_only` - Only prints errors into the console
+- `-use_vanilla_names` - Exports the files as their original names, e.g. track_geom.w32, track_bvh.gen
 
 ## Building
 
