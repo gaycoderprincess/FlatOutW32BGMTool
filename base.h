@@ -472,7 +472,7 @@ std::vector<uint32_t> aVertexColors;
 //std::vector<tVertexBuffer> aCrashVertexBuffers;
 std::vector<tCrashData> aCrashData;
 std::vector<tRetroDemoTMOD> aRetroDemoTMOD;
-uint32_t nCompactMeshGroupCount;
+uint32_t nCompactMeshGroupCount = 0;
 
 tVertexBuffer* FindVertexBuffer(int id) {
 	for (auto& buf : aVertexBuffers) {

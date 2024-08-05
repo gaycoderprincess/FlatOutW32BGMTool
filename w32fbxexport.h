@@ -586,6 +586,12 @@ aiScene GenerateScene() {
 				typeNode->mName = std::format("{}TYPE_{}", &compactMesh - &aCompactMeshes[0], compactMesh.sName2);
 				meshNode->addChildren(1, &typeNode);
 
+				if (compactMesh.nGroup != -1) {
+					auto groupNode = new aiNode();
+					groupNode->mName = std::format("{}GROUP_{}", &compactMesh - &aCompactMeshes[0], compactMesh.nGroup);
+					meshNode->addChildren(1, &groupNode);
+				}
+
 				// not loading the damaged or lod parts here
 				if (!compactMesh.aLODMeshIds.empty()) {
 					auto model = aModels[compactMesh.aLODMeshIds[0]];

@@ -1080,6 +1080,7 @@ void CreateW32CompactMeshesFromFBX() {
 		auto prop = node->mChildren[i];
 		if (auto model = CreateModelFromMesh(prop)) {
 			std::string dynamicType;
+			int group = -1;
 			for (int j = 0; j < prop->mNumChildren; j++) {
 				auto child = prop->mChildren[j];
 				auto name = (std::string)child->mName.C_Str();
@@ -1087,7 +1088,12 @@ void CreateW32CompactMeshesFromFBX() {
 					name.erase(name.begin(), name.begin() + name.find("TYPE_") + 5);
 					dynamicType = name;
 				}
+				else if (name.find("GROUP_") != std::string::npos) {
+					name.erase(name.begin(), name.begin() + name.find("GROUP_") + 6);
+					group = std::stoi(name);
+				}
 			}
+			if (group > nCompactMeshGroupCount) nCompactMeshGroupCount = group;
 
 			tCompactMesh mesh;
 			mesh.sName1 = prop->mName.C_Str();
@@ -1099,7 +1105,7 @@ void CreateW32CompactMeshesFromFBX() {
 				mesh.sName2 = dynamicType;
 			}
 			FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(prop), mesh.mMatrix);
-			mesh.nGroup = -1;
+			mesh.nGroup = group;
 			mesh.nFlags = 0xE000;
 			mesh.nUnk1 = 1;
 			mesh.aLODMeshIds.push_back(model - &aModels[0]);
@@ -1118,7 +1124,7 @@ void CreateW32CompactMeshesFromFBX() {
 			col.aModels.push_back(model - &aModels[0]);
 			aCollidableModels.push_back(col);
 
-			WriteConsole("Created new prop " + mesh.sName1 + " with properties from " + mesh.sName2, LOG_ALL);
+			WriteConsole("Created new prop " + mesh.sName1 + " in group " + std::to_string(mesh.nGroup) + "with properties from " + mesh.sName2, LOG_ALL);
 		}
 	}
 }
