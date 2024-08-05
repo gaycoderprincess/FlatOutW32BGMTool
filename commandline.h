@@ -32,6 +32,9 @@ void CMD_ExportW32_FOUC() {
 	nImportFileVersion = 0x20002;
 	nExportFileVersion = 0x20002;
 }
+void CMD_Export4B() {
+	bCreate4BFromBMP = true;
+}
 void CMD_DumpText_Streams() {
 	bDumpStreams = true;
 	bDumpIntoTextFile = true;
@@ -193,6 +196,9 @@ tCommandlineArgument aArguments[] = {
 		{ "-create_fo2_w32", CMD_ExportW32_FO2, "Creates a FlatOut 2 .w32 from an input .fbx file" },
 		{ "-create_fouc_w32", CMD_ExportW32_FOUC, "Creates a FlatOut: Ultimate Carnage .w32 from an input .fbx file" },
 
+		// export 4B
+		{ "-create_4b", CMD_Export4B, "Creates a 4B map from an input .bmp file", "BMP to 4B" },
+
 		// static common options
 		{ "-convert_to_fo1", CMD_ConvertToFO1, "Converts an input car model to the FlatOut 1 format", "In-place BGM conversions" },
 		{ "-convert_to_fo2", CMD_ConvertToFO2, "Converts an input car model to the FlatOut 2 format" },
@@ -281,7 +287,16 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 	}
 
 	// do dummy checks and then process the input filename
-	if (!bDumpIntoW32 && !bDumpIntoBGM && !bDumpIntoBMP && !bDumpIntoFBX && !bDumpIntoTextFile && !bCreateBGMFromFBX && !bCreateW32FromFBX && !bEmptyOutTrackBVH) {
+	if (!bDumpIntoW32 &&
+		!bDumpIntoBGM &&
+		!bDumpIntoBMP &&
+		!bDumpIntoFBX &&
+		!bDumpIntoTextFile &&
+		!bCreateBGMFromFBX &&
+		!bCreateW32FromFBX &&
+		!bCreate4BFromBMP &&
+		!bCreateEmptyPlantVDB &&
+		!bEmptyOutTrackBVH) {
 		WriteConsole("WARNING: No export output specified, the tool will not generate any files!", LOG_ALWAYS);
 	}
 	if (bUngroupMovedPropsFromFBX && !bImportPropsFromFBX) {

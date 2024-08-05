@@ -1,6 +1,6 @@
 struct BITMAPHEADER {
 	uint16_t identifier = 0x4D42;
-	uint32_t fileSize;
+	uint32_t fileSize = 0;
 	uint32_t unused = 0;
 	uint32_t dataOffset = 0;
 } __attribute__((packed, aligned(1)));
@@ -23,6 +23,8 @@ static_assert(sizeof(BITMAPINFOHEADER) == 40);
 
 uint8_t* a4BData = nullptr;
 size_t n4BDataSize = 0;
+uint8_t* a4BBMPData = nullptr;
+size_t n4BBMPDataSize = 0;
 
 bool Parse4B() {
 	WriteConsole("Parsing 4B map...", LOG_ALWAYS);
@@ -40,6 +42,50 @@ bool Parse4B() {
 
 	a4BData = new uint8_t[n4BDataSize];
 	fin.read((char*)a4BData, n4BDataSize);
+	return true;
+}
+
+bool Write4BFromBMP() {
+	WriteConsole("Parsing BMP...", LOG_ALWAYS);
+
+	if (sFileName.extension() != ".bmp") {
+		return false;
+	}
+
+	std::ifstream fin(sFileName, std::ios::in | std::ios::binary );
+	std::ofstream fout(sFileNameNoExt.string() + "_out.4b", std::ios::out | std::ios::binary );
+	if (!fin.is_open() || !fout.is_open()) return false;
+
+	BITMAPHEADER header;
+	fin.read((char*)&header, sizeof(header));
+	BITMAPINFOHEADER infoHeader;
+	fin.read((char*)&infoHeader, sizeof(infoHeader));
+	if (header.fileSize <= 0) return false;
+	if (infoHeader.biHeight != 256 || infoHeader.biWidth != 256) {
+		WriteConsole("ERROR: Invalid image size for BMP to 4B conversion!", LOG_ERRORS);
+		return false;
+	}
+	if (infoHeader.biBitCount != 24) {
+		WriteConsole("ERROR: Invalid bit count for BMP to 4B conversion!", LOG_ERRORS);
+		return false;
+	}
+	n4BBMPDataSize = header.fileSize - sizeof(header) - sizeof(infoHeader);
+	if (infoHeader.biSizeImage != n4BBMPDataSize) {
+		WriteConsole("ERROR: Invalid file size for BMP to 4B conversion, compression is not supported!", LOG_ERRORS);
+		return false;
+	}
+	if (n4BBMPDataSize % 6 != 0) {
+		WriteConsole("ERROR: File size for BMP not divisible by 6 to convert to the 4B format!", LOG_ERRORS);
+		return false;
+	}
+	a4BBMPData = new uint8_t[n4BBMPDataSize];
+	fin.read((char*)a4BBMPData, n4BBMPDataSize);
+
+	for (int i = 0; i < n4BBMPDataSize; i += 6) {
+		fout.write((char*)&a4BBMPData[i], 1);
+	}
+
+	WriteConsole("4B export finished", LOG_ALWAYS);
 	return true;
 }
 

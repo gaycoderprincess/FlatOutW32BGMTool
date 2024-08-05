@@ -75,7 +75,10 @@ int main(int argc, char *argv[]) {
 		WriteConsole("ERROR: Failed to load " + std::filesystem::absolute(sFileName).string() + "! (File doesn't exist)", LOG_ERRORS);
 		exit(0);
 	}
-	if (bCreateW32FromFBX) {
+	if (bCreate4BFromBMP) {
+		Write4BFromBMP();
+	}
+	else if (bCreateW32FromFBX) {
 		if (!ParseFBX()) {
 			WriteConsole("ERROR: Failed to load " + sFBXFileName.string() + "!", LOG_ERRORS);
 			exit(0);

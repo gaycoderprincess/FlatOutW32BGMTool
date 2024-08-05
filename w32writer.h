@@ -1158,7 +1158,11 @@ void WriteW32(uint32_t exportMapVersion) {
 	if (!file.is_open()) return;
 
 	file.write((char*)&nExportFileVersion, 4);
-	if (nExportFileVersion >= 0x20000) file.write((char*)&nSomeMapValue, 4);
+	if (nExportFileVersion >= 0x20000) {
+		for (int i = 0; i < nSomeMapValue; i++) {
+			file.write((char*)&nSomeMapValue, 4);
+		}
+	}
 
 	if (auto node = GetFBXNodeForSplitpointsArray()) {
 		aSplitpoints.clear();

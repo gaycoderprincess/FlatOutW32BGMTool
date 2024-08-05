@@ -34,6 +34,7 @@ bool bNoTreeHack = false;
 bool bUngroupMovedPropsFromFBX = false;
 bool bCreateBGMFromFBX = false;
 bool bCreateW32FromFBX = false;
+bool bCreate4BFromBMP = false;
 bool bUseVanillaNames = false;
 bool bLoadFBX = false;
 

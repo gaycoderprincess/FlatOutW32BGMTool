@@ -791,7 +791,13 @@ bool ParseW32() {
 		return false;
 	}
 
-	if (nImportFileVersion > 0x20000) ReadFromFile(fin, &nSomeMapValue, 4);
+	if (nImportFileVersion > 0x20000) {
+		ReadFromFile(fin, &nSomeMapValue, 4);
+		for (int i = 0; i < nSomeMapValue - 1; i++) {
+			int tmp = 0;
+			ReadFromFile(fin, &tmp, 4);
+		}
+	}
 	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
 	else {
 		if (nImportFileVersion <= 0x10003) {
