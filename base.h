@@ -565,14 +565,7 @@ aiNode* FindFBXNodeForCompactMesh(const std::string& name) {
 
 	for (int i = 0; i < root->mNumChildren; i++) {
 		auto node = root->mChildren[i];
-		auto nodeName = (std::string)node->mName.C_Str();
-		if (nodeName.starts_with("GROUP_")) {
-			for (int j = 0; j < node->mNumChildren; j++) {
-				auto node2 = node->mChildren[j];
-				if (!strcmp(node2->mName.C_Str(), name.c_str())) return node;
-			}
-		}
-		else if (!strcmp(node->mName.C_Str(), name.c_str())) return node;
+		if (!strcmp(node->mName.C_Str(), name.c_str())) return node;
 	}
 	return nullptr;
 }
@@ -650,9 +643,9 @@ aiMatrix4x4 GetFullMatrixFromCompactMeshObject(aiNode* node) {
 
 aiMatrix4x4 GetFullMatrixFromDummyObject(aiNode* node) {
 	auto root = pParsedFBXScene->mRootNode;
-	auto compactMeshRoot = GetFBXNodeForObjectsArray();
+	auto objectsRoot = GetFBXNodeForObjectsArray();
 
-	return root->mTransformation * compactMeshRoot->mTransformation * node->mTransformation;
+	return root->mTransformation * objectsRoot->mTransformation * node->mTransformation;
 }
 
 void FO2MatrixToFBXMatrix(const float* src, aiMatrix4x4* dest) {

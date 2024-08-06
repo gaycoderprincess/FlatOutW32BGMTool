@@ -1074,7 +1074,7 @@ void CreateW32ObjectsFromFBX() {
 		tObject object;
 		object.sName1 = prop->mName.C_Str();
 		object.nFlags = 0xE0F9;
-		FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(prop), object.mMatrix);
+		FBXMatrixToFO2Matrix(GetFullMatrixFromDummyObject(prop), object.mMatrix);
 		aObjects.push_back(object);
 	}
 }
@@ -1135,16 +1135,7 @@ void CreateW32CompactMeshesFromFBX() {
 
 	auto node = GetFBXNodeForCompactMeshArray();
 	for (int i = 0; i < node->mNumChildren; i++) {
-		auto child = node->mChildren[i];
-		auto childName = (std::string)child->mName.C_Str();
-		if (childName.starts_with("GROUP_")) {
-			int group = nCompactMeshGroupCount++;
-			for (int j = 0; j < child->mNumChildren; j++) {
-				auto prop = child->mChildren[j];
-				AddCompactMeshFromFBXNode(prop, group);
-			}
-		}
-		else AddCompactMeshFromFBXNode(child, -1);
+		AddCompactMeshFromFBXNode(node->mChildren[i], -1);
 	}
 }
 
@@ -1436,17 +1427,7 @@ void WriteW32(uint32_t exportMapVersion) {
 		if (bImportClonedPropsFromFBX) {
 			auto node = GetFBXNodeForCompactMeshArray();
 			for (int i = 0; i < node->mNumChildren; i++) {
-				auto child = node->mChildren[i];
-				auto childName = (std::string)child->mName.C_Str();
-				if (childName.starts_with("GROUP_")) {
-					childName.erase(childName.begin(), childName.begin() + childName.find("GROUP_") + 6);
-					int group = std::stoi(childName);
-					for (int j = 0; j < child->mNumChildren; j++) {
-						auto child2 = child->mChildren[j];
-						if (AddClonedPropFromFBX(child2, group)) compactMeshCount++;
-					}
-				}
-				else if (AddClonedPropFromFBX(child, -1)) compactMeshCount++;
+				if (AddClonedPropFromFBX(node->mChildren[i], -1)) compactMeshCount++;
 			}
 		}
 
