@@ -569,6 +569,7 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 		if (mat.sName.starts_with("alpha_treesprite")) mat.nShaderId = 21; // tree leaf
 		if (mat.sName.starts_with("alpha_bushlod")) mat.nShaderId = 21; // tree leaf
 		if (mat.sName.starts_with("alpha_bushsprite")) mat.nShaderId = 21; // tree leaf
+		if (mat.sName.starts_with("static_windows")) mat.nShaderId = 34; // reflecting window shader (static)
 		if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
 		if (mat.sName.ends_with(".001")) {
 			for (int i = 0; i < 4; i++) {
@@ -579,6 +580,8 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 	}
 	else {
 		mat.nShaderId = 3; // dynamic diffuse
+		if (mat.sName.starts_with("alpha_dynwindowshader")) mat.nShaderId = 35; // reflecting window shader (dynamic)
+		if (mat.sName.starts_with("dynamic_windows")) mat.nShaderId = 35; // reflecting window shader (dynamic)
 		if (mat.sName.ends_with(".001")) {
 			for (int i = 0; i < 4; i++) {
 				mat.sName.pop_back();
@@ -620,23 +623,25 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 		mat.nShaderId = 34; // reflecting window shader (static)
 	}
 	if (mat.sTextureNames[0].starts_with("alpha") || mat.sTextureNames[0].starts_with("Alpha")) mat.nAlpha = 1;
+	// water is a window in fo1/fo2, lol
+	if (mat.sName == "water") {
+		if (bIsFOUCModel) {
+			mat.sTextureNames[0] = "puddle_normal.tga";
+			mat.nShaderId = 45; // puddle
+			mat.nAlpha = 1;
+		}
+		else {
+			mat.sTextureNames[0] = "alpha_windowshader.tga";
+			mat.nShaderId = 34; // reflecting window shader (static)
+			mat.nAlpha = 1;
+		}
+	}
 	// Trees outside of TreeMesh don't draw, replace their shaders to get around this
 	if (disallowTrees) {
 		if (mat.nShaderId == 19 || mat.nShaderId == 20 || mat.nShaderId == 21) {
 			if (mat.nShaderId != 19) mat._bIsCustomFOUCTree = true;
 			mat.nShaderId = 0;
 		}
-	}
-	// water is a window in fo1/fo2, lol
-	if (!bIsFOUCModel && mat.sTextureNames[0] == "puddle_normal.tga") {
-		mat.sTextureNames[0] = "alpha_windowshader.tga";
-		mat.nShaderId = 34; // reflecting window shader (static)
-		mat.nAlpha = 1;
-	}
-	if (bIsFOUCModel && mat.sTextureNames[0] == "alpha_windowshader.tga") {
-		mat.sTextureNames[0] = "puddle_normal.tga";
-		mat.nShaderId = 45; // puddle
-		mat.nAlpha = 1;
 	}
 	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId, nExportFileVersion), LOG_ALL);
 	return mat;
@@ -1090,7 +1095,7 @@ void AddCompactMeshFromFBXNode(aiNode* prop, int defaultGroup) {
 				group = std::stoi(name);
 			}
 		}
-		if (group > nCompactMeshGroupCount) nCompactMeshGroupCount = group;
+		if (group >= nCompactMeshGroupCount) nCompactMeshGroupCount = group + 1;
 
 		tCompactMesh mesh;
 		mesh.sName1 = prop->mName.C_Str();
@@ -1126,13 +1131,14 @@ void AddCompactMeshFromFBXNode(aiNode* prop, int defaultGroup) {
 }
 
 void CreateW32CompactMeshesFromFBX() {
+	nCompactMeshGroupCount = 0;
+
 	auto node = GetFBXNodeForCompactMeshArray();
 	for (int i = 0; i < node->mNumChildren; i++) {
 		auto child = node->mChildren[i];
 		auto childName = (std::string)child->mName.C_Str();
 		if (childName.starts_with("GROUP_")) {
-			childName.erase(childName.begin(), childName.begin() + childName.find("GROUP_") + 6);
-			int group = std::stoi(childName);
+			int group = nCompactMeshGroupCount++;
 			for (int j = 0; j < child->mNumChildren; j++) {
 				auto prop = child->mChildren[j];
 				AddCompactMeshFromFBXNode(prop, group);
@@ -1763,39 +1769,31 @@ void ImportNewStaticBatchFromFBX(aiNode* node, int meshId) {
 	aStaticBatches.push_back(batch);
 }
 
+void ImportStaticBatchesFromFBXTree(aiNode* node, bool doubleSided) {
+	for (int i = 0; i < node->mNumChildren; i++) {
+		ImportStaticBatchesFromFBXTree(node->mChildren[i], doubleSided);
+	}
+	for (int i = 0; i < node->mNumMeshes; i++) {
+		if (doubleSided) {
+			bTmpFlipImportedModels = true;
+			ImportNewStaticBatchFromFBX(node, i);
+			bTmpFlipImportedModels = false;
+			ImportNewStaticBatchFromFBX(node, i);
+		}
+		else {
+			ImportNewStaticBatchFromFBX(node, i);
+		}
+	}
+}
+
 void FillW32FromFBX() {
 	WriteConsole("Creating W32 data...", LOG_ALWAYS);
 
 	WriteConsole("Creating static batches...", LOG_ALWAYS);
 
-	auto staticBatch = GetFBXNodeForStaticBatchArray();
-	for (int i = 0; i < staticBatch->mNumChildren; i++) {
-		auto node = staticBatch->mChildren[i];
-		for (int j = 0; j < node->mNumMeshes; j++) {
-			ImportNewStaticBatchFromFBX(node, j);
-		}
-	}
-
+	ImportStaticBatchesFromFBXTree(GetFBXNodeForStaticBatchArray(), false);
 	// todo actual tree meshes, this'll require tree colors and leaves to work
-	auto treeMeshes = GetFBXNodeForTreeMeshArray();
-	for (int i = 0; i < treeMeshes->mNumChildren; i++) {
-		auto treeMeshNode = treeMeshes->mChildren[i];
-		for (int j = 0; j < treeMeshNode->mNumMeshes; j++) {
-			bTmpFlipImportedModels = true;
-			ImportNewStaticBatchFromFBX(treeMeshNode, j);
-			bTmpFlipImportedModels = false;
-			ImportNewStaticBatchFromFBX(treeMeshNode, j);
-		}
-		for (int j = 0; j < treeMeshNode->mNumChildren; j++) {
-			auto treeMeshChild = treeMeshNode->mChildren[j];
-			for (int k = 0; k < treeMeshChild->mNumMeshes; k++) {
-				bTmpFlipImportedModels = true;
-				ImportNewStaticBatchFromFBX(treeMeshChild, k);
-				bTmpFlipImportedModels = false;
-				ImportNewStaticBatchFromFBX(treeMeshChild, k);
-			}
-		}
-	}
+	ImportStaticBatchesFromFBXTree(GetFBXNodeForTreeMeshArray(), true);
 
 	WriteConsole("Creating object dummies...", LOG_ALWAYS);
 	CreateW32ObjectsFromFBX();
