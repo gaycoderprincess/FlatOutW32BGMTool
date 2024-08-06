@@ -1074,58 +1074,71 @@ void CreateW32ObjectsFromFBX() {
 	}
 }
 
+void AddCompactMeshFromFBXNode(aiNode* prop, int defaultGroup) {
+	if (auto model = CreateModelFromMesh(prop)) {
+		std::string dynamicType;
+		int group = defaultGroup;
+		for (int j = 0; j < prop->mNumChildren; j++) {
+			auto child = prop->mChildren[j];
+			auto name = (std::string)child->mName.C_Str();
+			if (name.find("TYPE_") != std::string::npos) {
+				name.erase(name.begin(), name.begin() + name.find("TYPE_") + 5);
+				dynamicType = name;
+			}
+			else if (name.find("GROUP_") != std::string::npos) {
+				name.erase(name.begin(), name.begin() + name.find("GROUP_") + 6);
+				group = std::stoi(name);
+			}
+		}
+		if (group > nCompactMeshGroupCount) nCompactMeshGroupCount = group;
+
+		tCompactMesh mesh;
+		mesh.sName1 = prop->mName.C_Str();
+		if (dynamicType.empty()) {
+			WriteConsole("WARNING: Prop " + mesh.sName1 + " has no dynamic type! Defaulting to metal_light", LOG_WARNINGS);
+			mesh.sName2 = "metal_light";
+		}
+		else {
+			mesh.sName2 = dynamicType;
+		}
+		FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(prop), mesh.mMatrix);
+		mesh.nGroup = group;
+		mesh.nFlags = 0xE000;
+		mesh.nUnk1 = 1;
+		mesh.aLODMeshIds.push_back(model - &aModels[0]);
+		mesh.nDamageAssocId = aMeshDamageAssoc.size();
+		aCompactMeshes.push_back(mesh);
+
+		tMeshDamageAssoc assoc;
+		assoc.sName = mesh.sName1;
+		assoc.nIds[0] = aCollidableModels.size();
+		assoc.nIds[1] = -1;
+		aMeshDamageAssoc.push_back(assoc);
+
+		tCollidableModel col;
+		memcpy(col.vRadius, model->vRadius, sizeof(col.vRadius));
+		memcpy(col.vCenter, model->vCenter, sizeof(col.vCenter));
+		col.aModels.push_back(model - &aModels[0]);
+		aCollidableModels.push_back(col);
+
+		WriteConsole("Created new prop " + mesh.sName1 + " in group " + std::to_string(mesh.nGroup) + " with properties from " + mesh.sName2, LOG_ALL);
+	}
+}
+
 void CreateW32CompactMeshesFromFBX() {
 	auto node = GetFBXNodeForCompactMeshArray();
 	for (int i = 0; i < node->mNumChildren; i++) {
-		auto prop = node->mChildren[i];
-		if (auto model = CreateModelFromMesh(prop)) {
-			std::string dynamicType;
-			int group = -1;
-			for (int j = 0; j < prop->mNumChildren; j++) {
-				auto child = prop->mChildren[j];
-				auto name = (std::string)child->mName.C_Str();
-				if (name.find("TYPE_") != std::string::npos) {
-					name.erase(name.begin(), name.begin() + name.find("TYPE_") + 5);
-					dynamicType = name;
-				}
-				else if (name.find("GROUP_") != std::string::npos) {
-					name.erase(name.begin(), name.begin() + name.find("GROUP_") + 6);
-					group = std::stoi(name);
-				}
+		auto child = node->mChildren[i];
+		auto childName = (std::string)child->mName.C_Str();
+		if (childName.starts_with("GROUP_")) {
+			childName.erase(childName.begin(), childName.begin() + childName.find("GROUP_") + 6);
+			int group = std::stoi(childName);
+			for (int j = 0; j < child->mNumChildren; j++) {
+				auto prop = child->mChildren[j];
+				AddCompactMeshFromFBXNode(prop, group);
 			}
-			if (group > nCompactMeshGroupCount) nCompactMeshGroupCount = group;
-
-			tCompactMesh mesh;
-			mesh.sName1 = prop->mName.C_Str();
-			if (dynamicType.empty()) {
-				WriteConsole("WARNING: Prop " + mesh.sName1 + " has no dynamic type! Defaulting to metal_light", LOG_WARNINGS);
-				mesh.sName2 = "metal_light";
-			}
-			else {
-				mesh.sName2 = dynamicType;
-			}
-			FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(prop), mesh.mMatrix);
-			mesh.nGroup = group;
-			mesh.nFlags = 0xE000;
-			mesh.nUnk1 = 1;
-			mesh.aLODMeshIds.push_back(model - &aModels[0]);
-			mesh.nDamageAssocId = aMeshDamageAssoc.size();
-			aCompactMeshes.push_back(mesh);
-
-			tMeshDamageAssoc assoc;
-			assoc.sName = mesh.sName1;
-			assoc.nIds[0] = aCollidableModels.size();
-			assoc.nIds[1] = -1;
-			aMeshDamageAssoc.push_back(assoc);
-
-			tCollidableModel col;
-			memcpy(col.vRadius, model->vRadius, sizeof(col.vRadius));
-			memcpy(col.vCenter, model->vCenter, sizeof(col.vCenter));
-			col.aModels.push_back(model - &aModels[0]);
-			aCollidableModels.push_back(col);
-
-			WriteConsole("Created new prop " + mesh.sName1 + " in group " + std::to_string(mesh.nGroup) + "with properties from " + mesh.sName2, LOG_ALL);
 		}
+		else AddCompactMeshFromFBXNode(child, -1);
 	}
 }
 
@@ -1143,6 +1156,27 @@ void ReadSplinesFromFBX(aiNode* node) {
 			}
 		}
 	}
+}
+
+bool AddClonedPropFromFBX(aiNode* child, int groupId) {
+	if (GetCompactMeshByName(child->mName.C_Str())) return false;
+	auto tmpName = (std::string)child->mName.C_Str();
+	while (!GetCompactMeshByName(tmpName) && !tmpName.empty()) {
+		tmpName.pop_back();
+	}
+	if (tmpName.empty()) return false;
+	auto baseMesh = GetCompactMeshByName(tmpName);
+	if (!baseMesh) return false;
+	auto baseName = baseMesh->sName1; // not copying this out beforehand for the console log makes the tool crash????????
+
+	tCompactMesh newMesh = *baseMesh;
+	newMesh.nGroup = groupId;
+	newMesh.sName1 = child->mName.C_Str();
+	FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(child), newMesh.mMatrix);
+	aCompactMeshes.push_back(newMesh);
+
+	WriteConsole("Cloning " + baseName + " in group " + std::to_string(groupId) + " for new prop placement " + newMesh.sName1, LOG_ALL);
+	return true;
 }
 
 void WriteW32(uint32_t exportMapVersion) {
@@ -1397,24 +1431,16 @@ void WriteW32(uint32_t exportMapVersion) {
 			auto node = GetFBXNodeForCompactMeshArray();
 			for (int i = 0; i < node->mNumChildren; i++) {
 				auto child = node->mChildren[i];
-				if (GetCompactMeshByName(child->mName.C_Str())) continue;
-				auto tmpName = (std::string)child->mName.C_Str();
-				while (!GetCompactMeshByName(tmpName) && !tmpName.empty()) {
-					tmpName.pop_back();
+				auto childName = (std::string)child->mName.C_Str();
+				if (childName.starts_with("GROUP_")) {
+					childName.erase(childName.begin(), childName.begin() + childName.find("GROUP_") + 6);
+					int group = std::stoi(childName);
+					for (int j = 0; j < child->mNumChildren; j++) {
+						auto child2 = child->mChildren[j];
+						if (AddClonedPropFromFBX(child2, group)) compactMeshCount++;
+					}
 				}
-				if (tmpName.empty()) continue;
-				auto baseMesh = GetCompactMeshByName(tmpName);
-				if (!baseMesh) continue;
-				auto baseName = baseMesh->sName1; // not copying this out beforehand for the console log makes the tool crash????????
-
-				tCompactMesh newMesh = *baseMesh;
-				newMesh.nGroup = -1;
-				newMesh.sName1 = child->mName.C_Str();
-				FBXMatrixToFO2Matrix(GetFullMatrixFromCompactMeshObject(child), newMesh.mMatrix);
-				aCompactMeshes.push_back(newMesh);
-				compactMeshCount++;
-
-				WriteConsole("Cloning " + baseName + " for new prop placement " + newMesh.sName1, LOG_ALL);
+				else if (AddClonedPropFromFBX(child, -1)) compactMeshCount++;
 			}
 		}
 

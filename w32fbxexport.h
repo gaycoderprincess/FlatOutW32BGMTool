@@ -359,6 +359,26 @@ void CreateSplineArrayForVector(aiNode* rootNode, std::vector<aiVector3D>& vec, 
 	}
 }
 
+void AddCompactMeshFBXNodeToGroup(aiNode* rootNode, aiNode* node, int group) {
+	if (group == -1) {
+		rootNode->addChildren(1, &node);
+		return;
+	}
+	auto target = "GROUP_" + std::to_string(group);
+	for (int i = 0; i < rootNode->mNumChildren; i++) {
+		auto child = rootNode->mChildren[i];
+		if (child->mName.C_Str() == target) {
+			child->addChildren(1, &node);
+			return;
+		}
+	}
+
+	auto newNode = new aiNode();
+	newNode->mName = target;
+	rootNode->addChildren(1, &newNode);
+	newNode->addChildren(1, &node);
+}
+
 aiScene GenerateScene() {
 	aiScene scene;
 	scene.mRootNode = new aiNode();
@@ -580,17 +600,11 @@ aiScene GenerateScene() {
 				auto meshNode = new aiNode();
 				meshNode->mName = compactMesh.sName1;
 				FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
-				node->addChildren(1, &meshNode);
+				AddCompactMeshFBXNodeToGroup(node, meshNode, compactMesh.nGroup);
 
 				auto typeNode = new aiNode();
 				typeNode->mName = std::format("{}TYPE_{}", &compactMesh - &aCompactMeshes[0], compactMesh.sName2);
 				meshNode->addChildren(1, &typeNode);
-
-				if (compactMesh.nGroup != -1) {
-					auto groupNode = new aiNode();
-					groupNode->mName = std::format("{}GROUP_{}", &compactMesh - &aCompactMeshes[0], compactMesh.nGroup);
-					meshNode->addChildren(1, &groupNode);
-				}
 
 				// not loading the damaged or lod parts here
 				if (!compactMesh.aLODMeshIds.empty()) {

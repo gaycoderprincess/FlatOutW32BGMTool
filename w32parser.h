@@ -888,7 +888,7 @@ bool ParseW32() {
 
 	if (!ParseW32TreeMeshes(fin)) return false;
 
-	WriteConsole("Parsing unknown data...", LOG_ALWAYS);
+	WriteConsole("Parsing collision offset matrix...", LOG_ALWAYS);
 	if (nImportFileVersion >= 0x10004) {
 		ReadFromFile(fin, aTrackCollisionOffsetMatrix, sizeof(aTrackCollisionOffsetMatrix));
 	}
