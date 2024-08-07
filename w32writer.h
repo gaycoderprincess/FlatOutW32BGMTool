@@ -492,10 +492,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 	aIndexBuffers.push_back(iBuf);
 }
 
-tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
-	tMaterial mat;
-	auto matName = fbxMaterial->GetName().C_Str();
-	mat.sName = matName;
+void FixupFBXCarMaterial(tMaterial& mat) {
 	mat.nShaderId = 8; // car metal
 	if (mat.sName.starts_with("male")) mat.nShaderId = 26; // skinning
 	if (mat.sName.starts_with("female")) mat.nShaderId = 26; // skinning
@@ -527,18 +524,16 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 		}
 	}
 
-	mat.nNumTextures = fbxMaterial->GetTextureCount(aiTextureType_DIFFUSE);
-	if (mat.nNumTextures > 3) mat.nNumTextures = 3;
-	for (int i = 0; i < mat.nNumTextures; i++) {
-		auto texName= GetFBXTextureInFO2Style(fbxMaterial, i);
-		mat.sTextureNames[i] = texName;
-		if (texName == "lights.tga" || texName == "windows.tga" || texName == "shock.tga") {
-			mat.nAlpha = 1;
-		}
-		if (texName == "Sue.tga" || texName == "Jack.tga") {
-			mat.nShaderId = 26;
-		}
+	// car lights have alpha
+	if (mat.sTextureNames[0] == "lights.tga" || mat.sTextureNames[0] == "windows.tga" || mat.sTextureNames[0] == "shock.tga") {
+		mat.nAlpha = 1;
 	}
+
+	// driver skins
+	if (mat.sTextureNames[0] == "Sue.tga" || mat.sTextureNames[0] == "Jack.tga") {
+		mat.nShaderId = 26;
+	}
+
 	// shadow project has no texture
 	if (mat.sName.starts_with("shadow")) mat.sTextureNames[0] = "";
 	// scaleshock and shearhock have no alpha
@@ -548,20 +543,19 @@ tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
 	if (bIsFOUCModel && mat.sTextureNames[0] == "tire_01.tga") mat.sTextureNames[0] = "tire.tga";
 	// custom alpha suffix
 	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
-	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId, nExportFileVersion), LOG_ALL);
-	return mat;
 }
 
-tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, bool disallowTrees) {
-	tMaterial mat;
-	auto matName = fbxMaterial->GetName().C_Str();
-	mat.sName = matName;
+void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees) {
 	mat.nAlpha = mat.sName.starts_with("alpha") || mat.sName.starts_with("Alpha") || mat.sName.starts_with("wirefence_");
 	if (isStaticModel) {
 		mat.nShaderId = 0; // static prelit
 		if (mat.sName.starts_with("dm_")) mat.nShaderId = 1; // terrain
+		if (mat.sName.starts_with("DM_")) mat.nShaderId = 1; // terrain
 		if (mat.sName.starts_with("terrain_")) mat.nShaderId = 1; // terrain
 		if (mat.sName.starts_with("sdm_")) mat.nShaderId = 2; // terrain specular
+		if (mat.sName.starts_with("SDM_")) mat.nShaderId = 2; // terrain specular
+		if (mat.sName.starts_with("restaurant_floor")) mat.nShaderId = 2; // terrain specular
+		if (mat.sName.starts_with("arena_jump_structure")) mat.nShaderId = 2; // terrain specular
 		if (mat.sName.starts_with("treetrunk")) mat.nShaderId = 19; // tree trunk
 		if (mat.sName.starts_with("alpha_treebranch")) mat.nShaderId = 20; // tree branch
 		if (mat.sName.starts_with("alpha_bushbranch")) mat.nShaderId = 20; // tree branch
@@ -571,6 +565,7 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 		if (mat.sName.starts_with("alpha_bushsprite")) mat.nShaderId = 21; // tree leaf
 		if (mat.sName.starts_with("static_windows")) mat.nShaderId = 34; // reflecting window shader (static)
 		if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
+		if (bIsFOUCModel && mat.sName.starts_with("SDM_Mall_floor")) mat.nShaderId = 49; // lightmapped planar reflection
 		if (mat.sName.ends_with(".001")) {
 			for (int i = 0; i < 4; i++) {
 				mat.sName.pop_back();
@@ -598,26 +593,17 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
 	if (mat.sName.ends_with("_alpha1")) mat.nAlpha = 1;
 
-	mat.nNumTextures = fbxMaterial->GetTextureCount(aiTextureType_DIFFUSE);
-	if (mat.nNumTextures > 3) mat.nNumTextures = 3;
-	for (int i = 0; i < mat.nNumTextures; i++) {
-		auto texName = GetFBXTextureInFO2Style(fbxMaterial, i);
-		mat.sTextureNames[i] = texName;
+	if (mat.sTextureNames[0] == "colormap.tga" || mat.sTextureNames[0] == "Colormap.tga") {
+		mat.nUseColormap = 1;
+		if (mat.nShaderId == 0) mat.nShaderId = 1; // terrain shader
 
-		if (i == 0 && (texName == "colormap.tga" || texName == "Colormap.tga")) {
-			mat.nUseColormap = 1;
-			if (mat.nShaderId == 0) mat.nShaderId = 1; // terrain shader
-
-			// hack to load colormapped textures properly when the fbx has texture2 stripped
-			if (mat.nNumTextures == 1) {
-				mat.sTextureNames[1] = mat.sName + ".tga";
-				//if (mat.sTextureNames[1].starts_with("terrain_")) mat.sTextureNames[1] = "dm_" + mat.sTextureNames[1];
-				if (!mat.sName.starts_with("dm_") && !mat.sName.starts_with("sdm_")) mat.sTextureNames[1] = "dm_" + mat.sName + ".tga";
-				mat.nNumTextures = 2;
-				break;
-			}
+		// hack to load colormapped textures properly when the fbx has texture2 stripped
+		if (mat.sTextureNames[1].empty()) {
+			mat.sTextureNames[1] = mat.sName + ".tga";
+			mat.nNumTextures = 2;
 		}
 	}
+
 	if (mat.sTextureNames[0] == "null.tga") {
 		mat.sTextureNames[0] = "";
 		mat.nShaderId = 34; // reflecting window shader (static)
@@ -643,6 +629,30 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 			mat.nShaderId = 0;
 		}
 	}
+}
+
+tMaterial GetMaterialFromFBX(aiMaterial* fbxMaterial) {
+	tMaterial mat;
+	mat.sName = fbxMaterial->GetName().C_Str();
+	mat.nNumTextures = fbxMaterial->GetTextureCount(aiTextureType_DIFFUSE);
+	if (mat.nNumTextures > 3) mat.nNumTextures = 3;
+	for (int i = 0; i < mat.nNumTextures; i++) {
+		auto texName= GetFBXTextureInFO2Style(fbxMaterial, i);
+		mat.sTextureNames[i] = texName;
+	}
+	return mat;
+}
+
+tMaterial GetCarMaterialFromFBX(aiMaterial* fbxMaterial) {
+	auto mat = GetMaterialFromFBX(fbxMaterial);
+	FixupFBXCarMaterial(mat);
+	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId, nExportFileVersion), LOG_ALL);
+	return mat;
+}
+
+tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, bool disallowTrees) {
+	auto mat = GetMaterialFromFBX(fbxMaterial);
+	FixupFBXMapMaterial(mat, isStaticModel, disallowTrees);
 	WriteConsole("Creating new material " + mat.sName + " with shader " + GetShaderName(mat.nShaderId, nExportFileVersion), LOG_ALL);
 	return mat;
 }

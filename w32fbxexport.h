@@ -359,6 +359,34 @@ void CreateSplineArrayForVector(aiNode* rootNode, std::vector<aiVector3D>& vec, 
 	}
 }
 
+bool MaterialStringCompare(std::string& str1, std::string& str2) {
+	if (str1.length() != str2.length())
+		return false;
+
+	for (int i = 0; i < str1.length(); i++) {
+		if (tolower(str1[i]) != tolower(str2[i]))
+			return false;
+	}
+
+	return true;
+}
+
+void PerformMaterialAutodetectTest(tMaterial& material) {
+	if (material.sTextureNames[1].empty()) return;
+
+	auto testMaterial = material;
+	testMaterial.sTextureNames[1] = "";
+	FixupFBXMapMaterial(testMaterial, true, false);
+	if (!MaterialStringCompare(testMaterial.sTextureNames[1], material.sTextureNames[1])) {
+		WriteConsole("WARNING: Texture autodetect failed! Material " + material.sName + " with texture " + material.sTextureNames[1] + " after re-importing will use " + testMaterial.sTextureNames[1], LOG_WARNINGS);
+	}
+	if (testMaterial.nShaderId != material.nShaderId) {
+		auto shader1 = GetShaderName(material.nShaderId, nImportFileVersion);
+		auto shader2 = GetShaderName(testMaterial.nShaderId, nImportFileVersion <= 0x10003 ? 0x10004 : nImportFileVersion);
+		WriteConsole("WARNING: Shader autodetect failed! Material " + material.sName + " using shader " + shader1 + " after re-importing will use " + shader2, LOG_WARNINGS);
+	}
+}
+
 aiScene GenerateScene() {
 	aiScene scene;
 	scene.mRootNode = new aiNode();
@@ -366,7 +394,9 @@ aiScene GenerateScene() {
 	// materials
 	scene.mMaterials = new aiMaterial*[aMaterials.size()];
 	for (int i = 0; i < aMaterials.size(); i++) {
-		auto& src = aMaterials[i];
+		auto src = aMaterials[i];
+		src.SetFBXCompatibleName();
+		PerformMaterialAutodetectTest(src);
 		scene.mMaterials[i] = new aiMaterial();
 		auto dest = scene.mMaterials[i];
 		aiString matName(src.sName);
@@ -437,10 +467,12 @@ aiScene GenerateScene() {
 			auto destCrash = scene.mMeshes[i] = new aiMesh();
 			destCrash->mName = "Surface" + std::to_string(&src - &aSurfaces[0]) + "_crash";
 			destCrash->mMaterialIndex = src.nMaterialId;
-			auto weightsFO2 = bIsFOUCModel ? nullptr : &src._pCrashDataSurface->aCrashWeights[0];
-			auto weightsFOUC = bIsFOUCModel ? &src._pCrashDataSurface->aCrashWeightsFOUC[0] : nullptr;
-			auto vBuffer = bIsFOUCModel ? vBuf : &src._pCrashDataSurface->vBuffer;
-			FillFBXMeshFromSurface(destCrash, vBuffer, iBuf, src, 0, weightsFO2, weightsFOUC);
+			if (bIsFOUCModel) {
+				FillFBXMeshFromSurface(destCrash, vBuf, iBuf, src, src.nStreamOffset[0], nullptr, &src._pCrashDataSurface->aCrashWeightsFOUC[0]);
+			}
+			else {
+				FillFBXMeshFromSurface(destCrash, &src._pCrashDataSurface->vBuffer, iBuf, src, 0, &src._pCrashDataSurface->aCrashWeights[0], nullptr);
+			}
 		}
 	}
 
@@ -516,11 +548,13 @@ aiScene GenerateScene() {
 			}
 		}
 
-		if (auto node = new aiNode()) {
-			node->mName = "Splines";
-			scene.mRootNode->addChildren(1, &node);
-			for (auto& spline : aAISplines) {
-				CreateSplineArrayForVector(node, spline.values, spline.name);
+		if (!aAISplines.empty()) {
+			if (auto node = new aiNode()) {
+				node->mName = "Splines";
+				scene.mRootNode->addChildren(1, &node);
+				for (auto& spline : aAISplines) {
+					CreateSplineArrayForVector(node, spline.values, spline.name);
+				}
 			}
 		}
 	}

@@ -336,6 +336,17 @@ struct tMaterial {
 		memset(v100, 0, sizeof(v100));
 		memset(v101, 0, sizeof(v101));
 	}
+
+	void SetFBXCompatibleName() {
+		if (nNumTextures < 2) return;
+		if (sTextureNames[1].empty()) return;
+		if (!sTextureNames[1].ends_with(".tga") && !sTextureNames[1].ends_with(".TGA")) return;
+
+		sName = sTextureNames[1];
+		for (int i = 0; i < 4; i++) {
+			sName.pop_back();
+		}
+	}
 };
 struct tSurface {
 	int nIsVegetation = 0;
