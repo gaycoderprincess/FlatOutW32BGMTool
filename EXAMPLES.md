@@ -58,12 +58,14 @@ Additional notes:
 
 Map shaders:
 - Default without keywords: Static prelit
-- Alpha flag: `alpha_` or `wirefence_` prefix
-- Double UV terrain: `dm_` or `terrain_` prefix
+- Alpha flag: `alpha_` or `wirefence_` prefix or `_alpha` suffix
+- Double UV terrain: `dm_`, `terrain_`, `road_tarmac` or `road_gravel` prefix
 - Double UV terrain with specular: `sdm_` prefix
 - Tree trunk: `treetrunk` prefix
 - Tree branch: `alpha_treebranch` or `alpha_bushbranch` prefix
 - Tree leaf: `alpha_treelod`, `alpha_treesprite`, `alpha_bushlod` or `alpha_bushsprite` prefix
 - Water: Name your material `water` or give it the `puddle` prefix
+- Static window glass: `static_windows` prefix
+- Dynamic window glass: `dynamic_windows` prefix
 - Dynamic objects: `_dynamic` suffix
 - Dynamic objects with specular: `_dynamic_specular` suffix
