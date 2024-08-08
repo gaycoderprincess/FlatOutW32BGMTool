@@ -284,7 +284,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 
 	if ((flags & VERTEX_UV2) != 0 && !mesh->HasTextureCoords(1)) {
 		WriteConsole("WARNING: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have 2 sets of UVs!", LOG_MINOR_WARNINGS);
-		//exit(0);
+		//WaitAndExitOnFail();
 	}
 
 	float foucOffsets[] = {foucOffset1, foucOffset2, foucOffset3, foucOffset4};
@@ -300,7 +300,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 	vBuf.vertexCount = mesh->mNumVertices;
 	if (vBuf.vertexCount > 65535) {
 		WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " has more than 65535 vertices! Split the mesh!", LOG_ERRORS);
-		exit(0);
+		WaitAndExitOnFail();
 	}
 	if (bIsFOUCModel) {
 		// adjust UV coords to fit into the 2048 grid
@@ -360,7 +360,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			}
 			else {
 				WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!", LOG_ERRORS);
-				exit(0);
+				WaitAndExitOnFail();
 			}
 			// vertex color
 			if (mesh->HasVertexColors(0)) {
@@ -381,7 +381,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			}
 			else {
 				WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have UVs!", LOG_ERRORS);
-				exit(0);
+				WaitAndExitOnFail();
 			}
 			// UV2
 			if (mesh->HasTextureCoords(1)) {
@@ -409,7 +409,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			if ((flags & VERTEX_NORMAL) != 0) {
 				if (!mesh->HasNormals()) {
 					WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!", LOG_ERRORS);
-					exit(0);
+					WaitAndExitOnFail();
 				}
 
 				auto normals = mesh->mNormals[i];
@@ -443,7 +443,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			if ((flags & VERTEX_UV) != 0 || (flags & VERTEX_UV2) != 0) {
 				if (!mesh->HasTextureCoords(0)) {
 					WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have UVs!", LOG_ERRORS);
-					exit(0);
+					WaitAndExitOnFail();
 				}
 
 				vertices[0] = mesh->mTextureCoords[0][i].x;
@@ -1554,7 +1554,7 @@ void ConvertFOUCSurfaceToFO2(tSurface& surface) {
 		newIndices[i] = tmp - baseVertexOffset;
 		if (newIndices[i] < 0 || newIndices[i] >= surface.nVertexCount) {
 			WriteConsole("ERROR: Index out of bounds: " + std::to_string(newIndices[i]) + " for surface " + std::to_string(&surface - &aSurfaces[0]), LOG_ERRORS);
-			exit(0);
+			WaitAndExitOnFail();
 		}
 		indexData += 2;
 	}
@@ -1690,16 +1690,16 @@ void WriteCrashDat(uint32_t exportVersion) {
 			auto baseVBuffer = FindVertexBuffer(baseSurface.nStreamId[0]);
 			if (!baseVBuffer) {
 				WriteConsole("ERROR: Failed to find vertex buffer for " + model.sName, LOG_ERRORS);
-				exit(0);
+				WaitAndExitOnFail();
 			}
 			auto crashVBuffer = FindVertexBuffer(crashSurface.nStreamId[0]);
 			if (!crashVBuffer) {
 				WriteConsole("ERROR: Failed to find damage vertex buffer for " + model.sName, LOG_ERRORS);
-				exit(0);
+				WaitAndExitOnFail();
 			}
 			if (baseVBuffer->vertexSize != crashVBuffer->vertexSize) {
 				WriteConsole("ERROR: " + model.sName + " has damage model with a mismatching vertex size!", LOG_ERRORS);
-				exit(0);
+				WaitAndExitOnFail();
 			}
 
 			uint32_t numVerts = baseSurface.nVertexCount;

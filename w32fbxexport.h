@@ -169,7 +169,7 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 					if (id >= aVertexColors.size()) {
 						WriteConsole("ERROR: Vertex colors for surface " + std::to_string(&src - &aSurfaces[0]) + " out of bounds!", LOG_ERRORS);
 						WriteConsole(std::to_string(id) + "/" + std::to_string(aVertexColors.size()), LOG_ERRORS);
-						exit(0);
+						WaitAndExitOnFail();
 					}
 					auto rgb = (uint8_t*)&aVertexColors[id];
 					dest->mColors[0][j].r = rgb[0] / 255.0;
@@ -210,10 +210,10 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 			indices[1] = (j * 4) + 1;
 			indices[2] = (j * 4) + 2;
 			indices[3] = (j * 4) + 3;
-			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); exit(0); }
-			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); exit(0); }
-			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); exit(0); }
-			if (indices[3] < 0 || indices[3] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[3]), LOG_ERRORS); exit(0); }
+			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[3] < 0 || indices[3] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[3]), LOG_ERRORS); WaitAndExitOnFail(); }
 			dest->mFaces[j].mIndices = new uint32_t[4];
 			dest->mFaces[j].mIndices[0] = indices[3];
 			dest->mFaces[j].mIndices[1] = indices[2];
@@ -231,9 +231,9 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 			indices[0] -= baseVertexOffset;
 			indices[1] -= baseVertexOffset;
 			indices[2] -= baseVertexOffset;
-			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); exit(0); }
-			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); exit(0); }
-			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); exit(0); }
+			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); WaitAndExitOnFail(); }
 			dest->mFaces[j].mIndices = new uint32_t[3];
 			if (bFlip) {
 				dest->mFaces[j].mIndices[0] = indices[0];
@@ -258,9 +258,9 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 			indices[0] -= baseVertexOffset;
 			indices[1] -= baseVertexOffset;
 			indices[2] -= baseVertexOffset;
-			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); exit(0); }
-			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); exit(0); }
-			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); exit(0); }
+			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); WaitAndExitOnFail(); }
 			dest->mFaces[j].mIndices = new uint32_t[3];
 			dest->mFaces[j].mIndices[0] = indices[2];
 			dest->mFaces[j].mIndices[1] = indices[1];

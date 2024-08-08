@@ -37,6 +37,19 @@ enum {
 	LOG_ALWAYS = 255,
 } nLoggingSeverity = LOG_ALL;
 
+void WaitAndExitOnFail() {
+	std::string str;
+	std::getline(std::cin, str);
+	exit(0);
+}
+
+void WaitAndExitOnSuccess() {
+	std::cout << "Processing has finished, it is now safe to exit.";
+	std::string str;
+	std::getline(std::cin, str);
+	exit(0);
+}
+
 void WriteConsole(const std::string& str, int logType) {
 	if (logType < nLoggingSeverity) return;
 
@@ -338,7 +351,6 @@ struct tMaterial {
 	}
 
 	void SetFBXCompatibleName() {
-		if (nNumTextures < 2) return;
 		if (sTextureNames[1].empty()) return;
 		if (!sTextureNames[1].ends_with(".tga") && !sTextureNames[1].ends_with(".TGA")) return;
 

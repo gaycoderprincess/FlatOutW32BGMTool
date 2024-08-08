@@ -69,11 +69,11 @@ int main(int argc, char *argv[]) {
 
 	if (bCreateEmptyPlantVDB) {
 		WriteEmptyPlantVDB();
-		exit(0);
+		WaitAndExitOnSuccess();
 	}
 	if (!std::filesystem::exists(sFileName)) {
 		WriteConsole("ERROR: Failed to load " + std::filesystem::absolute(sFileName).string() + "! (File doesn't exist)", LOG_ERRORS);
-		exit(0);
+		WaitAndExitOnFail();
 	}
 	if (bCreate4BFromBMP) {
 		Write4BFromBMP();
@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
 	else if (bCreateW32FromFBX) {
 		if (!ParseFBX()) {
 			WriteConsole("ERROR: Failed to load " + sFBXFileName.string() + "!", LOG_ERRORS);
-			exit(0);
+			WaitAndExitOnFail();
 		}
 		else {
 			WriteConsole("Parsing finished", LOG_ALWAYS);
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
 	else if (bCreateBGMFromFBX) {
 		if (!ParseFBX()) {
 			WriteConsole("ERROR: Failed to load " + sFBXFileName.string() + "!", LOG_ERRORS);
-			exit(0);
+			WaitAndExitOnFail();
 		}
 		else {
 			WriteConsole("Parsing finished", LOG_ALWAYS);
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
 		if (bLoadFBX) {
 			if (!ParseFBX()) {
 				WriteConsole("ERROR: Failed to load " + sFBXFileName.string() + "!", LOG_ERRORS);
-				exit(0);
+				WaitAndExitOnFail();
 			} else {
 				WriteConsole("Parsing finished", LOG_ALWAYS);
 			}
@@ -158,5 +158,6 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
+	WaitAndExitOnSuccess();
 	return 0;
 }

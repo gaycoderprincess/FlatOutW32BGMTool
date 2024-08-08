@@ -449,7 +449,8 @@ bool ParseW32Models(std::ifstream& file) {
 		ReadFromFile(file, &numSurfaces, sizeof(numSurfaces));
 		if (crashData) {
 			if (crashData->aSurfaces.size() != numSurfaces) {
-				WriteConsole("ERROR: crash.dat mismatch, damage data will not be exported!", LOG_ERRORS);
+				WriteConsole("ERROR: crash.dat mismatch, damage data will not be exported for " + model.sName + "!", LOG_ERRORS);
+				WriteConsole(model.sName + " has " + std::to_string(numSurfaces) + " surfaces, but " + crashData->sName + " has " + std::to_string(crashData->aSurfaces.size()), LOG_ERRORS);
 				crashData = nullptr;
 			}
 		}
@@ -804,20 +805,20 @@ bool ParseW32() {
 			auto vertexColorsPath = sFileNameNoExt.string() + "_sky_vtx.rad";
 			if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
 				WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);
-				exit(0);
+				WaitAndExitOnFail();
 			}
 			//vertexColorsPath = sFileNameNoExt.string() + "_sun1_vtx.rad";
 			//if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
 			//	WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);
-			//	exit(0);
+			//	WaitAndExitOnFail();
 			//}
 		}
 		else {
 			auto vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors.w32";
 			if (!std::filesystem::exists(vertexColorsPath)) vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
 			if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
-				WriteConsole("ERROR: Failed to load " + (std::string) vertexColorsPath + "!", LOG_ERRORS);
-				exit(0);
+				WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);
+				WaitAndExitOnFail();
 			}
 		}
 	}
