@@ -172,7 +172,10 @@ void CMD_UseVanillaNames() {
 	bUseVanillaNames = true;
 }
 void CMD_CombineMaterialsForMenucar() {
-	bCombineMaterialsForMenucar = true;
+	bMenuCarCombineMaterials = true;
+}
+void CMD_NoRimAlphaForMenucar() {
+	bMenuCarNoRimAlpha = true;
 }
 
 struct tCommandlineArgument {
@@ -207,7 +210,8 @@ tCommandlineArgument aArguments[] = {
 		{ "-convert_to_fo2", CMD_ConvertToFO2, "Converts an input car model to the FlatOut 2 format" },
 
 		// static common options
-		{ "-combine_menucar_materials", CMD_CombineMaterialsForMenucar, "Combines materials to fit into the 16 material limit for menucars", "BGM parameters" },
+		{ "-menucar_combine_materials", CMD_CombineMaterialsForMenucar, "Combines materials to fit into the 16 material limit for menucars", "BGM parameters" },
+		{ "-menucar_no_rim_alpha", CMD_NoRimAlphaForMenucar, "Disables alpha for the rim texture on menucars, useful for UC -> FO2 ports" },
 
 		// static map options
 		{ "-remove_object_dummies", CMD_W32_RemoveObjectDummies, "Removes all object dummies from an input map file", "W32 editing" },

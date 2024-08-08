@@ -506,7 +506,7 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	if (mat.sName.starts_with("tire")) mat.nShaderId = bIsFOUCModel ? 44 : 7; // fo2: car diffuse, uc: car tire
 	if (mat.sName.starts_with("rim")) {
 		mat.nShaderId = 9; // fo2: car tire, uc: car tire rim
-		if (!bIsFOUCModel) mat.nAlpha = 1;
+		if (!bIsFOUCModel && !bMenuCarNoRimAlpha) mat.nAlpha = 1;
 	}
 	if (mat.sName.starts_with("massdoubler_texture")) mat.nShaderId = 3; // dynamic diffuse
 	if (mat.sName.starts_with("bomb_texture")) mat.nShaderId = 3; // dynamic diffuse
@@ -739,12 +739,12 @@ void FillBGMFromFBX() {
 		for (int i = 0; i < pParsedFBXScene->mNumMaterials; i++) {
 			auto mat = pParsedFBXScene->mMaterials[i];
 			if (GetMaterialSortPriority(mat) != j) continue;
-			if (bCombineMaterialsForMenucar && HasSimilarMaterialForMenuCar(i)) continue;
+			if (bMenuCarCombineMaterials && HasSimilarMaterialForMenuCar(i)) continue;
 			aMaterials.push_back(GetCarMaterialFromFBX(pParsedFBXScene->mMaterials[i]));
 		}
 	}
 
-	if (bCombineMaterialsForMenucar && aMaterials.size() > 16) {
+	if (bMenuCarCombineMaterials && aMaterials.size() > 16) {
 		WriteConsole("ERROR: Failed to combine enough materials to fit within the menucar limit! Mesh has " + std::to_string(aMaterials.size()) + " materials, max is 16", LOG_ERRORS);
 		WaitAndExitOnFail();
 	}
@@ -856,6 +856,10 @@ void FillBGMFromFBX() {
 		}
 
 		aBGMMeshes.push_back(bgmMesh);
+	}
+
+	if (bMenuCarCombineMaterials && aSurfaces.size() > 16) {
+		WriteConsole("WARNING: Menucar surface limit exceeded! Mesh has " + std::to_string(aSurfaces.size()) + " surfaces, max is 16", LOG_WARNINGS);
 	}
 
 	WriteConsole("Creating object dummies...", LOG_ALWAYS);
