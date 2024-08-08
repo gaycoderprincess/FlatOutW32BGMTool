@@ -37,6 +37,7 @@ bool bCreateW32FromFBX = false;
 bool bCreate4BFromBMP = false;
 bool bUseVanillaNames = false;
 bool bLoadFBX = false;
+bool bCombineMaterialsForMenucar = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;

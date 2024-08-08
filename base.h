@@ -423,7 +423,7 @@ struct tTreeMesh {
 };
 struct tModel {
 	uint32_t identifier = 0x444F4D42; // BMOD
-	int nUnk;
+	int nUnk = 0;
 	std::string sName;
 	float vCenter[3];
 	float vRadius[3];

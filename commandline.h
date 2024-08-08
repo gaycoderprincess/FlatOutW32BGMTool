@@ -171,6 +171,9 @@ void CMD_LogErrorsOnly() {
 void CMD_UseVanillaNames() {
 	bUseVanillaNames = true;
 }
+void CMD_CombineMaterialsForMenucar() {
+	bCombineMaterialsForMenucar = true;
+}
 
 struct tCommandlineArgument {
 	std::string name;
@@ -202,6 +205,9 @@ tCommandlineArgument aArguments[] = {
 		// static common options
 		{ "-convert_to_fo1", CMD_ConvertToFO1, "Converts an input car model to the FlatOut 1 format", "In-place BGM conversions" },
 		{ "-convert_to_fo2", CMD_ConvertToFO2, "Converts an input car model to the FlatOut 2 format" },
+
+		// static common options
+		{ "-combine_menucar_materials", CMD_CombineMaterialsForMenucar, "Combines materials to fit into the 16 material limit for menucars", "BGM parameters" },
 
 		// static map options
 		{ "-remove_object_dummies", CMD_W32_RemoveObjectDummies, "Removes all object dummies from an input map file", "W32 editing" },

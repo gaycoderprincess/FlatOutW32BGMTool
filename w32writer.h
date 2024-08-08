@@ -504,8 +504,10 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	if (mat.sName.starts_with("shear")) mat.nShaderId = 11; // car shear
 	if (mat.sName.starts_with("scale")) mat.nShaderId = 12; // car scale
 	if (mat.sName.starts_with("tire")) mat.nShaderId = bIsFOUCModel ? 44 : 7; // fo2: car diffuse, uc: car tire
-	if (mat.sName.starts_with("rim")) mat.nShaderId = 9; // fo2: car tire, uc: car tire rim
-	if (mat.sName.starts_with("terrain") || mat.sName.starts_with("groundplane")) mat.nShaderId = 7; // car diffuse
+	if (mat.sName.starts_with("rim")) {
+		mat.nShaderId = 9; // fo2: car tire, uc: car tire rim
+		if (!bIsFOUCModel) mat.nAlpha = 1;
+	}
 	if (mat.sName.starts_with("massdoubler_texture")) mat.nShaderId = 3; // dynamic diffuse
 	if (mat.sName.starts_with("bomb_texture")) mat.nShaderId = 3; // dynamic diffuse
 	if (mat.sName.starts_with("powerarmour_texture")) mat.nShaderId = 3; // dynamic diffuse
@@ -514,6 +516,10 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	if (mat.sName.starts_with("repair_texture")) mat.nShaderId = 3; // dynamic diffuse
 	if (mat.sName.starts_with("powerram_texture")) mat.nShaderId = 3; // dynamic diffuse
 	if (mat.sName.starts_with("massdoubler_texture")) mat.nShaderId = 3; // dynamic diffuse
+	if (mat.sName.starts_with("terrain") || mat.sName.starts_with("groundplane")) {
+		mat.nShaderId = 7; // car diffuse
+		mat.nAlpha = 1;
+	}
 	if (mat.sName.starts_with("light")) {
 		mat.v92 = 2;
 		mat.nShaderId = 10; // car lights
@@ -668,15 +674,19 @@ int GetMaterialSortPriority(aiMaterial* mat) {
 	return 0;
 }
 
-int GetBGMMaterialID(const std::string& name) {
+int GetBGMMaterialID(const std::string& name, const std::string& path) {
 	for (auto& material : aMaterials) {
 		if (material.sName == name) return &material - &aMaterials[0];
+	}
+	// fallback for menucar material combining
+	for (auto& material : aMaterials) {
+		if (material.sTextureNames[0] == path) return &material - &aMaterials[0];
 	}
 	return 0;
 }
 
 int GetBGMMaterialID(aiMaterial* material) {
-	return GetBGMMaterialID(material->GetName().C_Str());
+	return GetBGMMaterialID(material->GetName().C_Str(), GetFBXTextureInFO2Style(material, 0));
 }
 
 void CreateBGMSurfaceFromFBX(aiNode* node, int meshId, bool isCrash) {
@@ -706,6 +716,19 @@ void CreateBGMSurfaceFromFBX(aiNode* node, int meshId, bool isCrash) {
 	else aSurfaces.push_back(surface);
 }
 
+bool HasSimilarMaterialForMenuCar(int id) {
+	auto mat = GetMaterialFromFBX(pParsedFBXScene->mMaterials[id]);
+	FixupFBXCarMaterial(mat);
+
+	// find material with same texture
+	for (auto& material : aMaterials) {
+		if (material.nAlpha == mat.nAlpha && material.sTextureNames[0] == mat.sTextureNames[0]) {
+			return true;
+		}
+	}
+	return false;
+}
+
 void FillBGMFromFBX() {
 	WriteConsole("Creating BGM data...", LOG_ALWAYS);
 
@@ -716,8 +739,14 @@ void FillBGMFromFBX() {
 		for (int i = 0; i < pParsedFBXScene->mNumMaterials; i++) {
 			auto mat = pParsedFBXScene->mMaterials[i];
 			if (GetMaterialSortPriority(mat) != j) continue;
+			if (bCombineMaterialsForMenucar && HasSimilarMaterialForMenuCar(i)) continue;
 			aMaterials.push_back(GetCarMaterialFromFBX(pParsedFBXScene->mMaterials[i]));
 		}
+	}
+
+	if (bCombineMaterialsForMenucar && aMaterials.size() > 16) {
+		WriteConsole("ERROR: Failed to combine enough materials to fit within the menucar limit! Mesh has " + std::to_string(aMaterials.size()) + " materials, max is 16", LOG_ERRORS);
+		WaitAndExitOnFail();
 	}
 
 	WriteConsole("Creating streams...", LOG_ALWAYS);
