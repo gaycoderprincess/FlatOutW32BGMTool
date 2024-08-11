@@ -616,7 +616,7 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 	}
 	if (mat.sTextureNames[0].starts_with("alpha") || mat.sTextureNames[0].starts_with("Alpha")) mat.nAlpha = 1;
 	// water is a window in fo1/fo2, lol
-	if (mat.sName == "water") {
+	if (mat.sName == "water" || mat.sName == "puddle_normal") {
 		if (bIsFOUCModel) {
 			mat.sTextureNames[0] = "puddle_normal.tga";
 			mat.nShaderId = 45; // puddle
