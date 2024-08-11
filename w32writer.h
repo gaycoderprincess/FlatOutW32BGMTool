@@ -276,6 +276,29 @@ void ClampMeshUVs(aiMesh* mesh, int uvChannel) {
 	}
 }
 
+void FBXNormalsToFOUCNormals(aiVector3D* fbx, uint8_t* fouc, bool treeHack) {
+	auto normals = *fbx;
+	if (normals[0] > 1.0) normals[0] = 1.0;
+	if (normals[1] > 1.0) normals[1] = 1.0;
+	if (normals[2] > 1.0) normals[2] = 1.0;
+	if (normals[0] < -1.0) normals[0] = -1.0;
+	if (normals[1] < -1.0) normals[1] = -1.0;
+	if (normals[2] < -1.0) normals[2] = -1.0;
+	if (treeHack) {
+		normals.x = 0;
+		normals.y = 1;
+		normals.z = 0;
+	}
+
+	double tmp = (-normals.z + 1) * 127.0;
+	fouc[0] = tmp;
+	tmp = (normals.y + 1) * 127.0;
+	fouc[1] = tmp;
+	tmp = (normals.x + 1) * 127.0;
+	fouc[2] = tmp;
+	fouc[3] = 0xFF;
+}
+
 bool bTmpFlipImportedModels = false;
 void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, float foucOffset1 = 0, float foucOffset2 = 0, float foucOffset3 = 0, float foucOffset4 = fFOUCBGMScaleMultiplier, bool treeHack = false) {
 	int id = aVertexBuffers.size() + aIndexBuffers.size();
@@ -337,29 +360,9 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 
 			// normals
 			if (mesh->HasNormals()) {
-				auto normals = mesh->mNormals[i];
-				if (normals[0] > 1.0) normals[0] = 1.0;
-				if (normals[1] > 1.0) normals[1] = 1.0;
-				if (normals[2] > 1.0) normals[2] = 1.0;
-				if (normals[0] < -1.0) normals[0] = -1.0;
-				if (normals[1] < -1.0) normals[1] = -1.0;
-				if (normals[2] < -1.0) normals[2] = -1.0;
-				if (treeHack) {
-					normals.x = 0;
-					normals.y = 1;
-					normals.z = 0;
-				}
-
-				double tmp = (-normals.z + 1) * 127.0;
-				data->vNormals[0] = tmp;
-				tmp = (normals.y + 1) * 127.0;
-				data->vNormals[1] = tmp;
-				tmp = (normals.x + 1) * 127.0;
-				data->vNormals[2] = tmp;
-				data->vNormals[3] = 0xFF;
-
-				memcpy(data->vUnknownProllyBumpmaps, data->vNormals, sizeof(data->vNormals));
-				memcpy(data->vUnknownProllyBumpmaps2, data->vNormals, sizeof(data->vNormals));
+				FBXNormalsToFOUCNormals(&mesh->mBitangents[i], data->vUnknownProllyBumpmaps, treeHack);
+				FBXNormalsToFOUCNormals(&mesh->mTangents[i], data->vUnknownProllyBumpmaps2, treeHack);
+				FBXNormalsToFOUCNormals(&mesh->mNormals[i], data->vNormals, treeHack);
 			}
 			else {
 				WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!", LOG_ERRORS);
@@ -906,7 +909,7 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 		vertexSize = 32;
 	}
 	else {
-		auto mat = aMaterials[surface->nMaterialId];
+		auto& mat = aMaterials[surface->nMaterialId];
 		if (mat.nShaderId == 1) { // terrain
 			// DoubleUVMap
 			bufFlags = 0x202;
