@@ -357,6 +357,9 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 				tmp = (normals.x + 1) * 127.0;
 				data->vNormals[2] = tmp;
 				data->vNormals[3] = 0xFF;
+
+				memcpy(data->vUnknownProllyBumpmaps, data->vNormals, sizeof(data->vNormals));
+				memcpy(data->vUnknownProllyBumpmaps2, data->vNormals, sizeof(data->vNormals));
 			}
 			else {
 				WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!", LOG_ERRORS);
