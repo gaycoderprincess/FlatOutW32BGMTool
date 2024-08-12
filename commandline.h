@@ -174,8 +174,14 @@ void CMD_UseVanillaNames() {
 void CMD_CombineMaterialsForMenucar() {
 	bMenuCarCombineMaterials = true;
 }
-void CMD_NoRimAlphaForMenucar() {
-	bMenuCarNoRimAlpha = true;
+void CMD_NoRimAlphaForCar() {
+	bCarNoRimAlpha = true;
+}
+void CMD_ForceRimAlphaForCar() {
+	bCarForceRimAlpha = true;
+}
+void CMD_ForceTireAlphaForCar() {
+	bCarForceTireAlpha = true;
 }
 
 struct tCommandlineArgument {
@@ -211,7 +217,9 @@ tCommandlineArgument aArguments[] = {
 
 		// static common options
 		{ "-menucar_combine_materials", CMD_CombineMaterialsForMenucar, "Combines materials to fit into the 16 material limit for menucars", "BGM parameters" },
-		{ "-menucar_no_rim_alpha", CMD_NoRimAlphaForMenucar, "Disables alpha for the rim texture on menucars, useful for UC -> FO2 ports" },
+		{ "-no_rim_alpha", CMD_NoRimAlphaForCar, "Disables alpha for the rim texture on cars, useful for UC -> FO2 ports" },
+		{ "-force_rim_alpha", CMD_ForceRimAlphaForCar, "Forces alpha for the rim texture on cars, useful for FO2 -> UC ports" },
+		{ "-force_tire_alpha", CMD_ForceTireAlphaForCar, "Forces alpha for the tire texture on cars, useful for FO2 -> UC ports" },
 
 		// static map options
 		{ "-remove_object_dummies", CMD_W32_RemoveObjectDummies, "Removes all object dummies from an input map file", "W32 editing" },

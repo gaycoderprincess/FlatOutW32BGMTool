@@ -38,7 +38,9 @@ bool bCreate4BFromBMP = false;
 bool bUseVanillaNames = false;
 bool bLoadFBX = false;
 bool bMenuCarCombineMaterials = false;
-bool bMenuCarNoRimAlpha = false;
+bool bCarNoRimAlpha = false;
+bool bCarForceRimAlpha = false;
+bool bCarForceTireAlpha = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;

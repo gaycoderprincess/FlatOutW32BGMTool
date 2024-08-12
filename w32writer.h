@@ -509,10 +509,15 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	if (mat.sName.starts_with("window")) mat.nShaderId = 6; // car window
 	if (mat.sName.starts_with("shear")) mat.nShaderId = 11; // car shear
 	if (mat.sName.starts_with("scale")) mat.nShaderId = 12; // car scale
-	if (mat.sName.starts_with("tire")) mat.nShaderId = bIsFOUCModel ? 44 : 7; // fo2: car diffuse, uc: car tire
+	if (mat.sName.starts_with("tire")) {
+		mat.nShaderId = bIsFOUCModel ? 44 : 7; // fo2: car diffuse, uc: car tire
+		if (bCarForceTireAlpha) mat.nAlpha = 1;
+	}
 	if (mat.sName.starts_with("rim")) {
 		mat.nShaderId = 9; // fo2: car tire, uc: car tire rim
-		if (!bIsFOUCModel && !bMenuCarNoRimAlpha) mat.nAlpha = 1;
+		if (!bIsFOUCModel) mat.nAlpha = 1;
+		if (bCarNoRimAlpha) mat.nAlpha = 0;
+		if (bCarForceRimAlpha) mat.nAlpha = 1;
 	}
 	if (mat.sName.starts_with("massdoubler_texture")) mat.nShaderId = 3; // dynamic diffuse
 	if (mat.sName.starts_with("bomb_texture")) mat.nShaderId = 3; // dynamic diffuse
@@ -552,7 +557,7 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	if (mat.sName.starts_with("scaleshock")) mat.nAlpha = 0;
 	if (mat.sName.starts_with("shearhock")) mat.nAlpha = 0;
 	// fouc tire_01 hack
-	if (bIsFOUCModel && mat.sTextureNames[0] == "tire_01.tga") mat.sTextureNames[0] = "tire.tga";
+	if (bIsFOUCModel && (mat.sTextureNames[0].starts_with("tire_0") || mat.sTextureNames[0].starts_with("tire_1"))) mat.sTextureNames[0] = "tire.tga";
 	// custom alpha suffix
 	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
 }
