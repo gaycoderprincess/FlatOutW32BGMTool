@@ -512,6 +512,17 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 	aIndexBuffers.push_back(iBuf);
 }
 
+void FixNameExtensions(std::string& name) {
+	for (int i = 0; i < 999; i++) {
+		if (name.ends_with(std::format(".{:03}", i))) {
+			for (int j = 0; j < 4; j++) {
+				name.pop_back();
+			}
+			return;
+		}
+	}
+}
+
 void FixupFBXCarMaterial(tMaterial& mat) {
 	mat.nShaderId = 8; // car metal
 	if (mat.sName.starts_with("male")) mat.nShaderId = 26; // skinning
@@ -549,11 +560,7 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 		mat.v92 = 2;
 		mat.nShaderId = 10; // car lights
 	}
-	if (mat.sName.ends_with(".001")) {
-		for (int i = 0; i < 4; i++) {
-			mat.sName.pop_back();
-		}
-	}
+	FixNameExtensions(mat.sName);
 
 	// car lights have alpha
 	if (mat.sTextureNames[0] == "lights.tga" || mat.sTextureNames[0] == "windows.tga" || mat.sTextureNames[0] == "shock.tga") {
@@ -567,6 +574,8 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 
 	// shadow project has no texture
 	if (mat.sName.starts_with("shadow")) mat.sTextureNames[0] = "";
+	// body always uses skin1.tga
+	if (mat.sName.starts_with("body")) mat.sTextureNames[0] = "skin1.tga";
 	// scaleshock and shearhock have no alpha
 	if (mat.sName.starts_with("scaleshock")) mat.nAlpha = 0;
 	if (mat.sName.starts_with("shearhock")) mat.nAlpha = 0;
@@ -597,22 +606,14 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		if (mat.sName.starts_with("static_windows")) mat.nShaderId = 34; // reflecting window shader (static)
 		if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
 		if (bIsFOUCModel && mat.sName.starts_with("SDM_Mall_floor")) mat.nShaderId = 49; // lightmapped planar reflection
-		if (mat.sName.ends_with(".001")) {
-			for (int i = 0; i < 4; i++) {
-				mat.sName.pop_back();
-			}
-		}
+		FixNameExtensions(mat.sName);
 		if (mat.sName == "water") mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
 	}
 	else {
 		mat.nShaderId = 3; // dynamic diffuse
 		if (mat.sName.starts_with("alpha_dynwindowshader")) mat.nShaderId = 35; // reflecting window shader (dynamic)
 		if (mat.sName.starts_with("dynamic_windows")) mat.nShaderId = 35; // reflecting window shader (dynamic)
-		if (mat.sName.ends_with(".001")) {
-			for (int i = 0; i < 4; i++) {
-				mat.sName.pop_back();
-			}
-		}
+		FixNameExtensions(mat.sName);
 		if (mat.sName.ends_with("_specular")) mat.nShaderId = 4; // dynamic specular, custom suffix for manual use
 	}
 
@@ -664,7 +665,7 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 
 tMaterial GetMaterialFromFBX(aiMaterial* fbxMaterial) {
 	tMaterial mat;
-	mat.sName = fbxMaterial->GetName().C_Str();
+	mat.sName = mat._sFBXName = fbxMaterial->GetName().C_Str();
 	mat.nNumTextures = fbxMaterial->GetTextureCount(aiTextureType_DIFFUSE);
 	if (mat.nNumTextures > 3) mat.nNumTextures = 3;
 	for (int i = 0; i < mat.nNumTextures; i++) {
@@ -700,6 +701,10 @@ int GetMaterialSortPriority(aiMaterial* mat) {
 }
 
 int GetBGMMaterialID(const std::string& name, const std::string& path) {
+	for (auto& material : aMaterials) {
+		if (material._sFBXName == name) return &material - &aMaterials[0];
+	}
+	// fallback for name only
 	for (auto& material : aMaterials) {
 		if (material.sName == name) return &material - &aMaterials[0];
 	}
@@ -863,11 +868,7 @@ void FillBGMFromFBX() {
 				}
 			}
 
-			if (model.sName.ends_with(".001")) {
-				for (int k = 0; k < 4; k++) {
-					model.sName.pop_back();
-				}
-			}
+			FixNameExtensions(model.sName);
 
 			model.vCenter[0] = (aabbMax[0] + aabbMin[0]) * 0.5;
 			model.vCenter[1] = (aabbMax[1] + aabbMin[1]) * 0.5;

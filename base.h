@@ -339,6 +339,7 @@ struct tMaterial {
 	std::string sTextureNames[3];
 
 	int _nNumReferences = 0;
+	std::string _sFBXName;
 	bool _bIsCustom = false;
 	bool _bIsCustomFOUCTree = false;
 	tMaterial() {
