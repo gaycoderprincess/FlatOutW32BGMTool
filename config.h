@@ -41,6 +41,7 @@ bool bMenuCarCombineMaterials = false;
 bool bCarNoRimAlpha = false;
 bool bCarForceRimAlpha = false;
 bool bCarForceTireAlpha = false;
+bool bMakeAllDoubleSided = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;

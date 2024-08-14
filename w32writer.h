@@ -474,6 +474,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 	tIndexBuffer iBuf;
 	iBuf.id = id + 1;
 	iBuf.indexCount = mesh->mNumFaces * 3;
+	if (bMakeAllDoubleSided) iBuf.indexCount *= 2;
 	iBuf.data = new uint16_t[iBuf.indexCount];
 	auto indexData = iBuf.data;
 	for (int i = 0; i < mesh->mNumFaces; i++) {
@@ -493,6 +494,19 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			indexData[2] = face.mIndices[0];
 		}
 		indexData += 3;
+		if (bMakeAllDoubleSided) {
+			if (bTmpFlipImportedModels) {
+				indexData[0] = face.mIndices[2];
+				indexData[1] = face.mIndices[1];
+				indexData[2] = face.mIndices[0];
+			}
+			else {
+				indexData[0] = face.mIndices[0];
+				indexData[1] = face.mIndices[1];
+				indexData[2] = face.mIndices[2];
+			}
+			indexData += 3;
+		}
 	}
 	aVertexBuffers.push_back(vBuf);
 	aIndexBuffers.push_back(iBuf);
@@ -709,6 +723,10 @@ void CreateBGMSurfaceFromFBX(aiNode* node, int meshId, bool isCrash) {
 	surface.nVertexCount = mesh->mNumVertices;
 	surface.nPolyCount = mesh->mNumFaces;
 	surface.nNumIndicesUsed = mesh->mNumFaces * 3;
+	if (bMakeAllDoubleSided) {
+		surface.nPolyCount *= 2;
+		surface.nNumIndicesUsed *= 2;
+	}
 	surface.nFlags = aVertexBuffers[node->mMeshes[meshId]].flags;
 	surface.nMaterialId = GetBGMMaterialID(pParsedFBXScene->mMaterials[mesh->mMaterialIndex]);
 	surface.nNumStreamsUsed = 2;
