@@ -715,7 +715,7 @@ void FBXMatrixToFO2Matrix(const aiMatrix4x4& src, float* dest) {
 int FindMaterialIDByName(const std::string& name, bool customOnly) {
 	for (auto& material : aMaterials) {
 		if (!material._bIsCustom && customOnly) continue;
-		if (material.sName == name) return &material - &aMaterials[0];
+		if (material._sFBXName == name) return &material - &aMaterials[0];
 	}
 	return -1;
 }
