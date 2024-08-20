@@ -69,3 +69,6 @@ Map shaders:
 - Dynamic window glass: `dynamic_windows` prefix
 - Dynamic objects: `_dynamic` suffix
 - Dynamic objects with specular: `_dynamic_specular` suffix
+
+Additional notes:
+- The terrain shaders do not support vertex colors, use static prelit if you want to bake lighting via vertex colors instead of a colormap texture!
