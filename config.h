@@ -42,6 +42,7 @@ bool bCarNoRimAlpha = false;
 bool bCarForceRimAlpha = false;
 bool bCarForceTireAlpha = false;
 bool bMakeAllDoubleSided = false;
+bool bNoMaterialPriorities = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;

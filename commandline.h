@@ -186,6 +186,9 @@ void CMD_ForceTireAlphaForCar() {
 void CMD_MakeAllDoubleSided() {
 	bMakeAllDoubleSided = true;
 }
+void CMD_NoMaterialPriorities() {
+	bNoMaterialPriorities = true;
+}
 
 struct tCommandlineArgument {
 	std::string name;
@@ -224,6 +227,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-force_rim_alpha", CMD_ForceRimAlphaForCar, "Forces alpha for the rim texture on cars, useful for FO2 -> UC ports" },
 		{ "-force_tire_alpha", CMD_ForceTireAlphaForCar, "Forces alpha for the tire texture on cars, useful for FO2 -> UC ports" },
 		{ "-make_double_sided", CMD_MakeAllDoubleSided, "Clones and flips every mesh to make the model double-sided" },
+		{ "-no_material_priorities", CMD_NoMaterialPriorities, "Disables automatic sorting for materials" },
 
 		// static map options
 		{ "-remove_object_dummies", CMD_W32_RemoveObjectDummies, "Removes all object dummies from an input map file", "W32 editing" },

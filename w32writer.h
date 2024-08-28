@@ -691,13 +691,10 @@ tMaterial GetMapMaterialFromFBX(aiMaterial* fbxMaterial, bool isStaticModel, boo
 
 int GetMaterialSortPriority(aiMaterial* mat) {
 	auto name = (std::string)mat->GetName().C_Str();
-	if (name == "light_brake") return 1;
-	if (name == "light_brake_l") return 1;
-	if (name == "light_brake_r") return 1;
-	if (name == "light_brake_b") return 2;
-	if (name == "light_brake_l_b") return 2;
-	if (name == "light_brake_r_b") return 2;
-	return 0;
+	FixNameExtensions(name);
+
+	auto config = toml::parse_file("FlatOutW32BGMTool_gcp.toml");
+	return config["material_priorities"][name].value_or(0);
 }
 
 int GetBGMMaterialID(const std::string& name, const std::string& path) {
@@ -769,12 +766,21 @@ void FillBGMFromFBX() {
 	WriteConsole("Creating materials...", LOG_ALWAYS);
 
 	// create materials
-	for (int j = 0; j < 3; j++) {
+	if (bNoMaterialPriorities) {
 		for (int i = 0; i < pParsedFBXScene->mNumMaterials; i++) {
 			auto mat = pParsedFBXScene->mMaterials[i];
-			if (GetMaterialSortPriority(mat) != j) continue;
 			if (bMenuCarCombineMaterials && HasSimilarMaterialForMenuCar(i)) continue;
 			aMaterials.push_back(GetCarMaterialFromFBX(pParsedFBXScene->mMaterials[i]));
+		}
+	}
+	else {
+		for (int j = 0; j < 256; j++) {
+			for (int i = 0; i < pParsedFBXScene->mNumMaterials; i++) {
+				auto mat = pParsedFBXScene->mMaterials[i];
+				if (GetMaterialSortPriority(mat) != j) continue;
+				if (bMenuCarCombineMaterials && HasSimilarMaterialForMenuCar(i)) continue;
+				aMaterials.push_back(GetCarMaterialFromFBX(pParsedFBXScene->mMaterials[i]));
+			}
 		}
 	}
 

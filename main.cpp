@@ -12,6 +12,7 @@
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
 
+#include "toml++/toml.hpp"
 #include "nya_commonmath.h"
 
 #include "base.h"
