@@ -693,7 +693,7 @@ int GetMaterialSortPriority(aiMaterial* mat) {
 	auto name = (std::string)mat->GetName().C_Str();
 	FixNameExtensions(name);
 
-	auto config = toml::parse_file("FlatOutW32BGMTool_gcp.toml");
+	static auto config = toml::parse_file("FlatOutW32BGMTool_gcp.toml");
 	return config["material_priorities"][name].value_or(0);
 }
 
@@ -846,25 +846,29 @@ void FillBGMFromFBX() {
 				}
 			}
 
-			for (auto& data : aMeshes) {
-				// Z inversion doesn't matter here - we're calculating a radius anyway
-				auto mesh = pParsedFBXScene->mMeshes[data.node->mMeshes[data.meshId]];
-				auto nodeName = (std::string)data.node->mName.C_Str();
-				auto meshName = (std::string)mesh->mName.C_Str();
-				if (nodeName.ends_with("_crash") || meshName.ends_with("_crash")) {
-					model.aCrashSurfaces.push_back(aCrashSurfaces.size());
-					CreateBGMSurfaceFromFBX(data.node, data.meshId, true);
-					continue;
-				}
-				if (aabbMin[0] > mesh->mAABB.mMin.x) aabbMin[0] = mesh->mAABB.mMin.x;
-				if (aabbMin[1] > mesh->mAABB.mMin.y) aabbMin[1] = mesh->mAABB.mMin.y;
-				if (aabbMin[2] > mesh->mAABB.mMin.z) aabbMin[2] = mesh->mAABB.mMin.z;
-				if (aabbMax[0] < mesh->mAABB.mMax.x) aabbMax[0] = mesh->mAABB.mMax.x;
-				if (aabbMax[1] < mesh->mAABB.mMax.y) aabbMax[1] = mesh->mAABB.mMax.y;
-				if (aabbMax[2] < mesh->mAABB.mMax.z) aabbMax[2] = mesh->mAABB.mMax.z;
+			for (int p = 0; p < 255; p++) {
+				for (auto& data: aMeshes) {
+					// Z inversion doesn't matter here - we're calculating a radius anyway
+					auto mesh = pParsedFBXScene->mMeshes[data.node->mMeshes[data.meshId]];
+					if (GetMaterialSortPriority(pParsedFBXScene->mMaterials[mesh->mMaterialIndex]) != p) continue;
 
-				model.aSurfaces.push_back(aSurfaces.size());
-				CreateBGMSurfaceFromFBX(data.node, data.meshId, false);
+					auto nodeName = (std::string) data.node->mName.C_Str();
+					auto meshName = (std::string) mesh->mName.C_Str();
+					if (nodeName.ends_with("_crash") || meshName.ends_with("_crash")) {
+						model.aCrashSurfaces.push_back(aCrashSurfaces.size());
+						CreateBGMSurfaceFromFBX(data.node, data.meshId, true);
+						continue;
+					}
+					if (aabbMin[0] > mesh->mAABB.mMin.x) aabbMin[0] = mesh->mAABB.mMin.x;
+					if (aabbMin[1] > mesh->mAABB.mMin.y) aabbMin[1] = mesh->mAABB.mMin.y;
+					if (aabbMin[2] > mesh->mAABB.mMin.z) aabbMin[2] = mesh->mAABB.mMin.z;
+					if (aabbMax[0] < mesh->mAABB.mMax.x) aabbMax[0] = mesh->mAABB.mMax.x;
+					if (aabbMax[1] < mesh->mAABB.mMax.y) aabbMax[1] = mesh->mAABB.mMax.y;
+					if (aabbMax[2] < mesh->mAABB.mMax.z) aabbMax[2] = mesh->mAABB.mMax.z;
+
+					model.aSurfaces.push_back(aSurfaces.size());
+					CreateBGMSurfaceFromFBX(data.node, data.meshId, false);
+				}
 			}
 
 			FixNameExtensions(model.sName);

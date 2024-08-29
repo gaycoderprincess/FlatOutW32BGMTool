@@ -2,13 +2,25 @@
 # enjoy, nya~ :3
 
 # Material sort priorities for .bgm models
-# Higher priority values get added to the material list later than lower ones
+# Higher priority values get drawn later than lower ones
 # Usage: name=priority
 # Priority can be 0 (default) to 255
 [material_priorities]
-light_brake=1
-light_brake_l=1
-light_brake_r=1
-light_brake_b=2
-light_brake_l_b=2
-light_brake_r_b=2
+light_brake_b=1
+light_brake_l_b=1
+light_brake_r_b=1
+light_reverse_b=1
+light_reverse_l_b=1
+light_reverse_r_b=1
+light_front_b=1
+light_front_l_b=1
+light_front_r_b=1
+light_brake=2
+light_brake_l=2
+light_brake_r=2
+light_reverse=2
+light_reverse_l=2
+light_reverse_r=2
+light_front=2
+light_front_l=2
+light_front_r=2
