@@ -830,16 +830,32 @@ void FillBGMFromFBX() {
 			float aabbMin[3] = {0, 0, 0};
 			float aabbMax[3] = {0, 0, 0};
 
+			struct tmp {
+				aiNode* node;
+				int meshId;
+			};
+			std::vector<tmp> aMeshes;
+
 			for (int k = 0; k < body001->mNumMeshes; k++) {
+				aMeshes.push_back({body001, k});
+			}
+			for (int k = 0; k < body001->mNumChildren; k++) {
+				auto surface = body001->mChildren[k]; // Surface1
+				for (int l = 0; l < surface->mNumMeshes; l++) {
+					aMeshes.push_back({surface, l});
+				}
+			}
+
+			for (auto& data : aMeshes) {
 				// Z inversion doesn't matter here - we're calculating a radius anyway
-				auto mesh = pParsedFBXScene->mMeshes[body001->mMeshes[k]];
+				auto mesh = pParsedFBXScene->mMeshes[data.node->mMeshes[data.meshId]];
+				auto nodeName = (std::string)data.node->mName.C_Str();
 				auto meshName = (std::string)mesh->mName.C_Str();
-				if (meshName.ends_with("_crash")) {
+				if (nodeName.ends_with("_crash") || meshName.ends_with("_crash")) {
 					model.aCrashSurfaces.push_back(aCrashSurfaces.size());
-					CreateBGMSurfaceFromFBX(body001, k, true);
+					CreateBGMSurfaceFromFBX(data.node, data.meshId, true);
 					continue;
 				}
-
 				if (aabbMin[0] > mesh->mAABB.mMin.x) aabbMin[0] = mesh->mAABB.mMin.x;
 				if (aabbMin[1] > mesh->mAABB.mMin.y) aabbMin[1] = mesh->mAABB.mMin.y;
 				if (aabbMin[2] > mesh->mAABB.mMin.z) aabbMin[2] = mesh->mAABB.mMin.z;
@@ -848,30 +864,7 @@ void FillBGMFromFBX() {
 				if (aabbMax[2] < mesh->mAABB.mMax.z) aabbMax[2] = mesh->mAABB.mMax.z;
 
 				model.aSurfaces.push_back(aSurfaces.size());
-				CreateBGMSurfaceFromFBX(body001, k, false);
-			}
-			for (int k = 0; k < body001->mNumChildren; k++) {
-				auto surface = body001->mChildren[k]; // Surface1
-				auto nodeName = (std::string)surface->mName.C_Str();
-				for (int l = 0; l < surface->mNumMeshes; l++) {
-					// Z inversion doesn't matter here - we're calculating a radius anyway
-					auto mesh = pParsedFBXScene->mMeshes[surface->mMeshes[l]];
-					auto meshName = (std::string)mesh->mName.C_Str();
-					if (nodeName.ends_with("_crash") || meshName.ends_with("_crash")) {
-						model.aCrashSurfaces.push_back(aCrashSurfaces.size());
-						CreateBGMSurfaceFromFBX(surface, l, true);
-						continue;
-					}
-					if (aabbMin[0] > mesh->mAABB.mMin.x) aabbMin[0] = mesh->mAABB.mMin.x;
-					if (aabbMin[1] > mesh->mAABB.mMin.y) aabbMin[1] = mesh->mAABB.mMin.y;
-					if (aabbMin[2] > mesh->mAABB.mMin.z) aabbMin[2] = mesh->mAABB.mMin.z;
-					if (aabbMax[0] < mesh->mAABB.mMax.x) aabbMax[0] = mesh->mAABB.mMax.x;
-					if (aabbMax[1] < mesh->mAABB.mMax.y) aabbMax[1] = mesh->mAABB.mMax.y;
-					if (aabbMax[2] < mesh->mAABB.mMax.z) aabbMax[2] = mesh->mAABB.mMax.z;
-
-					model.aSurfaces.push_back(aSurfaces.size());
-					CreateBGMSurfaceFromFBX(surface, l, false);
-				}
+				CreateBGMSurfaceFromFBX(data.node, data.meshId, false);
 			}
 
 			FixNameExtensions(model.sName);
