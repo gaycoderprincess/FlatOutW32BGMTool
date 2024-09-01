@@ -299,7 +299,7 @@ void FBXNormalsToFOUCNormals(aiVector3D* fbx, uint8_t* fouc, bool treeHack) {
 	fouc[3] = 0xFF;
 }
 
-bool bTmpFlipImportedModels = false;
+bool bTmpModelsDoubleSided = false;
 void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, float foucOffset1 = 0, float foucOffset2 = 0, float foucOffset3 = 0, float foucOffset4 = fFOUCBGMScaleMultiplier, bool treeHack = false) {
 	int id = aVertexBuffers.size() + aIndexBuffers.size();
 
@@ -474,7 +474,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 	tIndexBuffer iBuf;
 	iBuf.id = id + 1;
 	iBuf.indexCount = mesh->mNumFaces * 3;
-	if (bMakeAllDoubleSided) iBuf.indexCount *= 2;
+	if (bTmpModelsDoubleSided || bMakeAllDoubleSided) iBuf.indexCount *= 2;
 	iBuf.data = new uint16_t[iBuf.indexCount];
 	auto indexData = iBuf.data;
 	for (int i = 0; i < mesh->mNumFaces; i++) {
@@ -483,28 +483,14 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			WriteConsole("ERROR: Non-tri found in FBX mesh while exporting!", LOG_ERRORS);
 			continue;
 		}
-		if (bTmpFlipImportedModels) {
+		indexData[0] = face.mIndices[2];
+		indexData[1] = face.mIndices[1];
+		indexData[2] = face.mIndices[0];
+		indexData += 3;
+		if (bTmpModelsDoubleSided || bMakeAllDoubleSided) {
 			indexData[0] = face.mIndices[0];
 			indexData[1] = face.mIndices[1];
 			indexData[2] = face.mIndices[2];
-		}
-		else {
-			indexData[0] = face.mIndices[2];
-			indexData[1] = face.mIndices[1];
-			indexData[2] = face.mIndices[0];
-		}
-		indexData += 3;
-		if (bMakeAllDoubleSided) {
-			if (bTmpFlipImportedModels) {
-				indexData[0] = face.mIndices[2];
-				indexData[1] = face.mIndices[1];
-				indexData[2] = face.mIndices[0];
-			}
-			else {
-				indexData[0] = face.mIndices[0];
-				indexData[1] = face.mIndices[1];
-				indexData[2] = face.mIndices[2];
-			}
 			indexData += 3;
 		}
 	}
@@ -529,7 +515,10 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	if (mat.sName.starts_with("female")) mat.nShaderId = 26; // skinning
 	if (mat.sName.starts_with("body")) mat.nShaderId = 5; // car body
 	if (mat.sName.starts_with("interior")) mat.nShaderId = 7; // car diffuse
-	if (mat.sName.starts_with("grille")) mat.nShaderId = 7; // car diffuse
+	if (mat.sName.starts_with("grille")) {
+		mat.nShaderId = 7; // car diffuse
+		mat.nAlpha = 1;
+	}
 	if (mat.sName.starts_with("shadow")) mat.nShaderId = 13; // shadow project
 	if (mat.sName.starts_with("window")) mat.nShaderId = 6; // car window
 	if (mat.sName.starts_with("shear")) mat.nShaderId = 11; // car shear
@@ -594,6 +583,7 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		if (mat.sName.starts_with("terrain_")) mat.nShaderId = 1; // terrain
 		if (mat.sName.starts_with("sdm_")) mat.nShaderId = 2; // terrain specular
 		if (mat.sName.starts_with("SDM_")) mat.nShaderId = 2; // terrain specular
+		if (mat.sName.starts_with("sDM_")) mat.nShaderId = 2; // terrain specular
 		if (mat.sName.starts_with("restaurant_floor")) mat.nShaderId = 2; // terrain specular
 		if (mat.sName.starts_with("arena_jump_structure")) mat.nShaderId = 2; // terrain specular
 		if (mat.sName.starts_with("treetrunk")) mat.nShaderId = 19; // tree trunk
@@ -1002,6 +992,10 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 	surface->nVertexCount = mesh->mNumVertices;
 	surface->nPolyCount = mesh->mNumFaces;
 	surface->nNumIndicesUsed = mesh->mNumFaces * 3;
+	if (bTmpModelsDoubleSided || bMakeAllDoubleSided) {
+		surface->nPolyCount *= 2;
+		surface->nNumIndicesUsed *= 2;
+	}
 	surface->nPolyMode = 4;
 	surface->nNumStreamsUsed = 2;
 	surface->nStreamOffset[0] = surface->nStreamOffset[1] = 0;
@@ -1815,10 +1809,18 @@ void WriteCrashDat(uint32_t exportVersion) {
 }
 
 void ImportNewStaticBatchFromFBX(aiNode* node, int meshId) {
+	auto pMesh = pParsedFBXScene->mMeshes[node->mMeshes[meshId]];
+	if (bFBXNoBushes) {
+		auto mat = pParsedFBXScene->mMaterials[pMesh->mMaterialIndex];
+		auto matName = (std::string)mat->GetName().C_Str();
+		FixNameExtensions(matName);
+		if (matName == "alpha_bushbranch") return;
+	}
+
 	tSurface tmp;
 	aSurfaces.push_back(tmp);
 	auto& surface = aSurfaces[aSurfaces.size() - 1];
-	ImportSurfaceFromFBX(&surface, node, true, pParsedFBXScene->mMeshes[node->mMeshes[meshId]]);
+	ImportSurfaceFromFBX(&surface, node, true, pMesh);
 	tStaticBatch batch;
 	batch.nBVHId1 = batch.nBVHId2 = batch.nId1 = aStaticBatches.size();
 	memcpy(batch.vCenter, surface.vCenter, sizeof(batch.vCenter));
@@ -1826,20 +1828,12 @@ void ImportNewStaticBatchFromFBX(aiNode* node, int meshId) {
 	aStaticBatches.push_back(batch);
 }
 
-void ImportStaticBatchesFromFBXTree(aiNode* node, bool doubleSided) {
+void ImportStaticBatchesFromFBXTree(aiNode* node) {
 	for (int i = 0; i < node->mNumChildren; i++) {
-		ImportStaticBatchesFromFBXTree(node->mChildren[i], doubleSided);
+		ImportStaticBatchesFromFBXTree(node->mChildren[i]);
 	}
 	for (int i = 0; i < node->mNumMeshes; i++) {
-		if (doubleSided) {
-			bTmpFlipImportedModels = true;
-			ImportNewStaticBatchFromFBX(node, i);
-			bTmpFlipImportedModels = false;
-			ImportNewStaticBatchFromFBX(node, i);
-		}
-		else {
-			ImportNewStaticBatchFromFBX(node, i);
-		}
+		ImportNewStaticBatchFromFBX(node, i);
 	}
 }
 
@@ -1848,9 +1842,11 @@ void FillW32FromFBX() {
 
 	WriteConsole("Creating static batches...", LOG_ALWAYS);
 
-	ImportStaticBatchesFromFBXTree(GetFBXNodeForStaticBatchArray(), false);
+	ImportStaticBatchesFromFBXTree(GetFBXNodeForStaticBatchArray());
 	// todo actual tree meshes, this'll require tree colors and leaves to work
-	ImportStaticBatchesFromFBXTree(GetFBXNodeForTreeMeshArray(), true);
+	bTmpModelsDoubleSided = true;
+	ImportStaticBatchesFromFBXTree(GetFBXNodeForTreeMeshArray());
+	bTmpModelsDoubleSided = false;
 
 	WriteConsole("Creating object dummies...", LOG_ALWAYS);
 	CreateW32ObjectsFromFBX();

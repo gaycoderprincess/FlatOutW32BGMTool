@@ -157,6 +157,9 @@ void CMD_W32_NoMaterialReuse() {
 void CMD_W32_NoTreeHack() {
 	bNoTreeHack = true;
 }
+void CMD_W32_NoBushes() {
+	bFBXNoBushes = true;
+}
 void CMD_W32_ImportDeletions() {
 	bImportDeletionFromFBX = true;
 	bLoadFBX = true;
@@ -255,6 +258,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-clear_old_materials", CMD_W32_ClearOriginalMaterials, "Removes all original materials from the w32 before importing the ones from the .fbx" },
 		{ "-no_material_reuse", CMD_W32_NoMaterialReuse, "Ignores all original w32 materials, instead always importing new ones from the .fbx" },
 		{ "-no_tree_hack", CMD_W32_NoTreeHack, "Disables the adjusting of normal vectors for tree shaders in Ultimate Carnage" },
+		{ "-remove_bushes", CMD_W32_NoBushes, "Removes all surfaces using alpha_bushbranch when importing from .fbx" },
 
 		// text options
 		{ "-text_materials", CMD_DumpText_Materials, "Dumps all material data into a text file", "Text dumps" },

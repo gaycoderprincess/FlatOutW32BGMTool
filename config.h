@@ -31,6 +31,7 @@ bool bImportDeletionFromFBX = false;
 bool bClearOriginalMaterials = false;
 bool bNoMaterialReuse = false;
 bool bNoTreeHack = false;
+bool bFBXNoBushes = false;
 bool bUngroupMovedPropsFromFBX = false;
 bool bCreateBGMFromFBX = false;
 bool bCreateW32FromFBX = false;
