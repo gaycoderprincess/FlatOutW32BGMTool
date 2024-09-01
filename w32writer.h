@@ -1047,10 +1047,10 @@ void DeleteSurfaceByEmptying(tSurface* surface) {
 	WriteConsole("Deleting surface " + std::to_string(surface - &aSurfaces[0]), LOG_ALL);
 }
 
-tSurface* ReplaceNextAvailableSurface(aiNode* node, aiMesh* mesh, bool allowModelSurfaces) {
+int ReplaceNextAvailableSurface(aiNode* node, aiMesh* mesh, bool allowModelSurfaces) {
 	for (auto& surface: aSurfaces) {
 		if (!surface._bIsReplacedMapSurface) continue;
-		if (surface._pReplacedMapSurfaceMesh == mesh) return &surface;
+		if (surface._pReplacedMapSurfaceMesh == mesh) return &surface - &aSurfaces[0];
 	}
 
 	for (auto& surface: aSurfaces) {
@@ -1059,7 +1059,7 @@ tSurface* ReplaceNextAvailableSurface(aiNode* node, aiMesh* mesh, bool allowMode
 		if (surface._bIsReplacedMapSurface) continue;
 
 		ImportSurfaceFromFBX(&surface, node, !allowModelSurfaces, mesh);
-		return &surface;
+		return &surface - &aSurfaces[0];
 	}
 
 	if (bCreateW32FromFBX) {
@@ -1067,9 +1067,9 @@ tSurface* ReplaceNextAvailableSurface(aiNode* node, aiMesh* mesh, bool allowMode
 		aSurfaces.push_back(tmp);
 		auto& surface = aSurfaces[aSurfaces.size() - 1];
 		ImportSurfaceFromFBX(&surface, node, !allowModelSurfaces, mesh);
-		return &surface;
+		return &surface - &aSurfaces[0];
 	}
-	return nullptr;
+	return -1;
 }
 
 void WalkFBXTreeForMeshes(aiNode* node) {
@@ -1100,7 +1100,7 @@ tModel* CreateModelFromMesh(aiNode* node) {
 
 	aiAABB aabb;
 
-	std::vector<tSurface*> surfaces;
+	std::vector<int> surfaces;
 	for (auto& mesh : aMeshes) {
 		aabb.mMin.x = std::min(aabb.mMin.x, mesh->mAABB.mMin.x);
 		aabb.mMin.y = std::min(aabb.mMin.y, mesh->mAABB.mMin.y);
@@ -1110,7 +1110,7 @@ tModel* CreateModelFromMesh(aiNode* node) {
 		aabb.mMax.z = std::max(aabb.mMax.z, mesh->mAABB.mMax.z);
 
 		auto surface = ReplaceNextAvailableSurface(node, mesh, true);
-		if (!surface) continue;
+		if (surface < 0) continue;
 		surfaces.push_back(surface);
 	}
 	if (surfaces.empty()) {
@@ -1131,7 +1131,7 @@ tModel* CreateModelFromMesh(aiNode* node) {
 	model.vRadius[1] = std::abs(aabb.mMax[1] - aabb.mMin[1]) * 0.5;
 	model.vRadius[2] = std::abs(aabb.mMax[2] - aabb.mMin[2]) * 0.5;
 	for (auto& surface : surfaces) {
-		model.aSurfaces.push_back(surface - &aSurfaces[0]);
+		model.aSurfaces.push_back(surface);
 	}
 	aModels.push_back(model);
 	return &aModels[aModels.size() - 1];
@@ -1337,7 +1337,7 @@ void WriteW32(uint32_t exportMapVersion) {
 			// match up fbx meshes and delete every leftover non-prop w32 surface
 			int unmatchedCount = 0;
 			for (auto& data : aUnorderedMeshImports) {
-				if (!ReplaceNextAvailableSurface(data.node, data.mesh, false)) unmatchedCount++;
+				if (ReplaceNextAvailableSurface(data.node, data.mesh, false) < 0) unmatchedCount++;
 			}
 
 			if (unmatchedCount > 0) {

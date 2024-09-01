@@ -460,7 +460,10 @@ bool ParseW32Models(std::ifstream& file) {
 			ReadFromFile(file, &surface, sizeof(surface));
 			model.aSurfaces.push_back(surface);
 
-			if (surface >= aSurfaces.size()) return false;
+			if (surface >= aSurfaces.size()) {
+				WriteConsole(std::format("ERROR: Invalid surface for model {}! ({})", model.sName, surface), LOG_ERRORS);
+				return false;
+			}
 			if (crashData) {
 				crashData->aSurfaces[j].vBuffer.flags = aSurfaces[surface].nFlags;
 				aSurfaces[surface]._pCrashDataSurface = &crashData->aSurfaces[j];
