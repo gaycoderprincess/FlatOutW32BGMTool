@@ -42,6 +42,7 @@ aiNode* CreateNodeForBVHNode(aiScene* scene, const tTrackBVHNode& bvhNode) {
 	return node;
 }
 
+bool bSurfaceImportNoSubtract = false;
 void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBuf, tSurface& src, uint32_t vertexOffset, tCrashDataWeights* aCrashWeightsFO2 = nullptr, tCrashDataWeightsFOUC* aCrashWeightsFOUC = nullptr) {
 	auto stride = vBuf->vertexSize;
 	uintptr_t vertexData = ((uintptr_t)vBuf->data) + vertexOffset;
@@ -210,10 +211,10 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 			indices[1] = (j * 4) + 1;
 			indices[2] = (j * 4) + 2;
 			indices[3] = (j * 4) + 3;
-			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); WaitAndExitOnFail(); }
-			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); WaitAndExitOnFail(); }
-			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); WaitAndExitOnFail(); }
-			if (indices[3] < 0 || indices[3] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[3]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("ERROR: Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("ERROR: Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("ERROR: Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[3] < 0 || indices[3] >= src.nVertexCount) { WriteConsole("ERROR: Index out of bounds: " + std::to_string(indices[3]), LOG_ERRORS); WaitAndExitOnFail(); }
 			dest->mFaces[j].mIndices = new uint32_t[4];
 			dest->mFaces[j].mIndices[0] = indices[3];
 			dest->mFaces[j].mIndices[1] = indices[2];
@@ -228,12 +229,14 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 		for (int j = 0; j < src.nPolyCount; j++) {
 			auto tmp = (uint16_t*)indexData;
 			int indices[3] = {tmp[0], tmp[1], tmp[2]};
-			indices[0] -= baseVertexOffset;
-			indices[1] -= baseVertexOffset;
-			indices[2] -= baseVertexOffset;
-			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); WaitAndExitOnFail(); }
-			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); WaitAndExitOnFail(); }
-			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (!bSurfaceImportNoSubtract) {
+				indices[0] -= baseVertexOffset;
+				indices[1] -= baseVertexOffset;
+				indices[2] -= baseVertexOffset;
+			}
+			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("ERROR: Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("ERROR: Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("ERROR: Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); WaitAndExitOnFail(); }
 			dest->mFaces[j].mIndices = new uint32_t[3];
 			if (bFlip) {
 				dest->mFaces[j].mIndices[0] = indices[0];
@@ -255,12 +258,14 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 		for (int j = 0; j < src.nPolyCount; j++) {
 			auto tmp = (uint16_t*)indexData;
 			int indices[3] = {tmp[0], tmp[1], tmp[2]};
-			indices[0] -= baseVertexOffset;
-			indices[1] -= baseVertexOffset;
-			indices[2] -= baseVertexOffset;
-			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); WaitAndExitOnFail(); }
-			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); WaitAndExitOnFail(); }
-			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (!bSurfaceImportNoSubtract) {
+				indices[0] -= baseVertexOffset;
+				indices[1] -= baseVertexOffset;
+				indices[2] -= baseVertexOffset;
+			}
+			if (indices[0] < 0 || indices[0] >= src.nVertexCount) { WriteConsole("ERROR: Index out of bounds: " + std::to_string(indices[0]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[1] < 0 || indices[1] >= src.nVertexCount) { WriteConsole("ERROR: Index out of bounds: " + std::to_string(indices[1]), LOG_ERRORS); WaitAndExitOnFail(); }
+			if (indices[2] < 0 || indices[2] >= src.nVertexCount) { WriteConsole("ERROR: Index out of bounds: " + std::to_string(indices[2]), LOG_ERRORS); WaitAndExitOnFail(); }
 			dest->mFaces[j].mIndices = new uint32_t[3];
 			dest->mFaces[j].mIndices[0] = indices[2];
 			dest->mFaces[j].mIndices[1] = indices[1];
@@ -387,6 +392,67 @@ void PerformMaterialAutodetectTest(tMaterial& material) {
 	}
 }
 
+bool CanFOUCTreeBeExported(tFOUCTreeSurface& tree) {
+	if (tree.nMaterialId < 0) return false;
+	return true;
+}
+
+void FillSurfaceFromFOUCTree(tSurface& out, tFOUCTreeSurface& tree) {
+	out.nIsVegetation = 0;
+	out.nMaterialId = tree.nMaterialId;
+	out.nVertexCount = tree.nVertexCount;
+	//out.nPolyCount = tree.nPolyCount;
+	out.nPolyCount = tree.nVertexCount / 3;
+	out.nNumIndicesUsed = out.nPolyCount * 3;
+	out.nPolyMode = 4;
+	out.foucVertexMultiplier[0] = 0;
+	out.foucVertexMultiplier[1] = 0;
+	out.foucVertexMultiplier[2] = 0;
+	out.foucVertexMultiplier[3] = fFOUCBGMScaleMultiplier;
+	out.nNumStreamsUsed = 2;
+	out.nStreamId[0] = tree.nVertexBuffer;
+	out.nStreamId[1] = tree.nIndexBuffer;
+	out.nStreamOffset[0] = tree.nVertexOffset;
+	out.nStreamOffset[1] = tree.nIndexOffset;
+
+	/*
+		foucBranch.nMaterialId: 188
+		foucBranch.nVertexCount: 240
+		foucBranch.nPolyCount: 128
+		foucBranch.nVertexBuffer: 7
+		foucBranch.nVertexOffset: 93264
+		foucBranch.nIndexBuffer: 15
+		foucBranch.nIndexOffset: 25602
+		foucBranch.nUnknown[0]: 8
+		foucBranch.nUnknown[1]: 1432656
+	*/
+}
+
+void AddFBXNodeFromFOUCTree(aiScene* scene, aiNode* parentNode, tFOUCTreeSurface& tree, float* matrix, int nameId, int meshId) {
+	tSurface tmp;
+	FillSurfaceFromFOUCTree(tmp, tree);
+
+	auto dest = scene->mMeshes[meshId] = new aiMesh();
+	dest->mName = "TreeSurface" + std::to_string(nameId);
+	dest->mMaterialIndex = tmp.nMaterialId;
+	auto vBuf = FindVertexBuffer(tmp.nStreamId[0]);
+	auto iBuf = FindIndexBuffer(tmp.nStreamId[1]);
+	tmp.nFlags = vBuf->flags;
+
+	bSurfaceImportNoSubtract = true;
+	FillFBXMeshFromSurface(dest, vBuf, iBuf, tmp, tmp.nStreamOffset[0]);
+	bSurfaceImportNoSubtract = false;
+
+	if (auto node = new aiNode()) {
+		node->mName = dest->mName;
+		node->mMeshes = new unsigned int[1];
+		node->mMeshes[0] = meshId;
+		node->mNumMeshes = 1;
+		FO2MatrixToFBXMatrix(matrix, &node->mTransformation);
+		parentNode->addChildren(1, &node);
+	}
+}
+
 aiScene GenerateScene() {
 	aiScene scene;
 	scene.mRootNode = new aiNode();
@@ -426,6 +492,7 @@ aiScene GenerateScene() {
 	}
 	scene.mNumMaterials = aMaterials.size();
 
+	int numPotentialFOUCTrees = 0;
 	int numSurfaces = 0;
 	int numBaseSurfaces = 0;
 	for (auto& surface : aSurfaces) {
@@ -434,7 +501,23 @@ aiScene GenerateScene() {
 		numBaseSurfaces++;
 		if (surface._pCrashDataSurface) numSurfaces++;
 	}
-	WriteConsole(std::to_string(numBaseSurfaces) + " surfaces of " + std::to_string(aSurfaces.size()) + " can be exported", LOG_ALWAYS);
+	if (bIsFOUCModel) {
+		for (auto& treeMesh : aTreeMeshes) {
+			if (treeMesh.foucTrunk.nMaterialId >= 0) numPotentialFOUCTrees++;
+			if (treeMesh.foucBranch.nMaterialId >= 0) numPotentialFOUCTrees++;
+			if (treeMesh.foucLeaf.nMaterialId >= 0) numPotentialFOUCTrees++;
+
+			if (CanFOUCTreeBeExported(treeMesh.foucTrunk)) {
+				numSurfaces++;
+				numBaseSurfaces++;
+			}
+			if (CanFOUCTreeBeExported(treeMesh.foucBranch)) {
+				numSurfaces++;
+				numBaseSurfaces++;
+			}
+		}
+	}
+	WriteConsole(std::to_string(numBaseSurfaces) + " surfaces of " + std::to_string(aSurfaces.size() + numPotentialFOUCTrees) + " can be exported", LOG_ALWAYS);
 
 	if (bFBXExportBVHNodes) {
 		scene.mMeshes = new aiMesh*[numSurfaces + 1];
@@ -475,6 +558,23 @@ aiScene GenerateScene() {
 			}
 		}
 	}
+	if (bIsFOUCModel) {
+		if (auto node = new aiNode()) {
+			node->mName = "TreeMesh";
+			scene.mRootNode->addChildren(1, &node);
+			for (auto& treeMesh : aTreeMeshes) {
+				int i = counter;
+				if (CanFOUCTreeBeExported(treeMesh.foucTrunk)) {
+					i = counter++;
+					AddFBXNodeFromFOUCTree(&scene, node, treeMesh.foucTrunk, treeMesh.mMatrix, i, i);
+				}
+				if (CanFOUCTreeBeExported(treeMesh.foucBranch)) {
+					i = counter++;
+					AddFBXNodeFromFOUCTree(&scene, node, treeMesh.foucBranch, treeMesh.mMatrix, i, i);
+				}
+			}
+		}
+	}
 
 	if (!bIsBGMModel) {
 		if (auto node = new aiNode()) {
@@ -493,12 +593,14 @@ aiScene GenerateScene() {
 			}
 		}
 
-		if (auto node = new aiNode()) {
-			node->mName = "TreeMesh";
-			scene.mRootNode->addChildren(1, &node);
-			for (auto &treeMesh: aTreeMeshes) {
-				if (auto treeNode = CreateNodeForTreeMesh(&scene, treeMesh)) {
-					node->addChildren(1, &treeNode);
+		if (!bIsFOUCModel) {
+			if (auto node = new aiNode()) {
+				node->mName = "TreeMesh";
+				scene.mRootNode->addChildren(1, &node);
+				for (auto &treeMesh: aTreeMeshes) {
+					if (auto treeNode = CreateNodeForTreeMesh(&scene, treeMesh)) {
+						node->addChildren(1, &treeNode);
+					}
 				}
 			}
 		}

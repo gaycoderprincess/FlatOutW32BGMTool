@@ -401,6 +401,22 @@ struct tTreeLOD {
 	float fScale[2];
 	uint32_t nValues[2];
 };
+struct tFOUCTreeSurface {
+	int nMaterialId;
+	int nVertexCount;
+	int nPolyCount;
+	int nVertexBuffer;
+	int nVertexOffset;
+	int nIndexBuffer;
+	int nIndexOffset;
+	int nUnknown[2];
+};
+struct tFOUCTreeLeafSurface {
+	int nMaterialId;
+	int nVertexCount;
+	int nVertexBuffer;
+	int nVertexOffset;
+};
 struct tTreeMesh {
 	int nIsBush;
 
@@ -417,9 +433,9 @@ struct tTreeMesh {
 	int nLodId;
 	int nMaterialId;
 
-	int foucExtraData1[9];
-	int foucExtraData2[9];
-	int foucExtraData3[4];
+	tFOUCTreeSurface foucTrunk;
+	tFOUCTreeSurface foucBranch;
+	tFOUCTreeLeafSurface foucLeaf;
 	int foucExtraData4[3];
 };
 struct tModel {

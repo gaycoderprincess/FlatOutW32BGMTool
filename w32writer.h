@@ -139,9 +139,9 @@ void WriteTreeMeshToFile(std::ofstream& file, const tTreeMesh& treeMesh) {
 	file.write((char*)treeMesh.mMatrix, sizeof(treeMesh.mMatrix));
 	file.write((char*)treeMesh.fScale, sizeof(treeMesh.fScale));
 	if (bIsFOUCModel) {
-		file.write((char*)treeMesh.foucExtraData1, sizeof(treeMesh.foucExtraData1));
-		file.write((char*)treeMesh.foucExtraData2, sizeof(treeMesh.foucExtraData2));
-		file.write((char*)treeMesh.foucExtraData3, sizeof(treeMesh.foucExtraData3));
+		file.write((char*)&treeMesh.foucTrunk, sizeof(treeMesh.foucTrunk));
+		file.write((char*)&treeMesh.foucBranch, sizeof(treeMesh.foucBranch));
+		file.write((char*)&treeMesh.foucLeaf, sizeof(treeMesh.foucLeaf));
 		file.write((char*)treeMesh.foucExtraData4, sizeof(treeMesh.foucExtraData4));
 	}
 	else {
@@ -572,6 +572,7 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	if (bIsFOUCModel && (mat.sTextureNames[0].starts_with("tire_0") || mat.sTextureNames[0].starts_with("tire_1"))) mat.sTextureNames[0] = "tire.tga";
 	// custom alpha suffix
 	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
+	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
 }
 
 void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees) {
@@ -651,6 +652,8 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 			mat.nShaderId = 0;
 		}
 	}
+
+	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
 }
 
 tMaterial GetMaterialFromFBX(aiMaterial* fbxMaterial) {

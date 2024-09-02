@@ -390,9 +390,9 @@ bool ParseW32TreeMeshes(std::ifstream& file) {
 		ReadFromFile(file, treeMesh.fScale, sizeof(treeMesh.fScale));
 
 		if (bIsFOUCModel) {
-			ReadFromFile(file, treeMesh.foucExtraData1, sizeof(treeMesh.foucExtraData1));
-			ReadFromFile(file, treeMesh.foucExtraData2, sizeof(treeMesh.foucExtraData2));
-			ReadFromFile(file, treeMesh.foucExtraData3, sizeof(treeMesh.foucExtraData3));
+			ReadFromFile(file, &treeMesh.foucTrunk, sizeof(treeMesh.foucTrunk));
+			ReadFromFile(file, &treeMesh.foucBranch, sizeof(treeMesh.foucBranch));
+			ReadFromFile(file, &treeMesh.foucLeaf, sizeof(treeMesh.foucLeaf));
 			ReadFromFile(file, treeMesh.foucExtraData4, sizeof(treeMesh.foucExtraData4));
 		}
 		else {
