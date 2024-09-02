@@ -6,6 +6,8 @@
 # Usage: name=priority
 # Priority can be 0 (default) to 255
 [material_priorities]
+shearshock=1
+shearspring=2
 light_brake_b=1
 light_brake_b_2=1
 light_brake_2_b=1
