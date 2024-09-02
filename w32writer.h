@@ -522,6 +522,8 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	if (mat.sName.starts_with("shadow")) mat.nShaderId = 13; // shadow project
 	if (mat.sName.starts_with("window")) mat.nShaderId = 6; // car window
 	if (mat.sName.starts_with("shear")) mat.nShaderId = 11; // car shear
+	if (mat.sName.starts_with("shock")) mat.nShaderId = 12; // car scale
+	if (mat.sName.starts_with("spring")) mat.nShaderId = 12; // car scale
 	if (mat.sName.starts_with("scale")) mat.nShaderId = 12; // car scale
 	if (mat.sName.starts_with("tire")) {
 		mat.nShaderId = bIsFOUCModel ? 44 : 7; // fo2: car diffuse, uc: car tire
