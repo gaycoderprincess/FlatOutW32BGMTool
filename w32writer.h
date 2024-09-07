@@ -1163,10 +1163,12 @@ void AddCompactMeshFromFBXNode(aiNode* prop, int defaultGroup) {
 			auto name = (std::string)child->mName.C_Str();
 			if (name.find("TYPE_") != std::string::npos) {
 				name.erase(name.begin(), name.begin() + name.find("TYPE_") + 5);
+				FixNameExtensions(name);
 				dynamicType = name;
 			}
 			else if (name.find("GROUP_") != std::string::npos) {
 				name.erase(name.begin(), name.begin() + name.find("GROUP_") + 6);
+				FixNameExtensions(name);
 				group = std::stoi(name);
 			}
 		}
@@ -1219,7 +1221,9 @@ void ReadSplinesFromFBX(aiNode* node) {
 	for (int i = 0; i < 9999; i++) {
 		for (int j = 0; j < node->mNumChildren; j++) {
 			auto child = node->mChildren[j];
-			if (child->mName.C_Str() == (std::string)node->mName.C_Str() + "_Node" + std::to_string(i)) {
+			auto targetNodeName1 = std::format("{}_Node{}", node->mName.C_Str(), i-1);
+			auto targetNodeName2 = std::format("{}_Node1.{:03}", node->mName.C_Str(), i-1); // support default blender duplication naming
+			if (child->mName.C_Str() == targetNodeName1 || child->mName.C_Str() == targetNodeName2) {
 				aiVector3D v;
 				v.x = child->mTransformation.a4;
 				v.y = child->mTransformation.b4;
