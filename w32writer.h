@@ -357,11 +357,15 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			data->vUnknownProllyBumpmaps2[1] = 0x00;
 			data->vUnknownProllyBumpmaps2[2] = 0x00;
 			data->vUnknownProllyBumpmaps2[3] = 0xFF;
+			data->vNormals[0] = 0x00;
+			data->vNormals[1] = 0x00;
+			data->vNormals[2] = 0x00;
+			data->vNormals[3] = 0xFF;
 
 			// normals
 			if (mesh->HasNormals()) {
-				FBXNormalsToFOUCNormals(&mesh->mBitangents[i], data->vUnknownProllyBumpmaps, false);
-				FBXNormalsToFOUCNormals(&mesh->mTangents[i], data->vUnknownProllyBumpmaps2, false);
+				FBXNormalsToFOUCNormals(&mesh->mTangents[i], data->vUnknownProllyBumpmaps, false);
+				FBXNormalsToFOUCNormals(&mesh->mBitangents[i], data->vUnknownProllyBumpmaps2, false);
 				FBXNormalsToFOUCNormals(&mesh->mNormals[i], data->vNormals, treeHack);
 			}
 			else {
