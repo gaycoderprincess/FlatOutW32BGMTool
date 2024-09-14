@@ -604,7 +604,7 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
 		if (bIsFOUCModel && mat.sName.starts_with("SDM_Mall_floor")) mat.nShaderId = 49; // lightmapped planar reflection
 		FixNameExtensions(mat.sName);
-		if (mat.sName == "water") mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
+		if (mat.sName == "water" || mat.sName == "Water") mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
 	}
 	else {
 		mat.nShaderId = 3; // dynamic diffuse
@@ -639,7 +639,7 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 	}
 	if (mat.sTextureNames[0].starts_with("alpha") || mat.sTextureNames[0].starts_with("Alpha")) mat.nAlpha = 1;
 	// water is a window in fo1/fo2, lol
-	if (mat.sName == "water" || mat.sName == "puddle_normal") {
+	if (mat.sName == "water" || mat.sName == "Water" || mat.sName == "puddle_normal") {
 		if (bIsFOUCModel) {
 			mat.sTextureNames[0] = "puddle_normal.tga";
 			mat.nShaderId = 45; // puddle
@@ -650,6 +650,10 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 			mat.nShaderId = 34; // reflecting window shader (static)
 			mat.nAlpha = 1;
 		}
+	}
+	if (bToughTrucksStadiumScreen && mat.sTextureNames[0] == "stadion_screen.tga") {
+		mat.sName = isStaticModel ? "screenmaterial_static" : "screenmaterial";
+		mat.nShaderId = isStaticModel ? 40 : 41; // static nonlit : dynamic nonlit
 	}
 	// Trees outside of TreeMesh don't draw, replace their shaders to get around this
 	if (disallowTrees) {

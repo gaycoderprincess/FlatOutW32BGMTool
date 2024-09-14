@@ -198,6 +198,9 @@ void CMD_ReplaceCommonWithGrille() {
 void CMD_ImportAsToughTrucks() {
 	bIsToughTrucksModel = true;
 }
+void CMD_ToughTrucksStadiumScreen() {
+	bToughTrucksStadiumScreen = true;
+}
 
 struct tCommandlineArgument {
 	std::string name;
@@ -239,6 +242,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-no_material_priorities", CMD_NoMaterialPriorities, "Disables automatic sorting for materials" },
 		{ "-replace_common_with_grille", CMD_ReplaceCommonWithGrille, "Replaces all instances of common.tga with grille.tga, useful for FO1->FOUC menucars" },
 		{ "-tough_trucks_trk", CMD_ImportAsToughTrucks, "Loads the .trk as a Tough Trucks map instead of a Retro Demo map" },
+		{ "-tough_trucks_stadium_screen", CMD_ToughTrucksStadiumScreen, "Imports stadion_screen.tga as the stunt reprojection shader" },
 
 		// static map options
 		{ "-remove_object_dummies", CMD_W32_RemoveObjectDummies, "Removes all object dummies from an input map file", "W32 editing" },

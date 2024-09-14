@@ -46,6 +46,7 @@ bool bCarForceTireAlpha = false;
 bool bMakeAllDoubleSided = false;
 bool bNoMaterialPriorities = false;
 bool bReplaceCommonWithGrille = false;
+bool bToughTrucksStadiumScreen = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;
