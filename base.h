@@ -67,6 +67,7 @@ void WriteFile(const std::string& str) {
 }
 
 std::string GetFileVersion(int value) {
+	if (value == 0x10002) return "FlatOut 1 Player Model";
 	if (value == 0x10003) return "Retro Demo / Tough Trucks Track (Export Only)";
 	if (value == 0x43524143) return "Retro Demo / Tough Trucks Car (Unsupported)";
 	if (value == 0x10004) return "FlatOut 1 Car";
@@ -81,7 +82,7 @@ std::string GetFileVersion(int value) {
 int nImportFileVersion;
 int nExportFileVersion;
 std::string GetShaderName(int value, int version) {
-	if (version <= 0x10003) {
+	if (version <= 0x10003 && version != 0x10002) {
 		switch (value) {
 			case 0: return "default static";
 			case 1: return "default dynamic";
@@ -734,4 +735,16 @@ int FindMaterialIDByName(const std::string& name, bool customOnly) {
 		if (material._sFBXName == name) return &material - &aMaterials[0];
 	}
 	return -1;
+}
+
+bool MaterialStringCompare(const std::string& str1, const std::string& str2) {
+	if (str1.length() != str2.length())
+		return false;
+
+	for (int i = 0; i < str1.length(); i++) {
+		if (tolower(str1[i]) != tolower(str2[i]))
+			return false;
+	}
+
+	return true;
 }

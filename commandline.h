@@ -192,6 +192,12 @@ void CMD_MakeAllDoubleSided() {
 void CMD_NoMaterialPriorities() {
 	bNoMaterialPriorities = true;
 }
+void CMD_ReplaceCommonWithGrille() {
+	bReplaceCommonWithGrille = true;
+}
+void CMD_ImportAsToughTrucks() {
+	bIsToughTrucksModel = true;
+}
 
 struct tCommandlineArgument {
 	std::string name;
@@ -231,6 +237,8 @@ tCommandlineArgument aArguments[] = {
 		{ "-force_tire_alpha", CMD_ForceTireAlphaForCar, "Forces alpha for the tire texture on cars, useful for FO2 -> UC ports" },
 		{ "-make_double_sided", CMD_MakeAllDoubleSided, "Clones and flips every mesh to make the model double-sided" },
 		{ "-no_material_priorities", CMD_NoMaterialPriorities, "Disables automatic sorting for materials" },
+		{ "-replace_common_with_grille", CMD_ReplaceCommonWithGrille, "Replaces all instances of common.tga with grille.tga, useful for FO1->FOUC menucars" },
+		{ "-tough_trucks_trk", CMD_ImportAsToughTrucks, "Loads the .trk as a Tough Trucks map instead of a Retro Demo map" },
 
 		// static map options
 		{ "-remove_object_dummies", CMD_W32_RemoveObjectDummies, "Removes all object dummies from an input map file", "W32 editing" },

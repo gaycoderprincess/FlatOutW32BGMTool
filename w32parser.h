@@ -9,9 +9,13 @@ bool ParseW32Materials(std::ifstream& file, bool print = true) {
 		ReadFromFile(file, &material.identifier, 4);
 		if (material.identifier != 0x4354414D) return false; // "MATC"
 
+		// tough trucks:
+		// 8 is mat start, 0x19 is name end
+		// textures start at 8D, +0x74
+
 		material.sName = ReadStringFromFile(file);
-		ReadFromFile(file, &material.nAlpha, 4);
-		if (nImportFileVersion >= 0x10004) {
+		ReadFromFile(file, &material.nAlpha, 4); // +0
+		if (nImportFileVersion >= 0x10004 || nImportFileVersion == 0x10002) {
 			ReadFromFile(file, &material.v92, 4);
 			ReadFromFile(file, &material.nNumTextures, 4);
 			ReadFromFile(file, &material.nShaderId, 4);
@@ -22,13 +26,25 @@ bool ParseW32Materials(std::ifstream& file, bool print = true) {
 		}
 		else {
 			int tmp = 0;
-			ReadFromFile(file, &tmp, 4); // 1
-			ReadFromFile(file, &tmp, 4); // 0
-			ReadFromFile(file, &tmp, 4); // 2
-			ReadFromFile(file, &material.nShaderId, 4); // 2
-			ReadFromFile(file, &material.nUseColormap, 4); // 1
-			ReadFromFile(file, &material.v108, 4);
+			if (bIsToughTrucksModel) {
+				// all this needs to be size 0x30
+				// +0x21 is shader id, that'd be +8 off name
+				ReadFromFile(file, &tmp, 4); // +4
+				ReadFromFile(file, &material.nShaderId, 4); // +8
+				ReadFromFile(file, &material.nUseColormap, 4); // +C
+				ReadFromFile(file, material.v98, 16); // +10
+				ReadFromFile(file, material.v99, 16); // +20
+			}
+			else {
+				ReadFromFile(file, &tmp, 4); // 1
+				ReadFromFile(file, &tmp, 4); // 0
+				ReadFromFile(file, &tmp, 4); // 2
+				ReadFromFile(file, &material.nShaderId, 4); // 2
+				ReadFromFile(file, &material.nUseColormap, 4); // 1
+				ReadFromFile(file, &material.v108, 4);
+			}
 		}
+		// size 0x44 here
 		ReadFromFile(file, material.v98, 16);
 		ReadFromFile(file, material.v99, 16);
 		ReadFromFile(file, material.v100, 16);
@@ -37,6 +53,11 @@ bool ParseW32Materials(std::ifstream& file, bool print = true) {
 		material.sTextureNames[0] = ReadStringFromFile(file);
 		material.sTextureNames[1] = ReadStringFromFile(file);
 		material.sTextureNames[2] = ReadStringFromFile(file);
+		if (bReplaceCommonWithGrille) {
+			if (MaterialStringCompare(material.sTextureNames[0], "common.tga")) {
+				material.sTextureNames[0] = "grille.tga";
+			}
+		}
 		aMaterials.push_back(material);
 	}
 	return true;
@@ -635,6 +656,8 @@ bool ParseBGMMeshes(std::ifstream& file) {
 }
 
 bool ParseW32RetroDemoSurfaces(std::ifstream& file) {
+	WriteConsole("Parsing surfaces...", LOG_ALWAYS);
+
 	uint32_t count;
 	ReadFromFile(file, &count, 4);
 	for (int i = 0; i < count; i++) {
@@ -642,6 +665,11 @@ bool ParseW32RetroDemoSurfaces(std::ifstream& file) {
 		ReadFromFile(file, &model.identifier, 4);
 		int tmp;
 		ReadFromFile(file, &tmp, 4);
+
+		if (bIsToughTrucksModel) {
+			model.sName = ReadStringFromFile(file);
+			ReadFromFile(file, &tmp, 4);
+		}
 		ReadFromFile(file, model.vCenter, sizeof(model.vCenter));
 		ReadFromFile(file, model.vRadius, sizeof(model.vRadius));
 		uint32_t surfaceCount;
@@ -688,6 +716,9 @@ bool ParseW32RetroDemoSurfaces(std::ifstream& file) {
 			surface.nStreamId[1] = id + 1;
 			surface.nStreamOffset[0] = 0;
 			surface.nStreamOffset[1] = 0;
+			if (bIsToughTrucksModel) {
+				ReadFromFile(file, &tmp, 4);
+			}
 			ReadFromFile(file, surface.vCenter, sizeof(surface.vCenter));
 			ReadFromFile(file, surface.vRadius, sizeof(surface.vRadius));
 
@@ -703,6 +734,8 @@ bool ParseW32RetroDemoSurfaces(std::ifstream& file) {
 }
 
 bool ParseW32RetroDemoTMOD(std::ifstream& file) {
+	WriteConsole("Parsing TMOD...", LOG_ALWAYS);
+
 	uint32_t count;
 	ReadFromFile(file, &count, 4);
 	for (int i = 0; i < count; i++) {
@@ -734,6 +767,8 @@ bool ParseW32RetroDemoTMOD(std::ifstream& file) {
 }
 
 bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
+	WriteConsole("Parsing comapct meshes...", LOG_ALWAYS);
+
 	uint32_t count;
 	ReadFromFile(file, &count, 4);
 	for (int i = 0; i < count; i++) {
@@ -777,6 +812,18 @@ bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
 			aCompactMeshes.push_back(mesh);
 		}
 	}
+
+	for (auto& surface : aSurfaces) {
+		if (surface._nNumReferences <= 0) {
+			tStaticBatch batch;
+			batch.nId1 = aStaticBatches.size();
+			batch.nBVHId1 = &surface - &aSurfaces[0];
+			memcpy(batch.vCenter, surface.vCenter, sizeof(batch.vCenter));
+			memcpy(batch.vRadius, surface.vRadius, sizeof(batch.vRadius));
+			aStaticBatches.push_back(batch);
+		}
+	}
+
 	return true;
 }
 

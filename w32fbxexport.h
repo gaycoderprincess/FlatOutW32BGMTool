@@ -364,18 +364,6 @@ void CreateSplineArrayForVector(aiNode* rootNode, std::vector<aiVector3D>& vec, 
 	}
 }
 
-bool MaterialStringCompare(std::string& str1, std::string& str2) {
-	if (str1.length() != str2.length())
-		return false;
-
-	for (int i = 0; i < str1.length(); i++) {
-		if (tolower(str1[i]) != tolower(str2[i]))
-			return false;
-	}
-
-	return true;
-}
-
 void PerformMaterialAutodetectTest(tMaterial& material) {
 	if (material.sTextureNames[1].empty()) return;
 

@@ -11,6 +11,7 @@ bool bDumpFOUCOffsetedStreams = false;
 bool bFBXSkipHiddenProps = false;
 int nFBXSkipHiddenPropsFlag;
 bool bFBXExportBVHNodes = false;
+bool bIsToughTrucksModel = false;
 
 // export options
 bool bDisableObjects = false;
@@ -44,6 +45,7 @@ bool bCarForceRimAlpha = false;
 bool bCarForceTireAlpha = false;
 bool bMakeAllDoubleSided = false;
 bool bNoMaterialPriorities = false;
+bool bReplaceCommonWithGrille = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;

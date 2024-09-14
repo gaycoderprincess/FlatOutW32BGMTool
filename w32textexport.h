@@ -486,7 +486,7 @@ void WriteBGMMeshesToText() {
 		}
 		WriteFile("");
 	}
-	WriteFile("Car Meshes end");
+	WriteFile("BGM Meshes end");
 	WriteFile("");
 }
 
