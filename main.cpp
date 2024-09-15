@@ -21,6 +21,7 @@
 #include "trackbvh.h"
 #include "track4b.h"
 #include "splitpoints.h"
+#include "rallytrophy.h"
 #include "w32parser.h"
 #include "w32writer.h"
 #include "w32textexport.h"
@@ -140,7 +141,7 @@ int main(int argc, char *argv[]) {
 						WriteBGM(version);
 					}
 				}
-			} else if (sFileName.extension() == ".w32" || sFileName.extension() == ".trk") {
+			} else if (sFileName.extension() == ".w32" || sFileName.extension() == ".trk" || sFileName.extension() == ".bmf" || sFileName.extension() == ".BMF") {
 				if (!ParseW32()) {
 					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 				} else {

@@ -12,6 +12,7 @@ bool bFBXSkipHiddenProps = false;
 int nFBXSkipHiddenPropsFlag;
 bool bFBXExportBVHNodes = false;
 bool bIsToughTrucksModel = false;
+bool bIsRallyTrophyModel = false;
 
 // export options
 bool bDisableObjects = false;

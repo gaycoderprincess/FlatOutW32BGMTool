@@ -767,7 +767,7 @@ bool ParseW32RetroDemoTMOD(std::ifstream& file) {
 }
 
 bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
-	WriteConsole("Parsing comapct meshes...", LOG_ALWAYS);
+	WriteConsole("Parsing compact meshes...", LOG_ALWAYS);
 
 	uint32_t count;
 	ReadFromFile(file, &count, 4);
@@ -828,6 +828,11 @@ bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
 }
 
 bool ParseW32() {
+	if (sFileName.extension() == ".bmf" || sFileName.extension() == ".BMF") {
+		bIsRallyTrophyModel = true;
+		return ParseRallyTrophyBMF();
+	}
+
 	if (sFileName.extension() != ".w32" && sFileName.extension() != ".trk") {
 		return false;
 	}
