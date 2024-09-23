@@ -271,6 +271,20 @@ struct tVertexBuffer {
 	uint32_t _vertexSizeForFOUC = 0;
 	std::vector<float> _coordsAfterFOUCMult;
 };
+struct tXboxCPUBuffer {
+	int id;
+	int foucExtraFormat = 0;
+	uint32_t count;
+	uint32_t size;
+	uint8_t* data;
+};
+struct tXboxGPUBuffer {
+	int id;
+	int foucExtraFormat = 0;
+	uint32_t count;
+	uint32_t size;
+	uint8_t* data;
+};
 struct tIndexBuffer {
 	int id;
 	int foucExtraFormat = 0;
@@ -492,9 +506,23 @@ struct tRetroDemoTMOD {
 	std::vector<aiVector3D> aVertices;
 	std::vector<int> aIndices;
 };
+struct tCPUPushBuffer {
+	// indexes into stream type 4
+	uint32_t offset;
+	uint32_t count;
+};
+struct tGPUPushBuffer {
+	// indexes into stream type 5
+	uint32_t offset;
+	uint32_t count;
+};
 int nSomeMapValue = 1; // always 1 in FO2, doesn't exist in FO1
 std::vector<tVertexBuffer> aVertexBuffers;
 std::vector<tIndexBuffer> aIndexBuffers;
+std::vector<tXboxCPUBuffer> aXboxCPUBuffers;
+std::vector<tXboxGPUBuffer> aXboxGPUBuffers;
+std::vector<tCPUPushBuffer> aCPUPushBuffers;
+std::vector<tGPUPushBuffer> aGPUPushBuffers;
 std::vector<tMaterial> aMaterials;
 std::vector<tSurface> aSurfaces;
 std::vector<tSurface> aCrashSurfaces;

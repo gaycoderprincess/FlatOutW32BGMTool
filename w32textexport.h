@@ -35,7 +35,7 @@ void WriteW32MaterialsToText() {
 
 void WriteW32StreamsToText() {
 	WriteFile("Streams begin");
-	uint32_t numStreams = aVertexBuffers.size() + aIndexBuffers.size();
+	uint32_t numStreams = aVertexBuffers.size() + aIndexBuffers.size() + aXboxCPUBuffers.size() + aXboxGPUBuffers.size();
 	WriteFile("Count: " + std::to_string(numStreams));
 	WriteFile("");
 	for (int i = 0; i < numStreams; i++) {
@@ -184,6 +184,32 @@ void WriteW32StreamsToText() {
 				if (bDumpStreams) {
 					for (int j = 0; j < buf.indexCount; j++) {
 						WriteFile(std::to_string(buf.data[j]));
+					}
+				}
+			}
+		}
+		for (auto& buf : aXboxCPUBuffers) {
+			if (buf.id == i) {
+				WriteFile("Xbox CPU buffer");
+				if (bIsFOUCModel) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
+				WriteFile(std::format("Size: {}", buf.size));
+				WriteFile(std::format("Count: {}", buf.count));
+				if (bDumpStreams) {
+					for (int j = 0; j < buf.count; j++) {
+						WriteFile(std::format("{:X}", buf.data[j]));
+					}
+				}
+			}
+		}
+		for (auto& buf : aXboxGPUBuffers) {
+			if (buf.id == i) {
+				WriteFile("Xbox GPU buffer");
+				if (bIsFOUCModel) WriteFile(std::format("foucExtraFormat: {}", buf.foucExtraFormat));
+				WriteFile(std::format("Size: {}", buf.size));
+				WriteFile(std::format("Count: {}", buf.count));
+				if (bDumpStreams) {
+					for (int j = 0; j < buf.count; j++) {
+						WriteFile(std::format("{:X}", buf.data[j]));
 					}
 				}
 			}

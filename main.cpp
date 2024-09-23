@@ -132,7 +132,6 @@ int main(int argc, char *argv[]) {
 				if (!ParseBGM()) {
 					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 				} else {
-					if (bDumpIntoTextFile) WriteBGMToText();
 					if (bDumpIntoFBX) WriteToFBX();
 					if (bDumpIntoBGM) {
 						uint32_t version = nImportFileVersion;
@@ -141,7 +140,11 @@ int main(int argc, char *argv[]) {
 						WriteBGM(version);
 					}
 				}
-			} else if (sFileName.extension() == ".w32" || sFileName.extension() == ".trk" || sFileName.extension() == ".bmf" || sFileName.extension() == ".BMF") {
+
+				if (bDumpIntoTextFile) {
+					WriteBGMToText();
+				}
+			} else if (sFileName.extension() == ".w32" || sFileName.extension() == ".xbx" || sFileName.extension() == ".trk" || sFileName.extension() == ".bmf" || sFileName.extension() == ".BMF") {
 				if (!ParseW32()) {
 					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 				} else {

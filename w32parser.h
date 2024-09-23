@@ -253,17 +253,37 @@ bool ParseW32Streams(std::ifstream& file) {
 			aVertexBuffers.push_back(buf);
 		}
 		// unknown, maybe some custom type of buffer in the xbox beta bgm format
-		else if (dataType == 4 || dataType == 5) {
+		else if (dataType == 4) {
 			bIsXboxBetaModel = true;
 
-			tVertexBuffer buf;
+			tXboxCPUBuffer buf;
 			ReadFromFile(file, &buf.foucExtraFormat, 4);
-			ReadFromFile(file, &buf.vertexCount, 4);
-			ReadFromFile(file, &buf.vertexSize, 4);
-			for (int j = 0; j < buf.vertexCount * buf.vertexSize; j++) {
-				uint8_t tmp = 0;
-				ReadFromFile(file, &tmp, 1);
-			}
+			ReadFromFile(file, &buf.count, 4);
+			ReadFromFile(file, &buf.size, 4);
+
+			auto dataSize = buf.count * buf.size;
+			auto data = new uint8_t[dataSize];
+			ReadFromFile(file, data, dataSize);
+
+			buf.id = i;
+			buf.data = data;
+			aXboxCPUBuffers.push_back(buf);
+		}
+		else if (dataType == 5) {
+			bIsXboxBetaModel = true;
+
+			tXboxGPUBuffer buf;
+			ReadFromFile(file, &buf.foucExtraFormat, 4);
+			ReadFromFile(file, &buf.count, 4);
+			ReadFromFile(file, &buf.size, 4);
+
+			auto dataSize = buf.count * buf.size;
+			auto data = new uint8_t[dataSize];
+			ReadFromFile(file, data, dataSize);
+
+			buf.id = i;
+			buf.data = data;
+			aXboxGPUBuffers.push_back(buf);
 		}
 		else {
 			WriteConsole("Unknown stream type " + std::to_string(dataType), LOG_ERRORS);
@@ -279,16 +299,20 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 	if (bIsXboxBetaModel) {
 		uint32_t nCPUPushBufferCount;
 		ReadFromFile(file, &nCPUPushBufferCount, 4);
+		aCPUPushBuffers.reserve(nCPUPushBufferCount);
 		for (int i = 0; i < nCPUPushBufferCount; i++) {
-			uint32_t tmp[2];
-			ReadFromFile(file, tmp, sizeof(tmp));
+			tCPUPushBuffer buf;
+			ReadFromFile(file, &buf, sizeof(buf));
+			aCPUPushBuffers.push_back(buf);
 		}
 
 		uint32_t nGPUPushBufferCount;
 		ReadFromFile(file, &nGPUPushBufferCount, 4);
+		aGPUPushBuffers.reserve(nCPUPushBufferCount);
 		for (int i = 0; i < nGPUPushBufferCount; i++) {
-			uint32_t tmp[2];
-			ReadFromFile(file, tmp, sizeof(tmp));
+			tGPUPushBuffer buf;
+			ReadFromFile(file, &buf, sizeof(buf));
+			aGPUPushBuffers.push_back(buf);
 		}
 	}
 
@@ -328,10 +352,24 @@ bool ParseW32Surfaces(std::ifstream& file, int mapVersion) {
 			ReadFromFile(file, &surface.nStreamOffset[j], 4);
 		}
 
-		auto id = surface.nStreamId[0];
-		auto vBuf = FindVertexBuffer(id);
-		if (!vBuf) return false;
+		if (bIsXboxBetaModel && surface.nNumStreamsUsed == 2) {
+			if (surface.nStreamId[1]) {
+				auto buf = &aGPUPushBuffers[surface.nStreamOffset[1]];
+				surface.nStreamId[1] = aXboxGPUBuffers[0].id;
+				surface.nStreamOffset[1] = buf->offset;
+			}
+			else {
+				auto buf = &aCPUPushBuffers[surface.nStreamOffset[1]];
+				surface.nStreamId[1] = aXboxCPUBuffers[0].id;
+				surface.nStreamOffset[1] = buf->offset;
+			}
+		}
+
 		if (bIsFOUCModel) {
+			auto id = surface.nStreamId[0];
+			auto vBuf = FindVertexBuffer(id);
+			if (!vBuf) return false;
+
 			auto ptr = (uintptr_t)vBuf->data;
 			ptr += surface.nStreamOffset[0];
 			for (int j = 0; j < surface.nVertexCount; j++) {
@@ -833,7 +871,7 @@ bool ParseW32() {
 		return ParseRallyTrophyBMF();
 	}
 
-	if (sFileName.extension() != ".w32" && sFileName.extension() != ".trk") {
+	if (sFileName.extension() != ".w32" && sFileName.extension() != ".xbx" && sFileName.extension() != ".trk") {
 		return false;
 	}
 
