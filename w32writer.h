@@ -1185,7 +1185,7 @@ void AddCompactMeshFromFBXNode(aiNode* prop, int defaultGroup) {
 
 		tCompactMesh mesh;
 		mesh.sName1 = prop->mName.C_Str();
-		if (dynamicType.empty()) {
+		if (dynamicType.empty() && !bAllowEmptyPropTypes) {
 			WriteConsole("WARNING: Prop " + mesh.sName1 + " has no dynamic type! Defaulting to metal_light", LOG_WARNINGS);
 			mesh.sName2 = "metal_light";
 		}

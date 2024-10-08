@@ -48,6 +48,7 @@ bool bMakeAllDoubleSided = false;
 bool bNoMaterialPriorities = false;
 bool bReplaceCommonWithGrille = false;
 bool bToughTrucksStadiumScreen = false;
+bool bAllowEmptyPropTypes = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;

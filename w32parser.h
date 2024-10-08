@@ -856,6 +856,7 @@ bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
 			tStaticBatch batch;
 			batch.nId1 = aStaticBatches.size();
 			batch.nBVHId1 = &surface - &aSurfaces[0];
+			batch.nBVHId2 = &surface - &aSurfaces[0];
 			memcpy(batch.vCenter, surface.vCenter, sizeof(batch.vCenter));
 			memcpy(batch.vRadius, surface.vRadius, sizeof(batch.vRadius));
 			aStaticBatches.push_back(batch);
