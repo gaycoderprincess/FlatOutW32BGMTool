@@ -458,7 +458,7 @@ aiScene GenerateScene() {
 		for (int j = 0; j < 3; j++) {
 			if (src.sTextureNames[j].empty()) continue;
 			auto texName = src.sTextureNames[j];
-			if (texName.ends_with(".tga") || texName.ends_with(".TGA")) {
+			if (!bIsRallyTrophyModel && (texName.ends_with(".tga") || texName.ends_with(".TGA"))) {
 				texName.pop_back();
 				texName.pop_back();
 				texName.pop_back();
@@ -546,7 +546,7 @@ aiScene GenerateScene() {
 			}
 		}
 	}
-	if (bIsFOUCModel) {
+	if (bIsFOUCModel && !bIsBGMModel) {
 		if (auto node = new aiNode()) {
 			node->mName = "TreeMesh";
 			scene.mRootNode->addChildren(1, &node);

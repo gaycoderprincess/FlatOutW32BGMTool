@@ -601,6 +601,7 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		if (mat.sName.starts_with("alpha_bushlod")) mat.nShaderId = 21; // tree leaf
 		if (mat.sName.starts_with("alpha_bushsprite")) mat.nShaderId = 21; // tree leaf
 		if (mat.sName.starts_with("static_windows")) mat.nShaderId = 34; // reflecting window shader (static)
+		if (mat.sName.starts_with("reflection")) mat.nShaderId = 34; // reflecting window shader (static)
 		if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
 		if (bIsFOUCModel && mat.sName.starts_with("SDM_Mall_floor")) mat.nShaderId = 49; // lightmapped planar reflection
 		FixNameExtensions(mat.sName);
