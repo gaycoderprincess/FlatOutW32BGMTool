@@ -30,6 +30,8 @@ void ParseRallyTrophyModel(std::ifstream& file);
 
 tCompactMesh* meshToAddModelsTo = nullptr;
 void ParseRallyTrophyMesh(std::ifstream& file) {
+	WriteFile(std::format("Reading mesh at {:X}", (uint32_t)file.tellg()));
+
 	tCompactMesh mesh;
 	mesh.sName1 = ReadStringFromFile(file);
 	//WriteConsole(std::format("reading mesh {}", mesh.sName1), LOG_ALWAYS);
@@ -44,7 +46,7 @@ void ParseRallyTrophyMesh(std::ifstream& file) {
 	//WriteConsole(std::format("{}, {}, {}, {}", mesh.mMatrix[8], mesh.mMatrix[9], mesh.mMatrix[10], mesh.mMatrix[11]), LOG_ALWAYS);
 	//WriteConsole(std::format("{}, {}, {}, {}", mesh.mMatrix[12], mesh.mMatrix[13], mesh.mMatrix[14], mesh.mMatrix[15]), LOG_ALWAYS);
 
-	WriteConsole(std::format("mesh matrix ends at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
+	//WriteConsole(std::format("mesh matrix ends at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 
 	// bunch of floats from 2B2ACE til 2B2B12
 
@@ -54,16 +56,17 @@ void ParseRallyTrophyMesh(std::ifstream& file) {
 
 	float tmpf[17-3];
 	ReadFromFile(file, tmpf, sizeof(tmpf));
-	WriteConsole(std::format("mesh float array ends at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
+	//WriteConsole(std::format("mesh float array ends at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 
 	ReadFromFile(file, &tmp, 4); // 0
 	ReadFromFile(file, &tmp, 4); // 127277
+	//WriteConsole(std::format("model begins at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 
 	if (ReadStringFromFile(file) != "MODEL") {
 		WriteConsole("ERROR: Failed to find MODEL segment!", LOG_ERRORS);
 		return;
 	}
-	ParseRallyTrophyModel(file);
+	return ParseRallyTrophyModel(file);
 }
 
 void ParseRallyTrophyHierarchy(std::ifstream& file) {
@@ -113,6 +116,52 @@ void FinishUpRallyTrophyModel(tModel& model) {
 	}
 }
 
+void ParseRallyTrophyLight(std::ifstream& file);
+void ParseRallyTrophyCamera(std::ifstream& file) {
+	WriteConsole(std::format("Reading camera at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
+
+	ReadStringFromFile(file);
+
+	// 900468 - 90050D
+	uint8_t tmp[0xA5-9];
+	ReadFromFile(file, tmp, sizeof(tmp));
+
+	std::string str = ReadStringFromFile(file);
+	if (str == "CAMERA2") {
+		return ParseRallyTrophyCamera(file);
+	}
+	else if (str == "LIGHT") {
+		return ParseRallyTrophyLight(file);
+	}
+	else if (str == "MESH") {
+		return ParseRallyTrophyMesh(file);
+	}
+
+	WriteConsole(std::format("ended at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
+}
+
+void ParseRallyTrophyLight(std::ifstream& file) {
+	WriteConsole(std::format("Reading light at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
+
+	ReadStringFromFile(file);
+
+	// 900E72 - 900F37
+	uint8_t tmp[0xC6-6];
+	ReadFromFile(file, tmp, sizeof(tmp));
+
+	std::string str = ReadStringFromFile(file);
+	if (str == "CAMERA2") {
+		return ParseRallyTrophyCamera(file);
+	}
+	else if (str == "LIGHT") {
+		return ParseRallyTrophyLight(file);
+	}
+	else if (str == "MESH") {
+		return ParseRallyTrophyMesh(file);
+	}
+	WriteConsole(std::format("ended at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
+}
+
 void ParseRallyTrophyModel(std::ifstream& file) {
 	tModel model;
 
@@ -137,6 +186,14 @@ void ParseRallyTrophyModel(std::ifstream& file) {
 
 	while (true) {
 		auto str = ReadStringFromFile(file);
+		if (str == "CAMERA2") {
+			FinishUpRallyTrophyModel(model);
+			return ParseRallyTrophyCamera(file);
+		}
+		if (str == "LIGHT") {
+			FinishUpRallyTrophyModel(model);
+			return ParseRallyTrophyLight(file);
+		}
 		if (str == "MODEL") {
 			FinishUpRallyTrophyModel(model);
 			return ParseRallyTrophyModel(file);
@@ -151,6 +208,7 @@ void ParseRallyTrophyModel(std::ifstream& file) {
 		}
 		if (str != "BATCH2") {
 			FinishUpRallyTrophyModel(model);
+			WriteConsole(std::format("ended at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 			WriteConsole("ERROR: Failed to find BATCH2 segment!", LOG_ERRORS);
 			return;
 		}
