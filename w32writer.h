@@ -591,23 +591,63 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 
 		FixNameExtensions(mat.sName);
 
+		if (mat.sTextureNames[0].starts_with("sweden_audience")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("kenya_audience")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("kenya_roundhut_pale")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("audience_")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("bush_")) mat.nAlpha = 1;
-		if (mat.sTextureNames[0].starts_with("felling_tree")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("fence_")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("fin_fence")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("village_fence")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("forest_mixed_")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("forest_snow_")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("grass")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("power_line")) mat.nAlpha = 1;
-		if (mat.sTextureNames[0].starts_with("russian_tree")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("sign_railroad")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("sign_trunks_reverse")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("skidmark")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("string_")) mat.nAlpha = 1;
-		if (mat.sTextureNames[0].starts_with("tree_")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("fin_forest")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("fin_powerline")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("fin_pole_wires")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("fin_roadside_bush")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("fin_string")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("indicators")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("rope")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("streetlight_glass")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].ends_with("_alpha.tga")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].ends_with("_wire.tga")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].ends_with("_alpha.TGA")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].ends_with("_wire.TGA")) mat.nAlpha = 1;
+
+		if (mat.sTextureNames[0].starts_with("russian_tree_plane")) {
+			mat.nAlpha = 1;
+			mat._bIsCustomFOUCTree = true;
+		}
+		if (mat.sTextureNames[0].starts_with("kenya_tree_plane")) {
+			mat.nAlpha = 1;
+			mat._bIsCustomFOUCTree = true;
+		}
+		if (mat.sTextureNames[0].starts_with("mountain_tree_plane")) {
+			mat.nAlpha = 1;
+			mat._bIsCustomFOUCTree = true;
+		}
+		if (mat.sTextureNames[0].starts_with("sweden_tree_plane")) {
+			mat.nAlpha = 1;
+			mat._bIsCustomFOUCTree = true;
+		}
+		if (mat.sTextureNames[0].starts_with("felling_tree")) {
+			mat.nAlpha = 1;
+			mat._bIsCustomFOUCTree = true;
+		}
+		if (mat.sTextureNames[0].starts_with("fin_trees")) {
+			mat.nAlpha = 1;
+			mat._bIsCustomFOUCTree = true;
+		}
+		if (mat.sTextureNames[0].starts_with("tree_") && mat.sTextureNames[0].find("trunk") == std::string::npos) {
+			mat.nAlpha = 1;
+			mat._bIsCustomFOUCTree = true;
+		}
 
 		return;
 	}
