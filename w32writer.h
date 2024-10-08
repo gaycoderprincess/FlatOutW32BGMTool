@@ -604,8 +604,10 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		if (mat.sTextureNames[0].starts_with("skidmark")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("string_")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("tree_")) mat.nAlpha = 1;
-		if (mat.sTextureNames[0].ends_with("_alpha")) mat.nAlpha = 1;
-		if (mat.sTextureNames[0].ends_with("_wire")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].ends_with("_alpha.tga")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].ends_with("_wire.tga")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].ends_with("_alpha.TGA")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].ends_with("_wire.TGA")) mat.nAlpha = 1;
 
 		return;
 	}
