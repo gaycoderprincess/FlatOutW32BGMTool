@@ -163,6 +163,12 @@ void CMD_W32_NoBushes() {
 void CMD_W32_AllowEmptyPropTypes() {
 	bAllowEmptyPropTypes = true;
 }
+void CMD_W32_NeverUseTerrainShader() {
+	bNeverUseTerrainShader = true;
+}
+void CMD_W32_RallyTrophyShaderFixup() {
+	bRallyTrophyShaderFixup = true;
+}
 void CMD_W32_ImportDeletions() {
 	bImportDeletionFromFBX = true;
 	bLoadFBX = true;
@@ -275,6 +281,8 @@ tCommandlineArgument aArguments[] = {
 		{ "-no_tree_hack", CMD_W32_NoTreeHack, "Disables the adjusting of normal vectors for tree shaders in Ultimate Carnage" },
 		{ "-remove_bushes", CMD_W32_NoBushes, "Removes all surfaces using alpha_bushbranch when importing from .fbx" },
 		{ "-allow_empty_prop_types", CMD_W32_AllowEmptyPropTypes, "Disables defaulting to metal_light for empty prop types" },
+		{ "-never_use_terrain_shader", CMD_W32_NeverUseTerrainShader, "Always use static prelit instead of the dual-UV terrain shader" },
+		{ "-rally_trophy_shader_fixup", CMD_W32_RallyTrophyShaderFixup, "Parse material names with Rally Trophy maps in mind" },
 
 		// text options
 		{ "-text_materials", CMD_DumpText_Materials, "Dumps all material data into a text file", "Text dumps" },

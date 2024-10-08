@@ -49,6 +49,8 @@ bool bNoMaterialPriorities = false;
 bool bReplaceCommonWithGrille = false;
 bool bToughTrucksStadiumScreen = false;
 bool bAllowEmptyPropTypes = false;
+bool bNeverUseTerrainShader = false;
+bool bRallyTrophyShaderFixup = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;

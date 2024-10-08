@@ -26,12 +26,8 @@ bool ParseRallyTrophyMaterial(std::ifstream& file) {
 	return true;
 }
 
-void ParseRallyTrophyModel(std::ifstream& file);
-
 tCompactMesh* meshToAddModelsTo = nullptr;
 void ParseRallyTrophyMesh(std::ifstream& file) {
-	WriteFile(std::format("Reading mesh at {:X}", (uint32_t)file.tellg()));
-
 	tCompactMesh mesh;
 	mesh.sName1 = ReadStringFromFile(file);
 	//WriteConsole(std::format("reading mesh {}", mesh.sName1), LOG_ALWAYS);
@@ -61,16 +57,10 @@ void ParseRallyTrophyMesh(std::ifstream& file) {
 	ReadFromFile(file, &tmp, 4); // 0
 	ReadFromFile(file, &tmp, 4); // 127277
 	//WriteConsole(std::format("model begins at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
-
-	if (ReadStringFromFile(file) != "MODEL") {
-		WriteConsole("ERROR: Failed to find MODEL segment!", LOG_ERRORS);
-		return;
-	}
-	return ParseRallyTrophyModel(file);
 }
 
 void ParseRallyTrophyHierarchy(std::ifstream& file) {
-	WriteConsole(std::format("hierarchy starts at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
+	//WriteConsole(std::format("hierarchy starts at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 
 	int tmp;
 	ReadFromFile(file, &tmp, 4); // 3694, prolly count
@@ -82,26 +72,21 @@ void ParseRallyTrophyHierarchy(std::ifstream& file) {
 	}
 
 	auto name = ReadStringFromFile(file);
-	WriteConsole(std::format("reading {}", name), LOG_ALWAYS);
+	//WriteConsole(std::format("reading {}", name), LOG_ALWAYS);
 
 	ReadFromFile(file, &tmp, 4); // 0
 
 	float matrix[4*4];
 	ReadFromFile(file, matrix, sizeof(matrix));
 
-	WriteConsole(std::format("matrix ends at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
+	//WriteConsole(std::format("matrix ends at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 
 	uint8_t scenetmp[0x50];
 	ReadFromFile(file, scenetmp, sizeof(scenetmp));
 
 	ReadFromFile(file, &tmp, 4); // 127443
 
-	WriteConsole(std::format("scenetmp ends at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
-
-	std::string str;
-	while ((str = ReadStringFromFile(file)) == "MESH") {
-		ParseRallyTrophyMesh(file);
-	}
+	//WriteConsole(std::format("scenetmp ends at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 }
 
 void FinishUpRallyTrophyModel(tModel& model) {
@@ -116,53 +101,27 @@ void FinishUpRallyTrophyModel(tModel& model) {
 	}
 }
 
-void ParseRallyTrophyLight(std::ifstream& file);
 void ParseRallyTrophyCamera(std::ifstream& file) {
-	WriteConsole(std::format("Reading camera at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
+	//WriteConsole(std::format("Reading camera at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 
 	ReadStringFromFile(file);
 
 	// 900468 - 90050D
 	uint8_t tmp[0xA5-9];
 	ReadFromFile(file, tmp, sizeof(tmp));
-
-	std::string str = ReadStringFromFile(file);
-	if (str == "CAMERA2") {
-		return ParseRallyTrophyCamera(file);
-	}
-	else if (str == "LIGHT") {
-		return ParseRallyTrophyLight(file);
-	}
-	else if (str == "MESH") {
-		return ParseRallyTrophyMesh(file);
-	}
-
-	WriteConsole(std::format("ended at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 }
 
 void ParseRallyTrophyLight(std::ifstream& file) {
-	WriteConsole(std::format("Reading light at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
+	//WriteConsole(std::format("Reading light at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 
 	ReadStringFromFile(file);
 
 	// 900E72 - 900F37
 	uint8_t tmp[0xC6-6];
 	ReadFromFile(file, tmp, sizeof(tmp));
-
-	std::string str = ReadStringFromFile(file);
-	if (str == "CAMERA2") {
-		return ParseRallyTrophyCamera(file);
-	}
-	else if (str == "LIGHT") {
-		return ParseRallyTrophyLight(file);
-	}
-	else if (str == "MESH") {
-		return ParseRallyTrophyMesh(file);
-	}
-	WriteConsole(std::format("ended at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 }
 
-void ParseRallyTrophyModel(std::ifstream& file) {
+std::string ParseRallyTrophyModel(std::ifstream& file) {
 	tModel model;
 
 	int tmp;
@@ -186,31 +145,9 @@ void ParseRallyTrophyModel(std::ifstream& file) {
 
 	while (true) {
 		auto str = ReadStringFromFile(file);
-		if (str == "CAMERA2") {
-			FinishUpRallyTrophyModel(model);
-			return ParseRallyTrophyCamera(file);
-		}
-		if (str == "LIGHT") {
-			FinishUpRallyTrophyModel(model);
-			return ParseRallyTrophyLight(file);
-		}
-		if (str == "MODEL") {
-			FinishUpRallyTrophyModel(model);
-			return ParseRallyTrophyModel(file);
-		}
-		if (str == "HIERARCHY") {
-			FinishUpRallyTrophyModel(model);
-			return ParseRallyTrophyHierarchy(file);
-		}
-		if (str == "MESH") {
-			FinishUpRallyTrophyModel(model);
-			return ParseRallyTrophyMesh(file);
-		}
 		if (str != "BATCH2") {
 			FinishUpRallyTrophyModel(model);
-			WriteConsole(std::format("ended at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
-			WriteConsole("ERROR: Failed to find BATCH2 segment!", LOG_ERRORS);
-			return;
+			return str;
 		}
 
 		tSurface surface;
@@ -262,6 +199,30 @@ void ParseRallyTrophyModel(std::ifstream& file) {
 	}
 }
 
+bool ParseRallyTrophyToken(std::ifstream& file, const std::string& str) {
+	if (str == "MODEL") {
+		return ParseRallyTrophyToken(file, ParseRallyTrophyModel(file));
+	}
+	else if (str == "MESH") {
+		ParseRallyTrophyMesh(file);
+		return true;
+	}
+	else if (str == "LIGHT") {
+		ParseRallyTrophyLight(file);
+		return true;
+	}
+	else if (str == "CAMERA2") {
+		ParseRallyTrophyCamera(file);
+		return true;
+	}
+	else if (str == "HIERARCHY") {
+		ParseRallyTrophyHierarchy(file);
+		return true;
+	}
+	if (!str.empty()) WriteConsole(std::format("Parsing ended, unrecognized token {}", str), LOG_ALWAYS);
+	return false;
+}
+
 bool ParseRallyTrophyBMF() {
 	std::ifstream fin(sFileName, std::ios::in | std::ios::binary );
 	if (!fin.is_open()) return false;
@@ -303,10 +264,8 @@ bool ParseRallyTrophyBMF() {
 	}
 	uint8_t tmptrack[44];
 	ReadFromFile(fin, tmptrack, sizeof(tmptrack));
-	WriteConsole(std::format("models start at {:X}", (uint32_t)fin.tellg()), LOG_ALWAYS);
-	if (ReadStringFromFile(fin) == "MODEL") {
-		ParseRallyTrophyModel(fin);
-	}
+	//WriteConsole(std::format("models start at {:X}", (uint32_t)fin.tellg()), LOG_ALWAYS);
+	while (ParseRallyTrophyToken(fin, ReadStringFromFile(fin))) {}
 
 	for (auto& surface : aSurfaces) {
 		if (surface._nNumReferences <= 0) {

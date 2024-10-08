@@ -158,12 +158,12 @@ void FillFBXMeshFromSurface(aiMesh* dest, tVertexBuffer* vBuf, tIndexBuffer* iBu
 			}
 			if ((vBuf->flags & VERTEX_COLOR) != 0) {
 				auto vertexColorOffset = *(uint32_t*)&vertices[0];
-				if (vertexColorOffset >= 0xFF000000 || bIsBGMModel) {
+				if (vertexColorOffset >= 0xFF000000 || bIsBGMModel || bIsRallyTrophyModel) {
 					auto rgb = (uint8_t*)&vertexColorOffset;
 					dest->mColors[0][j].r = rgb[0] / 255.0;
 					dest->mColors[0][j].g = rgb[1] / 255.0;
 					dest->mColors[0][j].b = rgb[2] / 255.0;
-					dest->mColors[0][j].a = rgb[3] / 255.0;
+					dest->mColors[0][j].a = bIsRallyTrophyModel ? 1.0 : (rgb[3] / 255.0);
 				}
 				else if (!aVertexColors.empty()) {
 					int id = vertexColorOffset & 0xFFFFFF;

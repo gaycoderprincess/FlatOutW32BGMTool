@@ -582,6 +582,34 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 }
 
 void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees) {
+	if (bRallyTrophyShaderFixup) {
+		mat.nAlpha = 0;
+		mat.nShaderId = 0; // static prelit
+		if (!isStaticModel) {
+			mat.nShaderId = 3; // dynamic diffuse
+		}
+
+		FixNameExtensions(mat.sName);
+
+		if (mat.sTextureNames[0].starts_with("audience_")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("bush_")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("felling_tree")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("fence_")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("forest_mixed_")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("grass")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("power_line")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("russian_tree")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("sign_railroad")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("sign_trunks_reverse")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("skidmark")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("string_")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("tree_")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].ends_with("_alpha")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].ends_with("_wire")) mat.nAlpha = 1;
+
+		return;
+	}
+
 	mat.nAlpha = mat.sName.starts_with("alpha") || mat.sName.starts_with("Alpha") || mat.sName.starts_with("wirefence_");
 	if (isStaticModel) {
 		mat.nShaderId = 0; // static prelit
@@ -665,6 +693,11 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 	}
 
 	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
+
+	// terrain -> static prelit
+	if (bNeverUseTerrainShader && (mat.nShaderId == 1 || mat.nShaderId == 2)) {
+		mat.nShaderId = 0;
+	}
 }
 
 tMaterial GetMaterialFromFBX(aiMaterial* fbxMaterial) {
