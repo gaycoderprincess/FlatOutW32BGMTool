@@ -644,6 +644,10 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 			mat.nAlpha = 1;
 			mat._bIsCustomFOUCTree = true;
 		}
+		if (mat.sTextureNames[0].starts_with("plane_bush")) {
+			mat.nAlpha = 1;
+			mat._bIsCustomFOUCTree = true;
+		}
 		if (mat.sTextureNames[0].starts_with("tree_") && mat.sTextureNames[0].find("trunk") == std::string::npos) {
 			mat.nAlpha = 1;
 			mat._bIsCustomFOUCTree = true;
@@ -654,7 +658,7 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		}
 		// should plane2_bush be here?
 
-		if (mat.sName.starts_with("river")) {
+		if (mat.sName.starts_with("river") || mat.sName.starts_with("Water")) {
 			if (bIsFOUCModel) {
 				mat.sTextureNames[0] = "puddle_normal.tga";
 				mat.nShaderId = 45; // puddle
