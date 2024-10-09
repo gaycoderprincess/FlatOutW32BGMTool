@@ -706,11 +706,9 @@ aiScene GenerateScene() {
 				FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
 				node->addChildren(1, &meshNode);
 
-				if (!bIsRallyTrophyModel) {
-					auto typeNode = new aiNode();
-					typeNode->mName = std::format("{}TYPE_{}", &compactMesh - &aCompactMeshes[0], compactMesh.sName2);
-					meshNode->addChildren(1, &typeNode);
-				}
+				auto typeNode = new aiNode();
+				typeNode->mName = std::format("{}TYPE_{}", &compactMesh - &aCompactMeshes[0], compactMesh.sName2);
+				meshNode->addChildren(1, &typeNode);
 
 				if (compactMesh.nGroup != -1) {
 					auto groupNode = new aiNode();

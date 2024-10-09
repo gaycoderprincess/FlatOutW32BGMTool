@@ -648,6 +648,24 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 			mat.nAlpha = 1;
 			mat._bIsCustomFOUCTree = true;
 		}
+		if (mat.sTextureNames[0].starts_with("kenya_tree") && mat.sTextureNames[0].find("trunk") == std::string::npos) {
+			mat.nAlpha = 1;
+			mat._bIsCustomFOUCTree = true;
+		}
+		// should plane2_bush be here?
+
+		if (mat.sName.starts_with("river")) {
+			if (bIsFOUCModel) {
+				mat.sTextureNames[0] = "puddle_normal.tga";
+				mat.nShaderId = 45; // puddle
+				mat.nAlpha = 1;
+			}
+			else {
+				mat.sTextureNames[0] = "alpha_windowshader.tga";
+				mat.nShaderId = 34; // reflecting window shader (static)
+				mat.nAlpha = 1;
+			}
+		}
 
 		return;
 	}
@@ -1268,8 +1286,10 @@ void AddCompactMeshFromFBXNode(aiNode* prop, int defaultGroup) {
 		tCompactMesh mesh;
 		mesh.sName1 = prop->mName.C_Str();
 		if (dynamicType.empty() && !bAllowEmptyPropTypes) {
-			WriteConsole("WARNING: Prop " + mesh.sName1 + " has no dynamic type! Defaulting to metal_light", LOG_WARNINGS);
-			mesh.sName2 = "metal_light";
+			std::string defType = "metal_light";
+			if (bRallyTrophyShaderFixup && (mesh.sName1.starts_with("checkpoint") || mesh.sName1.starts_with("roadbar"))) defType = "wood_light";
+			WriteConsole("WARNING: Prop " + mesh.sName1 + " has no dynamic type! Defaulting to " + defType, LOG_WARNINGS);
+			mesh.sName2 = defType;
 		}
 		else {
 			mesh.sName2 = dynamicType;
@@ -1400,12 +1420,15 @@ void WriteW32(uint32_t exportMapVersion) {
 			tStartpoint startPoint;
 			FBXMatrixToFO2Matrix(node->mTransformation, startPoint.mMatrix);
 
-			startPoint.mMatrix[0] *= -1;
-			startPoint.mMatrix[1] *= -1;
-			startPoint.mMatrix[2] *= -1;
-			startPoint.mMatrix[8] *= -1;
-			startPoint.mMatrix[9] *= -1;
-			startPoint.mMatrix[10] *= -1;
+			startPoint.mMatrix[0] = 1;
+			startPoint.mMatrix[1] = 0;
+			startPoint.mMatrix[2] = 0;
+			startPoint.mMatrix[4] = 0;
+			startPoint.mMatrix[5] = 1;
+			startPoint.mMatrix[6] = 0;
+			startPoint.mMatrix[8] = 0;
+			startPoint.mMatrix[9] = 0;
+			startPoint.mMatrix[10] = 1;
 
 			aStartpoints.push_back(startPoint);
 		}
@@ -1416,12 +1439,15 @@ void WriteW32(uint32_t exportMapVersion) {
 			tStartpoint startPoint;
 			FBXMatrixToFO2Matrix(node->mTransformation, startPoint.mMatrix);
 
-			startPoint.mMatrix[0] *= -1;
-			startPoint.mMatrix[1] *= -1;
-			startPoint.mMatrix[2] *= -1;
-			startPoint.mMatrix[8] *= -1;
-			startPoint.mMatrix[9] *= -1;
-			startPoint.mMatrix[10] *= -1;
+			startPoint.mMatrix[0] = 1;
+			startPoint.mMatrix[1] = 0;
+			startPoint.mMatrix[2] = 0;
+			startPoint.mMatrix[4] = 0;
+			startPoint.mMatrix[5] = 1;
+			startPoint.mMatrix[6] = 0;
+			startPoint.mMatrix[8] = 0;
+			startPoint.mMatrix[9] = 0;
+			startPoint.mMatrix[10] = 1;
 
 			aStartpoints.push_back(startPoint);
 		}
