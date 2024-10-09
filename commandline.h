@@ -169,6 +169,9 @@ void CMD_W32_NeverUseTerrainShader() {
 void CMD_W32_RallyTrophyShaderFixup() {
 	bRallyTrophyShaderFixup = true;
 }
+void CMD_W32_RallyTrophyNodes() {
+	bRallyTrophyNodes = true;
+}
 void CMD_W32_ImportDeletions() {
 	bImportDeletionFromFBX = true;
 	bLoadFBX = true;
@@ -283,6 +286,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-allow_empty_prop_types", CMD_W32_AllowEmptyPropTypes, "Disables defaulting to metal_light for empty prop types" },
 		{ "-never_use_terrain_shader", CMD_W32_NeverUseTerrainShader, "Always use static prelit instead of the dual-UV terrain shader" },
 		{ "-rally_trophy_shader_fixup", CMD_W32_RallyTrophyShaderFixup, "Parse material names with Rally Trophy maps in mind" },
+		{ "-rally_trophy_nodes", CMD_W32_RallyTrophyNodes, "Imports Rally Trophy splitpoints and startpoints" },
 
 		// text options
 		{ "-text_materials", CMD_DumpText_Materials, "Dumps all material data into a text file", "Text dumps" },

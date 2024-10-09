@@ -1172,6 +1172,13 @@ void WalkFBXTreeForMeshes(aiNode* node) {
 }
 
 tModel* CreateModelFromMesh(aiNode* node) {
+	if (bRallyTrophyNodes) {
+		auto nodeName = (std::string) node->mName.C_Str();
+		if (nodeName.starts_with("split_") || nodeName.starts_with("start")) {
+			return nullptr;
+		}
+	}
+
 	std::vector<aiMesh*> aMeshes;
 	for (int i = 0; i < node->mNumMeshes; i++) {
 		aMeshes.push_back(pParsedFBXScene->mMeshes[node->mMeshes[i]]);
@@ -1384,6 +1391,59 @@ void WriteW32(uint32_t exportMapVersion) {
 			splitPoint.right.x = right->mTransformation.a4;
 			splitPoint.right.y = right->mTransformation.b4;
 			splitPoint.right.z = -right->mTransformation.c4;
+			aSplitpoints.push_back(splitPoint);
+		}
+	}
+
+	if (bRallyTrophyNodes) {
+		if (auto node = FindFBXNodeForCompactMesh("start")) {
+			tStartpoint startPoint;
+			FBXMatrixToFO2Matrix(node->mTransformation, startPoint.mMatrix);
+
+			startPoint.mMatrix[0] *= -1;
+			startPoint.mMatrix[1] *= -1;
+			startPoint.mMatrix[2] *= -1;
+			startPoint.mMatrix[8] *= -1;
+			startPoint.mMatrix[9] *= -1;
+			startPoint.mMatrix[10] *= -1;
+
+			aStartpoints.push_back(startPoint);
+		}
+		for (int i = 0; i < 64; i++) {
+			auto node = FindFBXNodeForCompactMesh(std::format("start{:02}", i));
+			if (!node) continue;
+
+			tStartpoint startPoint;
+			FBXMatrixToFO2Matrix(node->mTransformation, startPoint.mMatrix);
+
+			startPoint.mMatrix[0] *= -1;
+			startPoint.mMatrix[1] *= -1;
+			startPoint.mMatrix[2] *= -1;
+			startPoint.mMatrix[8] *= -1;
+			startPoint.mMatrix[9] *= -1;
+			startPoint.mMatrix[10] *= -1;
+
+			aStartpoints.push_back(startPoint);
+		}
+
+		for (int i = 0; i < 256; i++) {
+			auto node = FindFBXNodeForCompactMesh(std::format("split_{:02}", i));
+			if (!node) continue;
+
+			tSplitpoint splitPoint;
+			float tmp[4*4];
+			FBXMatrixToFO2Matrix(node->mTransformation, tmp);
+			splitPoint.pos.x = tmp[(4*3)+0];
+			splitPoint.pos.y = tmp[(4*3)+1];
+			splitPoint.pos.z = tmp[(4*3)+2];
+			splitPoint.left = splitPoint.pos;
+			splitPoint.right = splitPoint.pos;
+			splitPoint.left.x -= tmp[0] * 50;
+			splitPoint.left.y -= tmp[1] * 50;
+			splitPoint.left.z -= tmp[2] * 50;
+			splitPoint.right.x += tmp[0] * 50;
+			splitPoint.right.y += tmp[1] * 50;
+			splitPoint.right.z += tmp[2] * 50;
 			aSplitpoints.push_back(splitPoint);
 		}
 	}

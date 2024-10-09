@@ -51,6 +51,7 @@ bool bToughTrucksStadiumScreen = false;
 bool bAllowEmptyPropTypes = false;
 bool bNeverUseTerrainShader = false;
 bool bRallyTrophyShaderFixup = false;
+bool bRallyTrophyNodes = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;
