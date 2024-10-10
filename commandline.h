@@ -285,7 +285,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-remove_bushes", CMD_W32_NoBushes, "Removes all surfaces using alpha_bushbranch when importing from .fbx" },
 		{ "-allow_empty_prop_types", CMD_W32_AllowEmptyPropTypes, "Disables defaulting to metal_light for empty prop types" },
 		{ "-never_use_terrain_shader", CMD_W32_NeverUseTerrainShader, "Always use static prelit instead of the dual-UV terrain shader" },
-		{ "-rally_trophy_shader_fixup", CMD_W32_RallyTrophyShaderFixup, "Parse material names with Rally Trophy maps in mind" },
+		{ "-rally_trophy_fixup", CMD_W32_RallyTrophyShaderFixup, "Parse material and object names with Rally Trophy maps in mind" },
 		{ "-rally_trophy_nodes", CMD_W32_RallyTrophyNodes, "Imports Rally Trophy splitpoints and startpoints" },
 
 		// text options
