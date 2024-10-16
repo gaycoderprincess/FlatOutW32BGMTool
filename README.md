@@ -7,6 +7,7 @@ For a quick guide on how to get started with the tool, check out the [examples &
 This tool is currently capable of:
 - Parsing and recreating the formats from memory
 - Exporting cars and tracks to .fbx
+- Exporting cars and tracks from Rally Trophy and Tough Trucks to .fbx
 - Converting FlatOut 2 tracks to FlatOut 1
 - Converting FlatOut: Ultimate Carnage cars to FlatOut 1 and 2
 - Editing tracks in FlatOut 1, 2 and Ultimate Carnage
