@@ -17,6 +17,7 @@ This tool is currently capable of:
 Thanks to Gulbroz for their existing work on this format, it was a great jumping-off point.
 
 ![custom UC car & track preview](https://i.imgur.com/YQR6Hel.png)
+![Rally Trophy track in FOUC](https://i.imgur.com/yDpSjLz.png)
 ![custom track mesh preview](https://i.imgur.com/lpQsDOl.png)
 
 ## Usage
