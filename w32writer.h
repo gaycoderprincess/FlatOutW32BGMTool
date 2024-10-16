@@ -557,6 +557,22 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	}
 	FixNameExtensions(mat.sName);
 
+	if (bRallyTrophyShaderFixup) {
+		if (mat.sTextureNames[0] == "body.tga" || mat.sTextureNames[0] == "Body.tga") {
+			mat.nShaderId = 5; // car body
+			mat.sName = "body";
+		}
+		if (mat.sTextureNames[0] == "interior_lo.tga") mat.sTextureNames[0] = "interior.tga";
+		if (mat.sName == "Collision" || mat.sTextureNames[0].starts_with("null")) mat.nShaderId = 13; // shadow project
+		if (mat.sName == "#E1 window front") mat.sName = "window_front";
+		if (mat.sName == "#E1 window leftside") mat.sName = "window_left";
+		if (mat.sName == "#E1 window rightside") mat.sName = "window_right";
+		if (mat.sName.starts_with("tire alpha")) mat.sTextureNames[0] = bIsFOUCModel ? "rim.tga" : "tire_01.tga";
+		else if (mat.sName.starts_with("tire")) mat.sTextureNames[0] = bIsFOUCModel ? "tire.tga" : "tire_01.tga";
+
+		if (mat.sName.ends_with(" alpha")) mat.nAlpha = 1;
+	}
+
 	// car lights have alpha
 	if (mat.sTextureNames[0] == "lights.tga" || mat.sTextureNames[0] == "windows.tga" || mat.sTextureNames[0] == "shock.tga") {
 		mat.nAlpha = 1;
@@ -798,11 +814,15 @@ int GetBGMMaterialID(const std::string& name, const std::string& path) {
 	for (auto& material : aMaterials) {
 		if (material.sTextureNames[0] == path) return &material - &aMaterials[0];
 	}
+	WriteConsole(std::format("WARNING: Failed to find material {}", name), LOG_WARNINGS);
 	return 0;
 }
 
 int GetBGMMaterialID(aiMaterial* material) {
-	return GetBGMMaterialID(material->GetName().C_Str(), GetFBXTextureInFO2Style(material, 0));
+	auto mat = GetMaterialFromFBX(material);
+	FixupFBXCarMaterial(mat);
+
+	return GetBGMMaterialID(mat.sName, mat.sTextureNames[0]);
 }
 
 void CreateBGMSurfaceFromFBX(aiNode* node, int meshId, bool isCrash) {
@@ -906,18 +926,24 @@ void FillBGMFromFBX() {
 
 		tBGMMesh bgmMesh;
 		bgmMesh.sName1 = bodyNode->mName.C_Str();
+		FixNameExtensions(bgmMesh.sName1);
+		if (bgmMesh.sName1.ends_with("_crash")) continue;
+
 		bgmMesh.nFlags = 0x0;
 		bgmMesh.nGroup = -1;
 		FBXMatrixToFO2Matrix(bodyNode->mTransformation, bgmMesh.mMatrix);
 
-		for (int j = 0; j < bodyNode->mNumChildren; j++) {
-			auto body001 = bodyNode->mChildren[j]; // body.001
+		tModel model;
+		model.sName = bodyNode->mName.C_Str();
+		FixNameExtensions(model.sName);
 
-			tModel model;
-			model.sName = body001->mName.C_Str();
+		float aabbMin[3] = {0, 0, 0};
+		float aabbMax[3] = {0, 0, 0};
 
-			float aabbMin[3] = {0, 0, 0};
-			float aabbMax[3] = {0, 0, 0};
+		for (int j = -1; j < (int)bodyNode->mNumChildren; j++) {
+			aiNode* body001 = nullptr;
+			if (j < 0) body001 = bodyNode;
+			else body001 = bodyNode->mChildren[j]; // body.001
 
 			struct tmp {
 				aiNode* node;
@@ -928,12 +954,15 @@ void FillBGMFromFBX() {
 			for (int k = 0; k < body001->mNumMeshes; k++) {
 				aMeshes.push_back({body001, k});
 			}
-			for (int k = 0; k < body001->mNumChildren; k++) {
-				auto surface = body001->mChildren[k]; // Surface1
-				for (int l = 0; l < surface->mNumMeshes; l++) {
-					aMeshes.push_back({surface, l});
+			if (j >= 0) {
+				for (int k = 0; k < body001->mNumChildren; k++) {
+					auto surface = body001->mChildren[k]; // Surface1
+					for (int l = 0; l < surface->mNumMeshes; l++) {
+						aMeshes.push_back({surface, l});
+					}
 				}
 			}
+			if (aMeshes.empty()) continue;
 
 			for (int p = 0; p < 255; p++) {
 				for (auto& data: aMeshes) {
@@ -959,25 +988,81 @@ void FillBGMFromFBX() {
 					CreateBGMSurfaceFromFBX(data.node, data.meshId, false);
 				}
 			}
-
-			FixNameExtensions(model.sName);
-
-			model.vCenter[0] = (aabbMax[0] + aabbMin[0]) * 0.5;
-			model.vCenter[1] = (aabbMax[1] + aabbMin[1]) * 0.5;
-			model.vCenter[2] = (aabbMax[2] + aabbMin[2]) * -0.5;
-			model.vRadius[0] = std::abs(aabbMax[0] - aabbMin[0]) * 0.5;
-			model.vRadius[1] = std::abs(aabbMax[1] - aabbMin[1]) * 0.5;
-			model.vRadius[2] = std::abs(aabbMax[2] - aabbMin[2]) * 0.5;
-			if (!model.aCrashSurfaces.empty() && model.aCrashSurfaces.size() != model.aSurfaces.size()) {
-				WriteConsole("ERROR: " + model.sName + " has crash models but not for every mesh! Skipping", LOG_ERRORS);
-				model.aCrashSurfaces.clear();
-			}
-			// fRadius isn't required, game doesn't read it
-			bgmMesh.aModels.push_back(aModels.size());
-			aModels.push_back(model);
 		}
 
+		if (!model.aCrashSurfaces.empty() && model.aCrashSurfaces.size() != model.aSurfaces.size()) {
+			WriteConsole("ERROR: " + model.sName + " has crash models but not for every mesh! Skipping", LOG_ERRORS);
+			model.aCrashSurfaces.clear();
+		}
+		model.vCenter[0] = (aabbMax[0] + aabbMin[0]) * 0.5;
+		model.vCenter[1] = (aabbMax[1] + aabbMin[1]) * 0.5;
+		model.vCenter[2] = (aabbMax[2] + aabbMin[2]) * -0.5;
+		model.vRadius[0] = std::abs(aabbMax[0] - aabbMin[0]) * 0.5;
+		model.vRadius[1] = std::abs(aabbMax[1] - aabbMin[1]) * 0.5;
+		model.vRadius[2] = std::abs(aabbMax[2] - aabbMin[2]) * 0.5;
+		// fRadius isn't required, game doesn't read it
+		bgmMesh.aModels.push_back(aModels.size());
+		aModels.push_back(model);
+
+		if (bgmMesh.aModels.empty()) {
+			WriteConsole(std::format("WARNING: BGMMesh {} is empty", bgmMesh.sName1), LOG_WARNINGS);
+			continue;
+		}
 		aBGMMeshes.push_back(bgmMesh);
+	}
+
+	for (auto& mesh : aBGMMeshes) {
+		auto crash = FindFBXNodeForBGMMesh(mesh.sName1 + "_crash");
+		if (!crash) continue;
+
+		auto model = &aModels[mesh.aModels[0]];
+
+		int counter = 0;
+		for (int j = -1; j < (int)crash->mNumChildren; j++) {
+			aiNode* body001 = nullptr;
+			if (j < 0) body001 = crash;
+			else body001 = crash->mChildren[j]; // body.001
+			auto name = (std::string)body001->mName.C_Str();
+			FixNameExtensions(name);
+
+			struct tmp {
+				aiNode* node;
+				int meshId;
+			};
+			std::vector<tmp> aMeshes;
+
+			for (int k = 0; k < body001->mNumMeshes; k++) {
+				aMeshes.push_back({body001, k});
+			}
+			if (j >= 0) {
+				for (int k = 0; k < body001->mNumChildren; k++) {
+					auto surface = body001->mChildren[k]; // Surface1
+					for (int l = 0; l < surface->mNumMeshes; l++) {
+						aMeshes.push_back({surface, l});
+					}
+				}
+			}
+
+			if (aMeshes.empty()) continue;
+			//if (counter >= mesh.aModels.size()) continue;
+
+			//auto model = &aModels[mesh.aModels[counter++]];
+
+			for (int p = 0; p < 255; p++) {
+				for (auto& data: aMeshes) {
+					auto mesh = pParsedFBXScene->mMeshes[data.node->mMeshes[data.meshId]];
+					if (GetMaterialSortPriority(pParsedFBXScene->mMaterials[mesh->mMaterialIndex]) != p) continue;
+
+					model->aCrashSurfaces.push_back(aCrashSurfaces.size());
+					CreateBGMSurfaceFromFBX(data.node, data.meshId, true);
+				}
+			}
+		}
+
+		if (!model->aCrashSurfaces.empty() && model->aCrashSurfaces.size() != model->aSurfaces.size()) {
+			WriteConsole("ERROR: " + model->sName + " has crash models but not for every mesh! Skipping", LOG_ERRORS);
+			model->aCrashSurfaces.clear();
+		}
 	}
 
 	if (bMenuCarCombineMaterials && aSurfaces.size() > 16) {

@@ -629,25 +629,15 @@ aiNode* FindFBXNodeForSplitpointPos(int id) {
 }
 
 aiNode* FindFBXNodeForCompactMesh(const std::string& name) {
-	auto root = GetFBXNodeForCompactMeshArray();
-	if (!root) return nullptr;
+	return FindFBXNodeInChild(GetFBXNodeForCompactMeshArray(), name);
+}
 
-	for (int i = 0; i < root->mNumChildren; i++) {
-		auto node = root->mChildren[i];
-		if (!strcmp(node->mName.C_Str(), name.c_str())) return node;
-	}
-	return nullptr;
+aiNode* FindFBXNodeForBGMMesh(const std::string& name) {
+	return FindFBXNodeInChild(GetFBXNodeForBGMMeshArray(), name);
 }
 
 aiNode* FindFBXNodeForObject(const std::string& name) {
-	auto root = GetFBXNodeForObjectsArray();
-	if (!root) return nullptr;
-
-	for (int i = 0; i < root->mNumChildren; i++) {
-		auto node = root->mChildren[i];
-		if (!strcmp(node->mName.C_Str(), name.c_str())) return node;
-	}
-	return nullptr;
+	return FindFBXNodeInChild(GetFBXNodeForObjectsArray(), name);
 }
 
 aiNode* FindFBXNodeForStaticBatchSurface(const std::string& name) {

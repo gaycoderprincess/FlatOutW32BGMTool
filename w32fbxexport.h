@@ -546,7 +546,7 @@ aiScene GenerateScene() {
 			}
 		}
 	}
-	if (bIsFOUCModel && !bIsBGMModel && !bIsRallyTrophyModel) {
+	if (bIsFOUCModel && !bIsBGMModel) {
 		if (auto node = new aiNode()) {
 			node->mName = "TreeMesh";
 			scene.mRootNode->addChildren(1, &node);
@@ -565,23 +565,25 @@ aiScene GenerateScene() {
 	}
 
 	if (!bIsBGMModel) {
-		if (auto node = new aiNode()) {
-			std::vector<int> surfaceIds;
-			for (auto& batch: aStaticBatches) {
-				if (IsSurfaceValidAndExportable(batch.nBVHId1)) surfaceIds.push_back(batch.nBVHId1);
-			}
+		if (!IsRallyTrophyCar() && !bIsRetroDemoCar) {
+			if (auto node = new aiNode()) {
+				std::vector<int> surfaceIds;
+				for (auto &batch: aStaticBatches) {
+					if (IsSurfaceValidAndExportable(batch.nBVHId1)) surfaceIds.push_back(batch.nBVHId1);
+				}
 
-			node->mName = "StaticBatch";
-			scene.mRootNode->addChildren(1, &node);
-			node->mMeshes = new uint32_t[surfaceIds.size()];
-			node->mNumMeshes = surfaceIds.size();
-			int i = 0;
-			for (auto &surfaceId: surfaceIds) {
-				node->mMeshes[i++] = aSurfaces[surfaceId]._nFBXModelId;
+				node->mName = "StaticBatch";
+				scene.mRootNode->addChildren(1, &node);
+				node->mMeshes = new uint32_t[surfaceIds.size()];
+				node->mNumMeshes = surfaceIds.size();
+				int i = 0;
+				for (auto &surfaceId: surfaceIds) {
+					node->mMeshes[i++] = aSurfaces[surfaceId]._nFBXModelId;
+				}
 			}
 		}
 
-		if (!bIsFOUCModel) {
+		if (!bIsFOUCModel && !IsRallyTrophyCar() && !bIsRetroDemoCar) {
 			if (auto node = new aiNode()) {
 				node->mName = "TreeMesh";
 				scene.mRootNode->addChildren(1, &node);
@@ -696,7 +698,7 @@ aiScene GenerateScene() {
 	}
 	else {
 		if (auto node = new aiNode()) {
-			node->mName = "CompactMesh";
+			node->mName = IsRallyTrophyCar() || bIsRetroDemoCar ? "BGMMesh" : "CompactMesh";
 			scene.mRootNode->addChildren(1, &node);
 			for (auto& compactMesh: aCompactMeshes) {
 				if (bFBXSkipHiddenProps && compactMesh.nFlags != 0xE000 && compactMesh.nFlags != nFBXSkipHiddenPropsFlag) continue;
@@ -706,14 +708,17 @@ aiScene GenerateScene() {
 				FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
 				node->addChildren(1, &meshNode);
 
-				auto typeNode = new aiNode();
-				typeNode->mName = std::format("{}TYPE_{}", &compactMesh - &aCompactMeshes[0], compactMesh.sName2);
-				meshNode->addChildren(1, &typeNode);
+				if (!IsRallyTrophyCar() && !bIsRetroDemoCar) {
+					auto typeNode = new aiNode();
+					typeNode->mName = std::format("{}TYPE_{}", &compactMesh - &aCompactMeshes[0], compactMesh.sName2);
+					meshNode->addChildren(1, &typeNode);
 
-				if (compactMesh.nGroup != -1) {
-					auto groupNode = new aiNode();
-					groupNode->mName = std::format("{}GROUP_{}", &compactMesh - &aCompactMeshes[0], compactMesh.nGroup);
-					meshNode->addChildren(1, &groupNode);
+					if (compactMesh.nGroup != -1) {
+						auto groupNode = new aiNode();
+						groupNode->mName = std::format("{}GROUP_{}", &compactMesh - &aCompactMeshes[0],
+													   compactMesh.nGroup);
+						meshNode->addChildren(1, &groupNode);
+					}
 				}
 
 				// not loading the damaged or lod parts here

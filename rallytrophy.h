@@ -219,6 +219,7 @@ bool ParseRallyTrophyToken(std::ifstream& file, const std::string& str) {
 		return ParseRallyTrophyToken(file, ParseRallyTrophyModel(file));
 	}
 	if (str == "TRACK") {
+		bIsRallyTrophyTrack = true;
 		uint8_t tmptrack[44];
 		ReadFromFile(file, tmptrack, sizeof(tmptrack));
 		return true;
@@ -263,6 +264,48 @@ bool ParseRallyTrophyBMF() {
 			memcpy(batch.vRadius, surface.vRadius, sizeof(batch.vRadius));
 			aStaticBatches.push_back(batch);
 			surface.RegisterReference(SURFACE_REFERENCE_STATICBATCH);
+		}
+	}
+
+	// create objects for meshes with 1 model that has 24 vertices (the dummy cubes)
+	for (auto& compactMesh : aCompactMeshes) {
+		if (compactMesh.aLODMeshIds.size() != 1) continue;
+
+		auto model = &aModels[compactMesh.aLODMeshIds[0]];
+		if (model->aSurfaces.size() != 1) continue;
+
+		auto surface = &aSurfaces[model->aSurfaces[0]];
+		if (surface->nVertexCount != 24) continue;
+		if (surface->nPolyCount != 12) continue;
+
+		tObject object;
+		object.sName1 = compactMesh.sName1;
+		object.sName2 = compactMesh.sName2;
+		object.nFlags = compactMesh.nFlags;
+		memcpy(object.mMatrix, compactMesh.mMatrix, sizeof(object.mMatrix));
+		aObjects.push_back(object);
+	}
+
+	// create tire dummies
+	if (IsRallyTrophyCar()) {
+		for (auto &compactMesh: aCompactMeshes) {
+			if (compactMesh.sName1.starts_with("tire_") && !compactMesh.sName1.ends_with("_lod")) {
+				tObject object;
+				object.sName1 = "placeholder_" + compactMesh.sName1;
+				object.sName2 = compactMesh.sName2;
+				object.nFlags = compactMesh.nFlags;
+				memcpy(object.mMatrix, compactMesh.mMatrix, sizeof(object.mMatrix));
+				aObjects.push_back(object);
+			}
+
+			if (compactMesh.sName1 == "hood" || compactMesh.sName1 == "trunk") {
+				tObject object;
+				object.sName1 = compactMesh.sName1 + "_joint";
+				object.sName2 = compactMesh.sName2;
+				object.nFlags = compactMesh.nFlags;
+				memcpy(object.mMatrix, compactMesh.mMatrix, sizeof(object.mMatrix));
+				aObjects.push_back(object);
+			}
 		}
 	}
 

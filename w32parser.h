@@ -833,7 +833,7 @@ bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
 		int32_t tmp;
 		ReadFromFile(file, &tmp, 4);
 		ReadFromFile(file, &tmp, 4);
-		if (mesh.sName2.empty()) {
+		if (!bIsRetroDemoCar && mesh.sName2.empty()) {
 			for (auto& lod : mesh.aLODMeshIds) {
 				for (auto& id : aModels[lod].aSurfaces) {
 					tStaticBatch batch;
@@ -851,6 +851,22 @@ bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
 		}
 	}
 
+	if (bIsRetroDemoCar) {
+		uint32_t count;
+		ReadFromFile(file, &count, 4);
+		for (int i = 0; i < count; i++) {
+			tObject obj;
+			ReadFromFile(file, &obj.identifier, 4);
+			if (obj.identifier != 0x434A424F) return false; // OBJC
+
+			obj.sName1 = ReadStringFromFile(file);
+			obj.sName2 = ReadStringFromFile(file);
+			ReadFromFile(file, &obj.nFlags, 4);
+			ReadFromFile(file, obj.mMatrix, sizeof(obj.mMatrix));
+			aObjects.push_back(obj);
+		}
+	}
+
 	for (auto& surface : aSurfaces) {
 		if (surface._nNumReferences <= 0) {
 			tStaticBatch batch;
@@ -863,6 +879,20 @@ bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
 		}
 	}
 
+	// create tire dummies
+	if (bIsRetroDemoCar) {
+		for (auto &compactMesh: aCompactMeshes) {
+			if (compactMesh.sName1.starts_with("tire_") && !compactMesh.sName1.ends_with("shadow")) {
+				tObject object;
+				object.sName1 = "placeholder_" + compactMesh.sName1;
+				object.sName2 = compactMesh.sName2;
+				object.nFlags = compactMesh.nFlags;
+				memcpy(object.mMatrix, compactMesh.mMatrix, sizeof(object.mMatrix));
+				aObjects.push_back(object);
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -872,7 +902,7 @@ bool ParseW32() {
 		return ParseRallyTrophyBMF();
 	}
 
-	if (sFileName.extension() != ".w32" && sFileName.extension() != ".xbx" && sFileName.extension() != ".trk") {
+	if (sFileName.extension() != ".w32" && sFileName.extension() != ".xbx" && sFileName.extension() != ".trk" && sFileName.extension() != ".car") {
 		return false;
 	}
 
@@ -880,6 +910,11 @@ bool ParseW32() {
 	if (!fin.is_open()) return false;
 
 	ReadFromFile(fin, &nImportFileVersion, 4);
+	// retro demo CARC
+	if (nImportFileVersion == 0x43524143) {
+		ReadFromFile(fin, &nImportFileVersion, 4);
+		bIsRetroDemoCar = true;
+	}
 
 	if (nImportFileVersion == 0x62647370) {
 		WriteConsole("ERROR: Plant W32 files are not supported!", LOG_ERRORS);
@@ -894,7 +929,7 @@ bool ParseW32() {
 		}
 	}
 	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
-	else {
+	else if (!bIsRetroDemoCar) {
 		if (nImportFileVersion <= 0x10003) {
 			auto vertexColorsPath = sFileNameNoExt.string() + "_sky_vtx.rad";
 			if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
@@ -918,38 +953,41 @@ bool ParseW32() {
 		}
 	}
 
-	if (bDumpIntoW32 || bDumpIntoTextFile) {
-		auto bvhPath = sFileNameNoExt.string() + "_bvh.gen";
-		if (!std::filesystem::exists(bvhPath)) bvhPath = sFileFolder.string() + "track_bvh.gen";
+	if (!bIsRetroDemoCar) {
+		if (bDumpIntoW32 || bDumpIntoTextFile) {
+			auto bvhPath = sFileNameNoExt.string() + "_bvh.gen";
+			if (!std::filesystem::exists(bvhPath)) bvhPath = sFileFolder.string() + "track_bvh.gen";
 
-		if (!ParseTrackBVH(bvhPath)) {
-			WriteConsole("WARNING: Failed to load " + (std::string) bvhPath + ", culling data will not be updated", LOG_WARNINGS);
+			if (!ParseTrackBVH(bvhPath)) {
+				WriteConsole("WARNING: Failed to load " + (std::string) bvhPath + ", culling data will not be updated",
+							 LOG_WARNINGS);
+			}
 		}
-	}
 
-	auto splitPointsPath = sFileNameNoExt.string() + "_splitpoints.bed";
-	if (!std::filesystem::exists(splitPointsPath)) splitPointsPath = sFileFolder.string() + "splitpoints.bed";
-	if (!ParseSplitpoints(splitPointsPath)) {
-		WriteConsole("WARNING: Failed to load " + (std::string)splitPointsPath + "!", LOG_WARNINGS);
-	}
+		auto splitPointsPath = sFileNameNoExt.string() + "_splitpoints.bed";
+		if (!std::filesystem::exists(splitPointsPath)) splitPointsPath = sFileFolder.string() + "splitpoints.bed";
+		if (!ParseSplitpoints(splitPointsPath)) {
+			WriteConsole("WARNING: Failed to load " + (std::string) splitPointsPath + "!", LOG_WARNINGS);
+		}
 
-	auto startPointsPath = sFileNameNoExt.string() + "_startpoints.bed";
-	if (!std::filesystem::exists(startPointsPath)) startPointsPath = sFileFolder.string() + "startpoints.bed";
-	if (!ParseStartpoints(startPointsPath)) {
-		WriteConsole("WARNING: Failed to load " + (std::string)startPointsPath + "!", LOG_WARNINGS);
-	}
+		auto startPointsPath = sFileNameNoExt.string() + "_startpoints.bed";
+		if (!std::filesystem::exists(startPointsPath)) startPointsPath = sFileFolder.string() + "startpoints.bed";
+		if (!ParseStartpoints(startPointsPath)) {
+			WriteConsole("WARNING: Failed to load " + (std::string) startPointsPath + "!", LOG_WARNINGS);
+		}
 
-	auto splinesPath = sFileNameNoExt.string() + "_splines.ai";
-	if (!std::filesystem::exists(splinesPath)) splinesPath = sFileFolder.string() + "splines.ai";
-	if (!ParseSplines(splinesPath)) {
-		WriteConsole("WARNING: Failed to load " + (std::string)splinesPath + "!", LOG_WARNINGS);
+		auto splinesPath = sFileNameNoExt.string() + "_splines.ai";
+		if (!std::filesystem::exists(splinesPath)) splinesPath = sFileFolder.string() + "splines.ai";
+		if (!ParseSplines(splinesPath)) {
+			WriteConsole("WARNING: Failed to load " + (std::string) splinesPath + "!", LOG_WARNINGS);
+		}
 	}
 
 	if (!ParseW32Materials(fin)) return false;
 
 	if (nImportFileVersion <= 0x10003) {
 		if (!ParseW32RetroDemoSurfaces(fin)) return false;
-		if (!ParseW32RetroDemoTMOD(fin)) return false;
+		if (!bIsRetroDemoCar && !ParseW32RetroDemoTMOD(fin)) return false;
 		if (!ParseW32RetroDemoCompactMeshes(fin)) return false;
 		return true;
 	}

@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
 					if (bDumpIntoBMP) Write4BToBMP();
 				}
 			}
-			else if (sFileName.extension() == ".bgm" || sFileName.extension() == ".car") {
+			else if (sFileName.extension() == ".bgm") {
 				if (!ParseBGM()) {
 					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 				} else {
@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
 				if (bDumpIntoTextFile) {
 					WriteBGMToText();
 				}
-			} else if (sFileName.extension() == ".w32" || sFileName.extension() == ".xbx" || sFileName.extension() == ".trk" || sFileName.extension() == ".bmf" || sFileName.extension() == ".BMF") {
+			} else if (sFileName.extension() == ".w32" || sFileName.extension() == ".xbx" || sFileName.extension() == ".trk" || sFileName.extension() == ".car" || sFileName.extension() == ".bmf" || sFileName.extension() == ".BMF") {
 				if (!ParseW32()) {
 					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 				} else {
