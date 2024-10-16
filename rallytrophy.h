@@ -30,7 +30,6 @@ tCompactMesh* meshToAddModelsTo = nullptr;
 void ParseRallyTrophyMesh(std::ifstream& file) {
 	tCompactMesh mesh;
 	mesh.sName1 = ReadStringFromFile(file);
-	//WriteConsole(std::format("reading mesh {}", mesh.sName1), LOG_ALWAYS);
 
 	int tmp;
 	ReadFromFile(file, &tmp, 4); // 0
@@ -42,8 +41,6 @@ void ParseRallyTrophyMesh(std::ifstream& file) {
 	//WriteConsole(std::format("{}, {}, {}, {}", mesh.mMatrix[8], mesh.mMatrix[9], mesh.mMatrix[10], mesh.mMatrix[11]), LOG_ALWAYS);
 	//WriteConsole(std::format("{}, {}, {}, {}", mesh.mMatrix[12], mesh.mMatrix[13], mesh.mMatrix[14], mesh.mMatrix[15]), LOG_ALWAYS);
 
-	//WriteConsole(std::format("mesh matrix ends at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
-
 	// bunch of floats from 2B2ACE til 2B2B12
 
 	ReadFromFile(file, &mesh.mMatrix[12], 4*3);
@@ -52,16 +49,12 @@ void ParseRallyTrophyMesh(std::ifstream& file) {
 
 	float tmpf[17-3];
 	ReadFromFile(file, tmpf, sizeof(tmpf));
-	//WriteConsole(std::format("mesh float array ends at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 
 	ReadFromFile(file, &tmp, 4); // 0
 	ReadFromFile(file, &tmp, 4); // 127277
-	//WriteConsole(std::format("model begins at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
 }
 
 void ParseRallyTrophyHierarchy(std::ifstream& file) {
-	//WriteConsole(std::format("hierarchy starts at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
-
 	int tmp;
 	ReadFromFile(file, &tmp, 4); // 3694, prolly count
 	ReadFromFile(file, &tmp, 4); // 164
@@ -102,8 +95,6 @@ void FinishUpRallyTrophyModel(tModel& model) {
 }
 
 void ParseRallyTrophyCamera(std::ifstream& file) {
-	//WriteConsole(std::format("Reading camera at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
-
 	ReadStringFromFile(file);
 
 	// 900468 - 90050D
@@ -112,8 +103,6 @@ void ParseRallyTrophyCamera(std::ifstream& file) {
 }
 
 void ParseRallyTrophyLight(std::ifstream& file) {
-	//WriteConsole(std::format("Reading light at {:X}", (uint32_t)file.tellg()), LOG_ALWAYS);
-
 	ReadStringFromFile(file);
 
 	// 900E72 - 900F37
@@ -200,22 +189,53 @@ std::string ParseRallyTrophyModel(std::ifstream& file) {
 }
 
 bool ParseRallyTrophyToken(std::ifstream& file, const std::string& str) {
+	if (str == "MAIN") {
+		int tmp;
+		ReadFromFile(file, &tmp, 4);
+		return true;
+	}
+	if (str == "INFO") {
+		int tmp;
+		ReadFromFile(file, &tmp, 4);
+		return true;
+	}
+	if (str == "BMF") {
+		auto exporter = ReadStringFromFile(file);
+		WriteConsole(std::format("BMF exported from {}", exporter), LOG_ALWAYS);
+		int tmp;
+		ReadFromFile(file, &tmp, 4);
+		return true;
+	}
+	if (str == "MATERIALLIST") {
+		int tmp;
+		ReadFromFile(file, &tmp, 4); // material count
+		ReadFromFile(file, &tmp, 4);
+		return true;
+	}
+	if (str == "MATERIAL") {
+		return ParseRallyTrophyMaterial(file);
+	}
 	if (str == "MODEL") {
 		return ParseRallyTrophyToken(file, ParseRallyTrophyModel(file));
 	}
-	else if (str == "MESH") {
+	if (str == "TRACK") {
+		uint8_t tmptrack[44];
+		ReadFromFile(file, tmptrack, sizeof(tmptrack));
+		return true;
+	}
+	if (str == "MESH") {
 		ParseRallyTrophyMesh(file);
 		return true;
 	}
-	else if (str == "LIGHT") {
+	if (str == "LIGHT") {
 		ParseRallyTrophyLight(file);
 		return true;
 	}
-	else if (str == "CAMERA2") {
+	if (str == "CAMERA2") {
 		ParseRallyTrophyCamera(file);
 		return true;
 	}
-	else if (str == "HIERARCHY") {
+	if (str == "HIERARCHY") {
 		ParseRallyTrophyHierarchy(file);
 		return true;
 	}
@@ -229,42 +249,8 @@ bool ParseRallyTrophyBMF() {
 
 	nImportFileVersion = 0x10003;
 
-	int tmp = 0;
+	int tmp;
 	ReadFromFile(fin, &tmp, 4);
-	if (ReadStringFromFile(fin) != "MAIN") {
-		WriteConsole("ERROR: Failed to find MAIN segment!", LOG_ERRORS);
-		return false;
-	}
-	ReadFromFile(fin, &tmp, 4);
-	if (ReadStringFromFile(fin) != "INFO") {
-		WriteConsole("ERROR: Failed to find INFO segment!", LOG_ERRORS);
-		return false;
-	}
-	ReadFromFile(fin, &tmp, 4);
-	if (ReadStringFromFile(fin) != "BMF") {
-		WriteConsole("ERROR: Failed to find BMF segment!", LOG_ERRORS);
-		return false;
-	}
-	auto exporter = ReadStringFromFile(fin);
-	WriteConsole(std::format("BMF exported from {}", exporter), LOG_ALWAYS);
-	ReadFromFile(fin, &tmp, 4);
-	if (ReadStringFromFile(fin) != "MATERIALLIST") {
-		WriteConsole("ERROR: Failed to find MATERIALLIST segment!", LOG_ERRORS);
-		return false;
-	}
-	ReadFromFile(fin, &tmp, 4); // material count
-	ReadFromFile(fin, &tmp, 4);
-	std::string str;
-	while ((str = ReadStringFromFile(fin)) == "MATERIAL") {
-		ParseRallyTrophyMaterial(fin);
-	}
-	if (str != "TRACK") {
-		WriteConsole("ERROR: Failed to find TRACK segment!", LOG_ERRORS);
-		return false;
-	}
-	uint8_t tmptrack[44];
-	ReadFromFile(fin, tmptrack, sizeof(tmptrack));
-	//WriteConsole(std::format("models start at {:X}", (uint32_t)fin.tellg()), LOG_ALWAYS);
 	while (ParseRallyTrophyToken(fin, ReadStringFromFile(fin))) {}
 
 	for (auto& surface : aSurfaces) {
@@ -276,6 +262,7 @@ bool ParseRallyTrophyBMF() {
 			memcpy(batch.vCenter, surface.vCenter, sizeof(batch.vCenter));
 			memcpy(batch.vRadius, surface.vRadius, sizeof(batch.vRadius));
 			aStaticBatches.push_back(batch);
+			surface.RegisterReference(SURFACE_REFERENCE_STATICBATCH);
 		}
 	}
 

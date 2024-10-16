@@ -546,7 +546,7 @@ aiScene GenerateScene() {
 			}
 		}
 	}
-	if (bIsFOUCModel && !bIsBGMModel) {
+	if (bIsFOUCModel && !bIsBGMModel && !bIsRallyTrophyModel) {
 		if (auto node = new aiNode()) {
 			node->mName = "TreeMesh";
 			scene.mRootNode->addChildren(1, &node);
