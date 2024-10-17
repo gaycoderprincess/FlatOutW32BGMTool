@@ -60,6 +60,8 @@ bool bAllowEmptyPropTypes = false;
 bool bNeverUseTerrainShader = false;
 bool bRallyTrophyShaderFixup = false;
 bool bRallyTrophyNodes = false;
+bool bRetroDemoCarFixup = false;
+bool bExportAllLODs = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;

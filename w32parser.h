@@ -590,6 +590,13 @@ bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 				compactMesh.aLODMeshIds.push_back(nMeshIndex);
 			}
 		}
+		for (auto& id : compactMesh.aLODMeshIds) {
+			auto mdl = &aModels[id];
+			for (auto& surfId : mdl->aSurfaces) {
+				auto surf = &aSurfaces[surfId];
+				surf->_nLODLevel = &id - &compactMesh.aLODMeshIds[0];
+			}
+		}
 		aCompactMeshes.push_back(compactMesh);
 	}
 	return true;
@@ -826,6 +833,14 @@ bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
 
 			for (auto& id : aModels[tmp].aSurfaces) {
 				aSurfaces[id].RegisterReference(SURFACE_REFERENCE_MODEL);
+			}
+		}
+
+		for (auto& id : mesh.aLODMeshIds) {
+			auto mdl = &aModels[id];
+			for (auto& surfId : mdl->aSurfaces) {
+				auto surf = &aSurfaces[surfId];
+				surf->_nLODLevel = &id - &mesh.aLODMeshIds[0];
 			}
 		}
 

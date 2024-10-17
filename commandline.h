@@ -169,6 +169,12 @@ void CMD_W32_NeverUseTerrainShader() {
 void CMD_W32_RallyTrophyShaderFixup() {
 	bRallyTrophyShaderFixup = true;
 }
+void CMD_W32_RetroDemoCarFixup() {
+	bRetroDemoCarFixup = true;
+}
+void CMD_W32_ExportAllLODs() {
+	bExportAllLODs = true;
+}
 void CMD_W32_RallyTrophyNodes() {
 	bRallyTrophyNodes = true;
 }
@@ -285,8 +291,11 @@ tCommandlineArgument aArguments[] = {
 		{ "-remove_bushes", CMD_W32_NoBushes, "Removes all surfaces using alpha_bushbranch when importing from .fbx" },
 		{ "-allow_empty_prop_types", CMD_W32_AllowEmptyPropTypes, "Disables defaulting to metal_light for empty prop types" },
 		{ "-never_use_terrain_shader", CMD_W32_NeverUseTerrainShader, "Always use static prelit instead of the dual-UV terrain shader" },
-		{ "-rally_trophy_fixup", CMD_W32_RallyTrophyShaderFixup, "Parse material and object names with Rally Trophy maps in mind" },
+		{ "-rally_trophy_fixup", CMD_W32_RallyTrophyShaderFixup, "Parse material and object names with Rally Trophy models in mind" },
 		{ "-rally_trophy_nodes", CMD_W32_RallyTrophyNodes, "Imports Rally Trophy splitpoints and startpoints" },
+		{ "-retro_demo_car_fixup", CMD_W32_RetroDemoCarFixup, "Parse material and object names with Retro Demo cars in mind" },
+
+		{ "-export_all_lods", CMD_W32_ExportAllLODs, "Exports every LOD level of every model", "FBX export options" },
 
 		// text options
 		{ "-text_materials", CMD_DumpText_Materials, "Dumps all material data into a text file", "Text dumps" },

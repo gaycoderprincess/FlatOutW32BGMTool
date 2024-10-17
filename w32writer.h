@@ -563,7 +563,7 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 			mat.sName = "body";
 		}
 		if (mat.sTextureNames[0] == "interior_lo.tga") mat.sTextureNames[0] = "interior.tga";
-		if (mat.sName == "Collision" || mat.sTextureNames[0].starts_with("null")) mat.nShaderId = 13; // shadow project
+		if (mat.sName == "collision" || mat.sName == "Collision" || mat.sTextureNames[0].starts_with("null")) mat.nShaderId = 13; // shadow project
 		if (mat.sName == "#E1 window front") mat.sName = "window_front";
 		if (mat.sName == "#E1 window leftside") mat.sName = "window_left";
 		if (mat.sName == "#E1 window rightside") mat.sName = "window_right";
@@ -571,6 +571,11 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 		else if (mat.sName.starts_with("tire")) mat.sTextureNames[0] = bIsFOUCModel ? "tire.tga" : "tire_01.tga";
 
 		if (mat.sName.ends_with(" alpha")) mat.nAlpha = 1;
+	}
+
+	if (bRetroDemoCarFixup) {
+		if (mat.sName.starts_with("tire") || mat.sName.starts_with("tyre")) mat.sTextureNames[0] = bIsFOUCModel ? "tire.tga" : "tire_01.tga";
+		if (mat.sTextureNames[0] == "interior_lo.tga" || mat.sTextureNames[0] == "Interior_Lo.tga") mat.sTextureNames[0] = "interior.tga";
 	}
 
 	// car lights have alpha

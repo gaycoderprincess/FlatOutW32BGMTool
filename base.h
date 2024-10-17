@@ -398,6 +398,7 @@ struct tSurface {
 	int _nFBXCrashModelId = -1;
 	int _nNumReferencesByType[NUM_SURFACE_REFERENCE_TYPES] = {};
 	int _nNumReferences = 0;
+	int _nLODLevel = 0;
 	void RegisterReference(int type) {
 		_nNumReferences++;
 		_nNumReferencesByType[type]++;

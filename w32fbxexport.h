@@ -524,8 +524,11 @@ aiScene GenerateScene() {
 		int i = counter++;
 		src._nFBXModelId = i;
 
+		auto name = "Surface" + std::to_string(&src - &aSurfaces[0]);
+		if (src._nLODLevel > 0) name += std::format("_LOD{}", src._nLODLevel);
+
 		auto dest = scene.mMeshes[i] = new aiMesh();
-		dest->mName = "Surface" + std::to_string(&src - &aSurfaces[0]);
+		dest->mName = name;
 		dest->mMaterialIndex = src.nMaterialId;
 		auto vBuf = FindVertexBuffer(src.nStreamId[0]);
 		auto iBuf = FindIndexBuffer(src.nStreamId[1]);
@@ -721,13 +724,16 @@ aiScene GenerateScene() {
 					}
 				}
 
-				// not loading the damaged or lod parts here
 				if (!compactMesh.aLODMeshIds.empty()) {
-					auto model = aModels[compactMesh.aLODMeshIds[0]];
+					int numToExport = 1;
+					if (bExportAllLODs) numToExport = compactMesh.aLODMeshIds.size();
 					std::vector<int> aMeshes;
-					for (auto &surfaceId: model.aSurfaces) {
-						if (!IsSurfaceValidAndExportable(surfaceId)) continue;
-						aMeshes.push_back(aSurfaces[surfaceId]._nFBXModelId);
+					for (int i = 0; i < numToExport; i++) {
+						auto model = aModels[compactMesh.aLODMeshIds[i]];
+						for (auto &surfaceId: model.aSurfaces) {
+							if (!IsSurfaceValidAndExportable(surfaceId)) continue;
+							aMeshes.push_back(aSurfaces[surfaceId]._nFBXModelId);
+						}
 					}
 					meshNode->mMeshes = new uint32_t[aMeshes.size()];
 					memcpy(meshNode->mMeshes, &aMeshes[0], aMeshes.size() * sizeof(uint32_t));
