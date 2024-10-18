@@ -259,7 +259,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-make_double_sided", CMD_MakeAllDoubleSided, "Clones and flips every mesh to make the model double-sided" },
 		{ "-no_material_priorities", CMD_NoMaterialPriorities, "Disables automatic sorting for materials" },
 		{ "-replace_common_with_grille", CMD_ReplaceCommonWithGrille, "Replaces all instances of common.tga with grille.tga, useful for FO1->FOUC menucars" },
-		{ "-tough_trucks_trk", CMD_ImportAsToughTrucks, "Loads the .trk as a Tough Trucks map instead of a Retro Demo map" },
+		{ "-tough_trucks_format", CMD_ImportAsToughTrucks, "Loads the file as a Tough Trucks model instead of a Retro Demo model" },
 		{ "-tough_trucks_stadium_screen", CMD_ToughTrucksStadiumScreen, "Imports stadion_screen.tga as the stunt reprojection shader" },
 
 		// static map options

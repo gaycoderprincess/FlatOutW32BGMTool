@@ -568,7 +568,7 @@ aiScene GenerateScene() {
 	}
 
 	if (!bIsBGMModel) {
-		if (!IsRallyTrophyCar() && !bIsRetroDemoCar) {
+		if (!IsRallyTrophyCar()) {
 			if (auto node = new aiNode()) {
 				std::vector<int> surfaceIds;
 				for (auto &batch: aStaticBatches) {
@@ -586,7 +586,7 @@ aiScene GenerateScene() {
 			}
 		}
 
-		if (!bIsFOUCModel && !IsRallyTrophyCar() && !bIsRetroDemoCar) {
+		if (!bIsFOUCModel && !IsRallyTrophyCar()) {
 			if (auto node = new aiNode()) {
 				node->mName = "TreeMesh";
 				scene.mRootNode->addChildren(1, &node);
@@ -668,77 +668,45 @@ aiScene GenerateScene() {
 		}
 	}
 
-	if (bIsBGMModel) {
-		if (auto node = new aiNode()) {
-			node->mName = "BGMMesh";
-			scene.mRootNode->addChildren(1, &node);
-			for (auto& compactMesh: aBGMMeshes) {
-				auto meshNode = new aiNode();
-				meshNode->mName = compactMesh.sName1;
-				FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
-				node->addChildren(1, &meshNode);
+	if (auto node = new aiNode()) {
+		node->mName = bIsBGMModel || IsRallyTrophyCar() ? "BGMMesh" : "CompactMesh";
+		scene.mRootNode->addChildren(1, &node);
+		for (auto& compactMesh: aCompactMeshes) {
+			if (bFBXSkipHiddenProps && compactMesh.nFlags != 0xE000 && compactMesh.nFlags != nFBXSkipHiddenPropsFlag) continue;
 
-				for (auto& modelId : compactMesh.aModels) {
-					auto model = aModels[modelId];
+			auto meshNode = new aiNode();
+			meshNode->mName = compactMesh.sName1;
+			FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
+			node->addChildren(1, &meshNode);
 
-					auto modelNode = new aiNode();
-					modelNode->mName = model.sName;
-					meshNode->addChildren(1, &modelNode);
+			if (!bIsBGMModel) {
+				auto typeNode = new aiNode();
+				typeNode->mName = std::format("{}TYPE_{}", &compactMesh - &aCompactMeshes[0], compactMesh.sName2);
+				meshNode->addChildren(1, &typeNode);
 
-					std::vector<int> aMeshes;
+				if (compactMesh.nGroup != -1) {
+					auto groupNode = new aiNode();
+					groupNode->mName = std::format("{}GROUP_{}", &compactMesh - &aCompactMeshes[0],
+												   compactMesh.nGroup);
+					meshNode->addChildren(1, &groupNode);
+				}
+			}
+
+			if (!compactMesh.aModels.empty()) {
+				int numToExport = 1;
+				if (bExportAllLODs) numToExport = compactMesh.aModels.size();
+				std::vector<int> aMeshes;
+				for (int i = 0; i < numToExport; i++) {
+					auto model = aModels[compactMesh.aModels[i]];
 					for (auto &surfaceId: model.aSurfaces) {
 						if (!IsSurfaceValidAndExportable(surfaceId)) continue;
 						auto& surface = aSurfaces[surfaceId];
 						aMeshes.push_back(surface._nFBXModelId);
-						if (surface._nFBXCrashModelId >= 0) aMeshes.push_back(surface._nFBXCrashModelId);
-					}
-					modelNode->mMeshes = new uint32_t[aMeshes.size()];
-					memcpy(modelNode->mMeshes, &aMeshes[0], aMeshes.size() * sizeof(uint32_t));
-					modelNode->mNumMeshes = aMeshes.size();
-				}
-			}
-		}
-	}
-	else {
-		if (auto node = new aiNode()) {
-			node->mName = IsRallyTrophyCar() || bIsRetroDemoCar ? "BGMMesh" : "CompactMesh";
-			scene.mRootNode->addChildren(1, &node);
-			for (auto& compactMesh: aCompactMeshes) {
-				if (bFBXSkipHiddenProps && compactMesh.nFlags != 0xE000 && compactMesh.nFlags != nFBXSkipHiddenPropsFlag) continue;
-
-				auto meshNode = new aiNode();
-				meshNode->mName = compactMesh.sName1;
-				FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
-				node->addChildren(1, &meshNode);
-
-				if (!IsRallyTrophyCar() && !bIsRetroDemoCar) {
-					auto typeNode = new aiNode();
-					typeNode->mName = std::format("{}TYPE_{}", &compactMesh - &aCompactMeshes[0], compactMesh.sName2);
-					meshNode->addChildren(1, &typeNode);
-
-					if (compactMesh.nGroup != -1) {
-						auto groupNode = new aiNode();
-						groupNode->mName = std::format("{}GROUP_{}", &compactMesh - &aCompactMeshes[0],
-													   compactMesh.nGroup);
-						meshNode->addChildren(1, &groupNode);
 					}
 				}
-
-				if (!compactMesh.aLODMeshIds.empty()) {
-					int numToExport = 1;
-					if (bExportAllLODs) numToExport = compactMesh.aLODMeshIds.size();
-					std::vector<int> aMeshes;
-					for (int i = 0; i < numToExport; i++) {
-						auto model = aModels[compactMesh.aLODMeshIds[i]];
-						for (auto &surfaceId: model.aSurfaces) {
-							if (!IsSurfaceValidAndExportable(surfaceId)) continue;
-							aMeshes.push_back(aSurfaces[surfaceId]._nFBXModelId);
-						}
-					}
-					meshNode->mMeshes = new uint32_t[aMeshes.size()];
-					memcpy(meshNode->mMeshes, &aMeshes[0], aMeshes.size() * sizeof(uint32_t));
-					meshNode->mNumMeshes = aMeshes.size();
-				}
+				meshNode->mMeshes = new uint32_t[aMeshes.size()];
+				memcpy(meshNode->mMeshes, &aMeshes[0], aMeshes.size() * sizeof(uint32_t));
+				meshNode->mNumMeshes = aMeshes.size();
 			}
 		}
 	}

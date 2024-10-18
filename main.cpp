@@ -128,35 +128,30 @@ int main(int argc, char *argv[]) {
 					if (bDumpIntoBMP) Write4BToBMP();
 				}
 			}
-			else if (sFileName.extension() == ".bgm") {
-				if (!ParseBGM()) {
+			else if (IsExtensionAModel(sFileName.extension().string())) {
+				if (!ParseW32()) {
 					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 				} else {
 					if (bDumpIntoFBX) WriteToFBX();
-					if (bDumpIntoBGM) {
+					if (bDumpIntoBGM && bIsBGMModel) {
 						uint32_t version = nImportFileVersion;
 						if (bConvertToFO1) version = 0x10004;
 						if (bConvertToFO2) version = 0x20000;
 						WriteBGM(version);
 					}
-				}
-
-				if (bDumpIntoTextFile) {
-					WriteBGMToText();
-				}
-			} else if (sFileName.extension() == ".w32" || sFileName.extension() == ".xbx" || sFileName.extension() == ".trk" || sFileName.extension() == ".car" || sFileName.extension() == ".bmf" || sFileName.extension() == ".BMF") {
-				if (!ParseW32()) {
-					WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
-				} else {
-					if (bDumpIntoFBX) WriteToFBX();
-					if (bDumpIntoW32) {
+					if (bDumpIntoW32 && !bIsBGMModel) {
 						WriteW32(bConvertToFO1 ? 0x10005 : nImportFileVersion);
 					}
 				}
 
 				if (bDumpIntoTextFile) {
-					WriteW32ToText();
-					WriteTrackBVHToText();
+					if (bIsBGMModel) {
+						WriteBGMToText();
+					}
+					else {
+						WriteW32ToText();
+						WriteTrackBVHToText();
+					}
 				}
 			} else {
 				WriteConsole("ERROR: Unrecognized file format for " + sFileName.string(), LOG_ERRORS);

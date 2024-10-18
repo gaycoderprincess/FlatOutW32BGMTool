@@ -69,7 +69,6 @@ void WriteFile(const std::string& str) {
 std::string GetFileVersion(int value) {
 	if (value == 0x10002) return "FlatOut 1 Player Model";
 	if (value == 0x10003) return "Retro Demo / Tough Trucks Track (Export Only)";
-	if (value == 0x43524143) return "Retro Demo / Tough Trucks Car (Unsupported)";
 	if (value == 0x10004) return "FlatOut 1 Car";
 	if (value == 0x10005) return "FlatOut 1 Track";
 	if (value == 0x20000) return "FlatOut 2 / Ultimate Carnage Car";
@@ -77,6 +76,23 @@ std::string GetFileVersion(int value) {
 	if (value == 0x20002) return "FlatOut Ultimate Carnage Track";
 	if (value >= 0x20000) return "Unknown FlatOut 2";
 	return "Unknown FlatOut 1";
+}
+
+const char* aAllowedModelExtensions[] = {
+	".bgm",
+	".w32",
+	".xbx",
+	".trk",
+	".car",
+	".bmf",
+	".BMF"
+};
+
+bool IsExtensionAModel(const std::string& extension) {
+	for (auto& ext : aAllowedModelExtensions) {
+		if (ext == extension) return true;
+	}
+	return false;
 }
 
 int nImportFileVersion;
@@ -481,7 +497,7 @@ struct tCompactMesh {
 	float mMatrix[4*4];
 	uint32_t nUnk1;
 	uint32_t nDamageAssocId;
-	std::vector<int> aLODMeshIds;
+	std::vector<int> aModels;
 };
 struct tCollidableModel {
 	std::vector<int> aModels;
@@ -491,15 +507,6 @@ struct tCollidableModel {
 struct tMeshDamageAssoc {
 	std::string sName;
 	int nIds[2];
-};
-struct tBGMMesh {
-	uint32_t identifier = 0x4853454D;
-	std::string sName1;
-	std::string sName2;
-	uint32_t nFlags;
-	int nGroup;
-	float mMatrix[4*4];
-	std::vector<int> aModels;
 };
 struct tRetroDemoTMOD {
 	uint32_t identifier; // TMOD
@@ -537,7 +544,6 @@ std::vector<tObject> aObjects;
 std::vector<tCompactMesh> aCompactMeshes;
 std::vector<tCollidableModel> aCollidableModels;
 std::vector<tMeshDamageAssoc> aMeshDamageAssoc;
-std::vector<tBGMMesh> aBGMMeshes;
 std::vector<uint32_t> aVertexColors;
 //std::vector<tVertexBuffer> aCrashVertexBuffers;
 std::vector<tCrashData> aCrashData;

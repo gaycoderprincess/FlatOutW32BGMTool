@@ -480,8 +480,8 @@ void WriteW32CompactMeshesToText() {
 			WriteFile("nUnk1: " + std::to_string(mesh.nUnk1));
 			WriteFile("nDamageAssocId: " + std::to_string(mesh.nDamageAssocId));
 		}
-		WriteFile("nNumLODs: " + std::to_string(mesh.aLODMeshIds.size()));
-		for (auto unkValue : mesh.aLODMeshIds) {
+		WriteFile("nNumLODs: " + std::to_string(mesh.aModels.size()));
+		for (auto unkValue : mesh.aModels) {
 			auto model = aModels[unkValue];
 			WriteFile(std::to_string(unkValue) + " - " + model.sName);
 		}
@@ -493,9 +493,9 @@ void WriteW32CompactMeshesToText() {
 
 void WriteBGMMeshesToText() {
 	WriteFile("BGM Meshes begin");
-	WriteFile("Count: " + std::to_string(aBGMMeshes.size()));
+	WriteFile("Count: " + std::to_string(aCompactMeshes.size()));
 	WriteFile("");
-	for (auto& mesh : aBGMMeshes) {
+	for (auto& mesh : aCompactMeshes) {
 		WriteFile("sObjectName: " + mesh.sName1);
 		WriteFile("sModelName: " + mesh.sName2);
 		WriteFile(std::format("nFlags: 0x{:X}", mesh.nFlags));

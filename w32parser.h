@@ -578,23 +578,23 @@ bool ParseW32CompactMeshes(std::ifstream& file, uint32_t mapVersion) {
 
 			auto bboxAssoc = aMeshDamageAssoc[compactMesh.nDamageAssocId];
 			auto bbox = aCollidableModels[bboxAssoc.nIds[0]];
-			compactMesh.aLODMeshIds = bbox.aModels;
+			compactMesh.aModels = bbox.aModels;
 		}
 		else {
 			uint32_t nLODCount;
 			ReadFromFile(file, &nLODCount, 4);
-			compactMesh.aLODMeshIds.reserve(nLODCount);
+			compactMesh.aModels.reserve(nLODCount);
 			for (int j = 0; j < nLODCount; j++) {
 				uint32_t nMeshIndex;
 				ReadFromFile(file, &nMeshIndex, 4);
-				compactMesh.aLODMeshIds.push_back(nMeshIndex);
+				compactMesh.aModels.push_back(nMeshIndex);
 			}
 		}
-		for (auto& id : compactMesh.aLODMeshIds) {
+		for (auto& id : compactMesh.aModels) {
 			auto mdl = &aModels[id];
 			for (auto& surfId : mdl->aSurfaces) {
 				auto surf = &aSurfaces[surfId];
-				surf->_nLODLevel = &id - &compactMesh.aLODMeshIds[0];
+				surf->_nLODLevel = &id - &compactMesh.aModels[0];
 			}
 		}
 		aCompactMeshes.push_back(compactMesh);
@@ -676,9 +676,9 @@ bool ParseBGMMeshes(std::ifstream& file) {
 
 	uint32_t meshCount;
 	ReadFromFile(file, &meshCount, 4);
-	aBGMMeshes.reserve(meshCount);
+	aCompactMeshes.reserve(meshCount);
 	for (int i = 0; i < meshCount; i++) {
-		tBGMMesh mesh;
+		tCompactMesh mesh;
 		ReadFromFile(file, &mesh.identifier, 4);
 		if (mesh.identifier != 0x4853454D) return false; // "MESH"
 
@@ -694,7 +694,7 @@ bool ParseBGMMeshes(std::ifstream& file) {
 			ReadFromFile(file, &id, 4);
 			mesh.aModels.push_back(id);
 		}
-		aBGMMeshes.push_back(mesh);
+		aCompactMeshes.push_back(mesh);
 	}
 
 	return true;
@@ -825,22 +825,22 @@ bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
 		ReadFromFile(file, mesh.mMatrix, sizeof(mesh.mMatrix));
 		uint32_t numModels;
 		ReadFromFile(file, &numModels, 4);
-		mesh.aLODMeshIds.reserve(numModels);
+		mesh.aModels.reserve(numModels);
 		for (int j = 0; j < numModels; j++) {
 			uint32_t tmp;
 			ReadFromFile(file, &tmp, 4);
-			mesh.aLODMeshIds.push_back(tmp);
+			mesh.aModels.push_back(tmp);
 
 			for (auto& id : aModels[tmp].aSurfaces) {
 				aSurfaces[id].RegisterReference(SURFACE_REFERENCE_MODEL);
 			}
 		}
 
-		for (auto& id : mesh.aLODMeshIds) {
+		for (auto& id : mesh.aModels) {
 			auto mdl = &aModels[id];
 			for (auto& surfId : mdl->aSurfaces) {
 				auto surf = &aSurfaces[surfId];
-				surf->_nLODLevel = &id - &mesh.aLODMeshIds[0];
+				surf->_nLODLevel = &id - &mesh.aModels[0];
 			}
 		}
 
@@ -848,8 +848,8 @@ bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
 		int32_t tmp;
 		ReadFromFile(file, &tmp, 4);
 		ReadFromFile(file, &tmp, 4);
-		if (!bIsRetroDemoCar && mesh.sName2.empty()) {
-			for (auto& lod : mesh.aLODMeshIds) {
+		if (!bIsBGMModel && mesh.sName2.empty()) {
+			for (auto& lod : mesh.aModels) {
 				for (auto& id : aModels[lod].aSurfaces) {
 					tStaticBatch batch;
 					batch.nId1 = aStaticBatches.size();
@@ -866,7 +866,7 @@ bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
 		}
 	}
 
-	if (bIsRetroDemoCar) {
+	if (bIsBGMModel) {
 		uint32_t count;
 		ReadFromFile(file, &count, 4);
 		for (int i = 0; i < count; i++) {
@@ -895,7 +895,7 @@ bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
 	}
 
 	// create tire dummies
-	if (bIsRetroDemoCar) {
+	if (bIsBGMModel) {
 		for (auto &compactMesh: aCompactMeshes) {
 			if (compactMesh.sName1.starts_with("tire_") && !compactMesh.sName1.ends_with("shadow")) {
 				tObject object;
@@ -908,151 +908,6 @@ bool ParseW32RetroDemoCompactMeshes(std::ifstream& file) {
 		}
 	}
 
-	return true;
-}
-
-bool ParseW32() {
-	if (sFileName.extension() == ".bmf" || sFileName.extension() == ".BMF") {
-		bIsRallyTrophyModel = true;
-		return ParseRallyTrophyBMF();
-	}
-
-	if (sFileName.extension() != ".w32" && sFileName.extension() != ".xbx" && sFileName.extension() != ".trk" && sFileName.extension() != ".car") {
-		return false;
-	}
-
-	std::ifstream fin(sFileName, std::ios::in | std::ios::binary );
-	if (!fin.is_open()) return false;
-
-	ReadFromFile(fin, &nImportFileVersion, 4);
-	// retro demo CARC
-	if (nImportFileVersion == 0x43524143) {
-		ReadFromFile(fin, &nImportFileVersion, 4);
-		bIsRetroDemoCar = true;
-	}
-
-	if (nImportFileVersion == 0x62647370) {
-		WriteConsole("ERROR: Plant W32 files are not supported!", LOG_ERRORS);
-		return false;
-	}
-
-	if (nImportFileVersion > 0x20000) {
-		ReadFromFile(fin, &nSomeMapValue, 4);
-		for (int i = 0; i < nSomeMapValue - 1; i++) {
-			int tmp = 0;
-			ReadFromFile(fin, &tmp, 4);
-		}
-	}
-	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
-	else if (!bIsRetroDemoCar) {
-		if (nImportFileVersion <= 0x10003) {
-			auto vertexColorsPath = sFileNameNoExt.string() + "_sky_vtx.rad";
-			if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
-				WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);
-				WaitAndExitOnFail();
-			}
-			//vertexColorsPath = sFileNameNoExt.string() + "_sun1_vtx.rad";
-			//if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
-			//	WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);
-			//	WaitAndExitOnFail();
-			//}
-		}
-		else {
-			auto vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors.w32";
-			if (!std::filesystem::exists(vertexColorsPath)) vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors_w2.w32";
-			if (!std::filesystem::exists(vertexColorsPath)) vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
-			if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
-				WriteConsole("ERROR: Failed to load " + (std::string)vertexColorsPath + "!", LOG_ERRORS);
-				WaitAndExitOnFail();
-			}
-		}
-	}
-
-	if (!bIsRetroDemoCar) {
-		if (bDumpIntoW32 || bDumpIntoTextFile) {
-			auto bvhPath = sFileNameNoExt.string() + "_bvh.gen";
-			if (!std::filesystem::exists(bvhPath)) bvhPath = sFileFolder.string() + "track_bvh.gen";
-
-			if (!ParseTrackBVH(bvhPath)) {
-				WriteConsole("WARNING: Failed to load " + (std::string) bvhPath + ", culling data will not be updated",
-							 LOG_WARNINGS);
-			}
-		}
-
-		auto splitPointsPath = sFileNameNoExt.string() + "_splitpoints.bed";
-		if (!std::filesystem::exists(splitPointsPath)) splitPointsPath = sFileFolder.string() + "splitpoints.bed";
-		if (!ParseSplitpoints(splitPointsPath)) {
-			WriteConsole("WARNING: Failed to load " + (std::string) splitPointsPath + "!", LOG_WARNINGS);
-		}
-
-		auto startPointsPath = sFileNameNoExt.string() + "_startpoints.bed";
-		if (!std::filesystem::exists(startPointsPath)) startPointsPath = sFileFolder.string() + "startpoints.bed";
-		if (!ParseStartpoints(startPointsPath)) {
-			WriteConsole("WARNING: Failed to load " + (std::string) startPointsPath + "!", LOG_WARNINGS);
-		}
-
-		auto splinesPath = sFileNameNoExt.string() + "_splines.ai";
-		if (!std::filesystem::exists(splinesPath)) splinesPath = sFileFolder.string() + "splines.ai";
-		if (!ParseSplines(splinesPath)) {
-			WriteConsole("WARNING: Failed to load " + (std::string) splinesPath + "!", LOG_WARNINGS);
-		}
-	}
-
-	if (!ParseW32Materials(fin)) return false;
-
-	if (nImportFileVersion <= 0x10003) {
-		if (!ParseW32RetroDemoSurfaces(fin)) return false;
-		if (!bIsRetroDemoCar && !ParseW32RetroDemoTMOD(fin)) return false;
-		if (!ParseW32RetroDemoCompactMeshes(fin)) return false;
-		return true;
-	}
-
-	if (!ParseW32Streams(fin)) return false;
-	if (!ParseW32Surfaces(fin, nImportFileVersion)) return false;
-	if (!ParseW32StaticBatches(fin, nImportFileVersion)) return false;
-
-	WriteConsole("Parsing tree colors...", LOG_ALWAYS);
-
-	if (nImportFileVersion != 0x20002) {
-		uint32_t treeColourCount;
-		ReadFromFile(fin, &treeColourCount, 4);
-		for (int i = 0; i < treeColourCount; i++) {
-			uint32_t color;
-			ReadFromFile(fin, &color, 4);
-			aTreeColors.push_back(color);
-		}
-	}
-
-	WriteConsole("Parsing tree LODs...", LOG_ALWAYS);
-
-	uint32_t treeLodCount;
-	ReadFromFile(fin, &treeLodCount, 4);
-	for (int i = 0; i < treeLodCount; i++) {
-		tTreeLOD treeLod;
-		ReadFromFile(fin, treeLod.vPos, sizeof(treeLod.vPos));
-		ReadFromFile(fin, treeLod.fScale, sizeof(treeLod.fScale));
-		ReadFromFile(fin, treeLod.nValues, sizeof(treeLod.nValues));
-		aTreeLODs.push_back(treeLod);
-	}
-
-	if (!ParseW32TreeMeshes(fin)) return false;
-
-	WriteConsole("Parsing collision offset matrix...", LOG_ALWAYS);
-	if (nImportFileVersion >= 0x10004) {
-		ReadFromFile(fin, aTrackCollisionOffsetMatrix, sizeof(aTrackCollisionOffsetMatrix));
-	}
-
-	if (!ParseW32Models(fin)) return false;
-	if (!ParseW32Objects(fin)) return false;
-
-	if (nImportFileVersion >= 0x20000) {
-		if (!ParseW32CollidableModels(fin)) return false;
-		if (!ParseW32MeshDamageAssoc(fin)) return false;
-	}
-
-	if (!ParseW32CompactMeshes(fin, nImportFileVersion)) return false;
-
-	WriteConsole("Parsing finished", LOG_ALWAYS);
 	return true;
 }
 
@@ -1090,35 +945,167 @@ void PreParseBGMForFileVersion() {
 	aMaterials.clear();
 }
 
-bool ParseBGM() {
-	if (sFileName.extension() != ".bgm") {
-		return false;
+bool ParseW32() {
+	if (sFileName.extension() == ".bmf" || sFileName.extension() == ".BMF") {
+		bIsRallyTrophyModel = true;
+		return ParseRallyTrophyBMF();
 	}
 
-	PreParseBGMForFileVersion();
+	if (sFileName.extension() == ".bgm") {
+		PreParseBGMForFileVersion();
+		bIsBGMModel = true;
+	}
+	else if (sFileName.extension() == ".car") {
+		bIsBGMModel = true;
+	}
 
 	std::ifstream fin(sFileName, std::ios::in | std::ios::binary );
 	if (!fin.is_open()) return false;
 
 	ReadFromFile(fin, &nImportFileVersion, 4);
-	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
-	else {
-		// first look for modelname_crash.dat, then look for crash.dat in the folder
-		auto crashDatPath = sFileNameNoExt.string() + "_crash.dat";
-		if (!std::filesystem::exists(crashDatPath)) crashDatPath = sFileFolder.string() + "crash.dat";
+	// retro demo CARC, tough trucks BGMC
+	if (nImportFileVersion == 0x43524143 || nImportFileVersion == 0x434D4742) {
+		if (nImportFileVersion == 0x434D4742) bIsToughTrucksModel = true;
+		ReadFromFile(fin, &nImportFileVersion, 4);
+		bIsBGMModel = true;
+	}
 
-		if (!ParseCrashDat(crashDatPath)) {
-			WriteConsole("WARNING: Failed to load " + (std::string)crashDatPath + ", damage data will not be exported", LOG_WARNINGS);
+	if (nImportFileVersion == 0x62647370) {
+		WriteConsole("ERROR: Plant W32 files are not supported!", LOG_ERRORS);
+		return false;
+	}
+
+	if (nImportFileVersion > 0x20000) {
+		ReadFromFile(fin, &nSomeMapValue, 4);
+		for (int i = 0; i < nSomeMapValue - 1; i++) {
+			int tmp = 0;
+			ReadFromFile(fin, &tmp, 4);
 		}
 	}
-	bIsBGMModel = true;
+	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
+	else {
+		if (bIsBGMModel) {
+			// first look for modelname_crash.dat, then look for crash.dat in the folder
+			auto crashDatPath = sFileNameNoExt.string() + "_crash.dat";
+			if (!std::filesystem::exists(crashDatPath)) crashDatPath = sFileFolder.string() + "crash.dat";
+
+			if (nImportFileVersion >= 0x10004 && !ParseCrashDat(crashDatPath)) {
+				WriteConsole(
+						"WARNING: Failed to load " + (std::string) crashDatPath + ", damage data will not be exported",
+						LOG_WARNINGS);
+			}
+		}
+		else {
+			if (nImportFileVersion <= 0x10003) {
+				auto vertexColorsPath = sFileNameNoExt.string() + "_sky_vtx.rad";
+				if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
+					WriteConsole("ERROR: Failed to load " + (std::string) vertexColorsPath + "!", LOG_ERRORS);
+					WaitAndExitOnFail();
+				}
+			} else {
+				auto vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors.w32";
+				if (!std::filesystem::exists(vertexColorsPath))
+					vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors_w2.w32";
+				if (!std::filesystem::exists(vertexColorsPath))
+					vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
+				if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
+					WriteConsole("ERROR: Failed to load " + (std::string) vertexColorsPath + "!", LOG_ERRORS);
+					WaitAndExitOnFail();
+				}
+			}
+		}
+	}
+
+	if (!bIsBGMModel) {
+		if (bDumpIntoW32 || bDumpIntoTextFile) {
+			auto bvhPath = sFileNameNoExt.string() + "_bvh.gen";
+			if (!std::filesystem::exists(bvhPath)) bvhPath = sFileFolder.string() + "track_bvh.gen";
+
+			if (!ParseTrackBVH(bvhPath)) {
+				WriteConsole("WARNING: Failed to load " + (std::string) bvhPath + ", culling data will not be updated",
+							 LOG_WARNINGS);
+			}
+		}
+
+		auto splitPointsPath = sFileNameNoExt.string() + "_splitpoints.bed";
+		if (!std::filesystem::exists(splitPointsPath)) splitPointsPath = sFileFolder.string() + "splitpoints.bed";
+		if (!ParseSplitpoints(splitPointsPath)) {
+			WriteConsole("WARNING: Failed to load " + (std::string) splitPointsPath + "!", LOG_WARNINGS);
+		}
+
+		auto startPointsPath = sFileNameNoExt.string() + "_startpoints.bed";
+		if (!std::filesystem::exists(startPointsPath)) startPointsPath = sFileFolder.string() + "startpoints.bed";
+		if (!ParseStartpoints(startPointsPath)) {
+			WriteConsole("WARNING: Failed to load " + (std::string) startPointsPath + "!", LOG_WARNINGS);
+		}
+
+		auto splinesPath = sFileNameNoExt.string() + "_splines.ai";
+		if (!std::filesystem::exists(splinesPath)) splinesPath = sFileFolder.string() + "splines.ai";
+		if (!ParseSplines(splinesPath)) {
+			WriteConsole("WARNING: Failed to load " + (std::string) splinesPath + "!", LOG_WARNINGS);
+		}
+	}
 
 	if (!ParseW32Materials(fin)) return false;
+
+	if (nImportFileVersion <= 0x10003) {
+		if (!ParseW32RetroDemoSurfaces(fin)) return false;
+		if (!bIsBGMModel && !ParseW32RetroDemoTMOD(fin)) return false;
+		if (!ParseW32RetroDemoCompactMeshes(fin)) return false;
+		return true;
+	}
+
 	if (!ParseW32Streams(fin)) return false;
 	if (!ParseW32Surfaces(fin, nImportFileVersion)) return false;
-	if (!ParseW32Models(fin)) return false;
-	if (!ParseBGMMeshes(fin)) return false;
-	if (!ParseW32Objects(fin)) return false;
+	if (bIsBGMModel) {
+		if (!ParseW32Models(fin)) return false;
+		if (!ParseBGMMeshes(fin)) return false;
+		if (!ParseW32Objects(fin)) return false;
+	}
+	else {
+		if (!ParseW32StaticBatches(fin, nImportFileVersion)) return false;
+
+		WriteConsole("Parsing tree colors...", LOG_ALWAYS);
+
+		if (nImportFileVersion != 0x20002) {
+			uint32_t treeColourCount;
+			ReadFromFile(fin, &treeColourCount, 4);
+			for (int i = 0; i < treeColourCount; i++) {
+				uint32_t color;
+				ReadFromFile(fin, &color, 4);
+				aTreeColors.push_back(color);
+			}
+		}
+
+		WriteConsole("Parsing tree LODs...", LOG_ALWAYS);
+
+		uint32_t treeLodCount;
+		ReadFromFile(fin, &treeLodCount, 4);
+		for (int i = 0; i < treeLodCount; i++) {
+			tTreeLOD treeLod;
+			ReadFromFile(fin, treeLod.vPos, sizeof(treeLod.vPos));
+			ReadFromFile(fin, treeLod.fScale, sizeof(treeLod.fScale));
+			ReadFromFile(fin, treeLod.nValues, sizeof(treeLod.nValues));
+			aTreeLODs.push_back(treeLod);
+		}
+
+		if (!ParseW32TreeMeshes(fin)) return false;
+
+		WriteConsole("Parsing collision offset matrix...", LOG_ALWAYS);
+		if (nImportFileVersion >= 0x10004) {
+			ReadFromFile(fin, aTrackCollisionOffsetMatrix, sizeof(aTrackCollisionOffsetMatrix));
+		}
+
+		if (!ParseW32Models(fin)) return false;
+		if (!ParseW32Objects(fin)) return false;
+
+		if (nImportFileVersion >= 0x20000) {
+			if (!ParseW32CollidableModels(fin)) return false;
+			if (!ParseW32MeshDamageAssoc(fin)) return false;
+		}
+
+		if (!ParseW32CompactMeshes(fin, nImportFileVersion)) return false;
+	}
 
 	WriteConsole("Parsing finished", LOG_ALWAYS);
 	return true;

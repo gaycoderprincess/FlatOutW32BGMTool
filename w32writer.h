@@ -223,15 +223,15 @@ void WriteCompactMeshToFile(std::ofstream& file, tCompactMesh& mesh) {
 		file.write((char*)&mesh.nDamageAssocId, 4);
 	}
 	else {
-		int numLODs = mesh.aLODMeshIds.size();
+		int numLODs = mesh.aModels.size();
 		file.write((char*)&numLODs, 4);
-		for (auto model : mesh.aLODMeshIds) {
+		for (auto model : mesh.aModels) {
 			file.write((char*)&model, 4);
 		}
 	}
 }
 
-void WriteBGMMeshToFile(std::ofstream& file, tBGMMesh& mesh) {
+void WriteBGMMeshToFile(std::ofstream& file, tCompactMesh& mesh) {
 	file.write((char*)&mesh.identifier, 4);
 	file.write(mesh.sName1.c_str(), mesh.sName1.length() + 1);
 	file.write(mesh.sName2.c_str(), mesh.sName2.length() + 1);
@@ -929,7 +929,7 @@ void FillBGMFromFBX() {
 	for (int i = 0; i < bgmMeshArray->mNumChildren; i++) {
 		auto bodyNode = bgmMeshArray->mChildren[i]; // body
 
-		tBGMMesh bgmMesh;
+		tCompactMesh bgmMesh;
 		bgmMesh.sName1 = bodyNode->mName.C_Str();
 		FixNameExtensions(bgmMesh.sName1);
 		if (bgmMesh.sName1.ends_with("_crash")) continue;
@@ -1009,14 +1009,24 @@ void FillBGMFromFBX() {
 		bgmMesh.aModels.push_back(aModels.size());
 		aModels.push_back(model);
 
+		if (bRetroDemoCarFixup && bgmMesh.sName1.starts_with("engine")) {
+			tObject obj;
+			obj.sName1 = "engine_smoke_dummy";
+			memcpy(obj.mMatrix, bgmMesh.mMatrix, sizeof(obj.mMatrix));
+			obj.nFlags = 0xE0F9;
+			aObjects.push_back(obj);
+			obj.sName1 = "engine_fire_dummy";
+			aObjects.push_back(obj);
+		}
+
 		if (bgmMesh.aModels.empty()) {
 			WriteConsole(std::format("WARNING: BGMMesh {} is empty", bgmMesh.sName1), LOG_WARNINGS);
 			continue;
 		}
-		aBGMMeshes.push_back(bgmMesh);
+		aCompactMeshes.push_back(bgmMesh);
 	}
 
-	for (auto& mesh : aBGMMeshes) {
+	for (auto& mesh : aCompactMeshes) {
 		auto crash = FindFBXNodeForBGMMesh(mesh.sName1 + "_crash");
 		if (!crash) continue;
 
@@ -1380,7 +1390,7 @@ void AddCompactMeshFromFBXNode(aiNode* prop, int defaultGroup) {
 		mesh.nGroup = group;
 		mesh.nFlags = 0xE000;
 		mesh.nUnk1 = 1;
-		mesh.aLODMeshIds.push_back(model - &aModels[0]);
+		mesh.aModels.push_back(model - &aModels[0]);
 		mesh.nDamageAssocId = aMeshDamageAssoc.size();
 		aCompactMeshes.push_back(mesh);
 
@@ -1953,9 +1963,9 @@ void WriteBGM(uint32_t exportMapVersion) {
 		WriteModelToFile(file, model);
 	}
 
-	uint32_t carMeshCount = aBGMMeshes.size();
+	uint32_t carMeshCount = aCompactMeshes.size();
 	file.write((char*)&carMeshCount, 4);
-	for (auto& mesh : aBGMMeshes) {
+	for (auto& mesh : aCompactMeshes) {
 		WriteBGMMeshToFile(file, mesh);
 	}
 

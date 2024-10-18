@@ -12,7 +12,6 @@ bool bFBXSkipHiddenProps = false;
 int nFBXSkipHiddenPropsFlag;
 bool bFBXExportBVHNodes = false;
 bool bIsToughTrucksModel = false;
-bool bIsRetroDemoCar = false;
 bool bIsRallyTrophyModel = false;
 bool bIsRallyTrophyTrack = false;
 

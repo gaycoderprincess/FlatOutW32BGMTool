@@ -84,7 +84,7 @@ void ParseRallyTrophyHierarchy(std::ifstream& file) {
 
 void FinishUpRallyTrophyModel(tModel& model) {
 	if (auto mesh = meshToAddModelsTo) {
-		mesh->aLODMeshIds.push_back(aModels.size());
+		mesh->aModels.push_back(aModels.size());
 
 		for (auto& id : model.aSurfaces) {
 			aSurfaces[id].RegisterReference(SURFACE_REFERENCE_MODEL);
@@ -269,9 +269,9 @@ bool ParseRallyTrophyBMF() {
 
 	// create objects for meshes with 1 model that has 24 vertices (the dummy cubes)
 	for (auto& compactMesh : aCompactMeshes) {
-		if (compactMesh.aLODMeshIds.size() != 1) continue;
+		if (compactMesh.aModels.size() != 1) continue;
 
-		auto model = &aModels[compactMesh.aLODMeshIds[0]];
+		auto model = &aModels[compactMesh.aModels[0]];
 		if (model->aSurfaces.size() != 1) continue;
 
 		auto surface = &aSurfaces[model->aSurfaces[0]];
