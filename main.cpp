@@ -5,6 +5,7 @@
 #include <format>
 #include <vector>
 #include <filesystem>
+#include <ranges>
 #include "assimp/Importer.hpp"
 #include "assimp/Exporter.hpp"
 #include "assimp/Logger.hpp"

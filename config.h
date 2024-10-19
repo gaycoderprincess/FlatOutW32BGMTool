@@ -61,6 +61,7 @@ bool bRallyTrophyShaderFixup = false;
 bool bRallyTrophyNodes = false;
 bool bRetroDemoCarFixup = false;
 bool bExportAllLODs = false;
+bool bApplyStaticTransforms = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;

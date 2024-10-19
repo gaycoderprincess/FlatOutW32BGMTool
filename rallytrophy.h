@@ -267,27 +267,27 @@ bool ParseRallyTrophyBMF() {
 		}
 	}
 
-	// create objects for meshes with 1 model that has 24 vertices (the dummy cubes)
-	for (auto& compactMesh : aCompactMeshes) {
-		if (compactMesh.aModels.size() != 1) continue;
-
-		auto model = &aModels[compactMesh.aModels[0]];
-		if (model->aSurfaces.size() != 1) continue;
-
-		auto surface = &aSurfaces[model->aSurfaces[0]];
-		if (surface->nVertexCount != 24) continue;
-		if (surface->nPolyCount != 12) continue;
-
-		tObject object;
-		object.sName1 = compactMesh.sName1;
-		object.sName2 = compactMesh.sName2;
-		object.nFlags = compactMesh.nFlags;
-		memcpy(object.mMatrix, compactMesh.mMatrix, sizeof(object.mMatrix));
-		aObjects.push_back(object);
-	}
-
-	// create tire dummies
 	if (IsRallyTrophyCar()) {
+		// create objects for meshes with 1 model that has 24 vertices (the dummy cubes)
+		for (auto &compactMesh: aCompactMeshes) {
+			if (compactMesh.aModels.size() != 1) continue;
+
+			auto model = &aModels[compactMesh.aModels[0]];
+			if (model->aSurfaces.size() != 1) continue;
+
+			auto surface = &aSurfaces[model->aSurfaces[0]];
+			if (surface->nVertexCount != 24) continue;
+			if (surface->nPolyCount != 12) continue;
+
+			tObject object;
+			object.sName1 = compactMesh.sName1;
+			object.sName2 = compactMesh.sName2;
+			object.nFlags = compactMesh.nFlags;
+			memcpy(object.mMatrix, compactMesh.mMatrix, sizeof(object.mMatrix));
+			aObjects.push_back(object);
+		}
+
+		// create tire dummies
 		for (auto &compactMesh: aCompactMeshes) {
 			if (compactMesh.sName1.starts_with("tire_") && !compactMesh.sName1.ends_with("_lod")) {
 				tObject object;

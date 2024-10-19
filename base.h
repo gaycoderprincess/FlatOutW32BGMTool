@@ -310,8 +310,8 @@ struct tIndexBuffer {
 struct tVertexDataFOUC {
 	int16_t vPos[3];
 	uint16_t nUnk32;
-	uint8_t vUnknownProllyBumpmaps[4]; // ends in FF
-	uint8_t vUnknownProllyBumpmaps2[4]; // ends in FF
+	uint8_t vTangents[4]; // ends in FF
+	uint8_t vBitangents[4]; // ends in FF
 	uint8_t vNormals[4]; // ends in FF
 	uint8_t vVertexColors[4];
 	uint16_t vUV1[2];
@@ -320,8 +320,8 @@ struct tVertexDataFOUC {
 struct tVertexDataFOUC24 {
 	int16_t vPos[3];
 	uint16_t nUnk32;
-	uint8_t vUnknownProllyBumpmaps[4]; // ends in FF
-	uint8_t vUnknownProllyBumpmaps2[4]; // ends in FF
+	uint8_t vTangents[4]; // ends in FF
+	uint8_t vBitangents[4]; // ends in FF
 	uint8_t vNormals[4]; // ends in FF
 	uint16_t vUV1[2];
 };
@@ -698,6 +698,27 @@ std::vector<aiNode*> GetAllFBXSurfaceNodes() {
 		}
 	}
 	return nodes;
+}
+
+aiMatrix4x4 GetFullMatrixFromStaticBatchObject(aiNode* node) {
+	/*
+	aiMatrix4x4 tmp = node->mTransformation;
+	while (node->mParent) {
+		tmp = node->mParent->mTransformation * tmp;
+		node = node->mParent;
+	}
+	*/
+
+	std::vector<aiNode*> aNodes;
+	while (node->mParent) {
+		aNodes.push_back(node);
+		node = node->mParent;
+	}
+	aiMatrix4x4 tmp = node->mTransformation;
+	for (auto& node : aNodes | std::views::reverse) {
+		tmp *= node->mTransformation;
+	}
+	return tmp;
 }
 
 aiMatrix4x4 GetFullMatrixFromCompactMeshObject(aiNode* node) {

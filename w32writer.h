@@ -276,7 +276,7 @@ void ClampMeshUVs(aiMesh* mesh, int uvChannel) {
 	}
 }
 
-void FBXNormalsToFOUCNormals(aiVector3D* fbx, uint8_t* fouc, bool treeHack) {
+void FBXNormalsToFOUCNormals(const aiVector3D* fbx, uint8_t* fouc, bool treeHack) {
 	auto normals = *fbx;
 	if (normals[0] > 1.0) normals[0] = 1.0;
 	if (normals[1] > 1.0) normals[1] = 1.0;
@@ -298,6 +298,9 @@ void FBXNormalsToFOUCNormals(aiVector3D* fbx, uint8_t* fouc, bool treeHack) {
 	fouc[2] = tmp;
 	fouc[3] = 0xFF;
 }
+
+aiMatrix4x4* pStaticTransformationMatrix = nullptr;
+aiMatrix4x4* pStaticRotationMatrix = nullptr;
 
 bool bTmpModelsDoubleSided = false;
 void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, float foucOffset1 = 0, float foucOffset2 = 0, float foucOffset3 = 0, float foucOffset4 = fFOUCBGMScaleMultiplier, bool treeHack = false) {
@@ -337,9 +340,9 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 		for (int i = 0; i < mesh->mNumVertices; i++) {
 			auto data = (tVertexDataFOUC*)vertexData;
 			auto srcVerts = mesh->mVertices[i];
-			srcVerts.x /= foucOffsets[3];
-			srcVerts.y /= foucOffsets[3];
-			srcVerts.z /= foucOffsets[3];
+			if (pStaticTransformationMatrix) srcVerts *= *pStaticTransformationMatrix;
+
+			srcVerts /= foucOffsets[3];
 			srcVerts.x -= foucOffsets[0];
 			srcVerts.y -= foucOffsets[1];
 			srcVerts.z += foucOffsets[2];
@@ -347,16 +350,15 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			data->vPos[1] = srcVerts.y;
 			data->vPos[2] = -srcVerts.z;
 
-			// scalar + bumpmap strength i believe
 			data->nUnk32 = 0x0400;
-			data->vUnknownProllyBumpmaps[0] = 0x00;
-			data->vUnknownProllyBumpmaps[1] = 0x00;
-			data->vUnknownProllyBumpmaps[2] = 0x00;
-			data->vUnknownProllyBumpmaps[3] = 0xFF;
-			data->vUnknownProllyBumpmaps2[0] = 0x00;
-			data->vUnknownProllyBumpmaps2[1] = 0x00;
-			data->vUnknownProllyBumpmaps2[2] = 0x00;
-			data->vUnknownProllyBumpmaps2[3] = 0xFF;
+			data->vTangents[0] = 0x00;
+			data->vTangents[1] = 0x00;
+			data->vTangents[2] = 0x00;
+			data->vTangents[3] = 0xFF;
+			data->vBitangents[0] = 0x00;
+			data->vBitangents[1] = 0x00;
+			data->vBitangents[2] = 0x00;
+			data->vBitangents[3] = 0xFF;
 			data->vNormals[0] = 0x00;
 			data->vNormals[1] = 0x00;
 			data->vNormals[2] = 0x00;
@@ -364,9 +366,18 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 
 			// normals
 			if (mesh->HasNormals()) {
-				FBXNormalsToFOUCNormals(&mesh->mTangents[i], data->vUnknownProllyBumpmaps, false);
-				FBXNormalsToFOUCNormals(&mesh->mBitangents[i], data->vUnknownProllyBumpmaps2, false);
-				FBXNormalsToFOUCNormals(&mesh->mNormals[i], data->vNormals, treeHack);
+				auto tangent = mesh->mTangents[i];
+				auto bitangent = mesh->mBitangents[i];
+				auto normal = mesh->mNormals[i];
+				if (pStaticRotationMatrix) {
+					tangent *= *pStaticRotationMatrix;
+					bitangent *= *pStaticRotationMatrix;
+					normal *= *pStaticRotationMatrix;
+				}
+
+				FBXNormalsToFOUCNormals(&tangent, data->vTangents, false);
+				FBXNormalsToFOUCNormals(&bitangent, data->vBitangents, false);
+				FBXNormalsToFOUCNormals(&normal, data->vNormals, treeHack);
 			}
 			else {
 				WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!", LOG_ERRORS);
@@ -411,9 +422,12 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 		auto vertexData = vBuf.data;
 		for (int i = 0; i < mesh->mNumVertices; i++) {
 			auto vertices = (float*)vertexData;
-			vertices[0] = mesh->mVertices[i].x;
-			vertices[1] = mesh->mVertices[i].y;
-			vertices[2] = -mesh->mVertices[i].z;
+			auto srcVerts = mesh->mVertices[i];
+			if (pStaticTransformationMatrix) srcVerts *= *pStaticTransformationMatrix;
+
+			vertices[0] = srcVerts.x;
+			vertices[1] = srcVerts.y;
+			vertices[2] = -srcVerts.z;
 			vertices += 3;
 
 			if ((flags & VERTEX_NORMAL) != 0) {
@@ -423,6 +437,8 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 				}
 
 				auto normals = mesh->mNormals[i];
+				if (pStaticRotationMatrix) normals *= *pStaticRotationMatrix;
+
 				if (normals[0] > 1.0) normals[0] = 1.0;
 				if (normals[1] > 1.0) normals[1] = 1.0;
 				if (normals[2] > 1.0) normals[2] = 1.0;
@@ -1161,6 +1177,18 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 	vRadius[0] = std::abs(mesh->mAABB.mMax.x - mesh->mAABB.mMin.x);
 	vRadius[1] = std::abs(mesh->mAABB.mMax.y - mesh->mAABB.mMin.y);
 	vRadius[2] = std::abs(mesh->mAABB.mMax.z - mesh->mAABB.mMin.z);
+	if (pStaticTransformationMatrix) {
+		vCenter.x += pStaticTransformationMatrix->a4;
+		vCenter.y += pStaticTransformationMatrix->b4;
+		vCenter.z -= pStaticTransformationMatrix->c4;
+	}
+	if (pStaticRotationMatrix) {
+		aiVector3D rad = {vRadius[0], vRadius[1], vRadius[2]};
+		rad *= *pStaticRotationMatrix;
+		vRadius[0] = std::abs(rad[0]);
+		vRadius[1] = std::abs(rad[1]);
+		vRadius[2] = std::abs(rad[2]);
+	}
 
 	uint32_t streamCount = aVertexBuffers.size() + aIndexBuffers.size();
 	if (bIsFOUCModel) {
@@ -2088,6 +2116,17 @@ void ImportNewStaticBatchFromFBX(aiNode* node, int meshId) {
 		if (matName == "alpha_bushbranch") return;
 	}
 
+	if (bApplyStaticTransforms) {
+		pStaticTransformationMatrix = new aiMatrix4x4;
+		pStaticRotationMatrix = new aiMatrix4x4;
+		*pStaticTransformationMatrix = GetFullMatrixFromStaticBatchObject(node);
+
+		*pStaticRotationMatrix = *pStaticTransformationMatrix;
+		pStaticRotationMatrix->a4 = 0;
+		pStaticRotationMatrix->b4 = 0;
+		pStaticRotationMatrix->c4 = 0;
+	}
+
 	tSurface tmp;
 	aSurfaces.push_back(tmp);
 	auto& surface = aSurfaces[aSurfaces.size() - 1];
@@ -2097,6 +2136,15 @@ void ImportNewStaticBatchFromFBX(aiNode* node, int meshId) {
 	memcpy(batch.vCenter, surface.vCenter, sizeof(batch.vCenter));
 	memcpy(batch.vRadius, surface.vRadius, sizeof(batch.vRadius));
 	aStaticBatches.push_back(batch);
+
+	if (pStaticTransformationMatrix) {
+		delete pStaticTransformationMatrix;
+		pStaticTransformationMatrix = nullptr;
+	}
+	if (pStaticRotationMatrix) {
+		delete pStaticRotationMatrix;
+		pStaticRotationMatrix = nullptr;
+	}
 }
 
 void ImportStaticBatchesFromFBXTree(aiNode* node) {
