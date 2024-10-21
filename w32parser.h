@@ -983,40 +983,38 @@ bool ParseW32() {
 		}
 	}
 	if (nImportFileVersion == 0x20002) bIsFOUCModel = true;
-	else {
-		if (bIsBGMModel) {
-			// first look for modelname_crash.dat, then look for crash.dat in the folder
-			auto crashDatPath = sFileNameNoExt.string() + "_crash.dat";
-			if (!std::filesystem::exists(crashDatPath)) crashDatPath = sFileFolder.string() + "crash.dat";
-
-			if (nImportFileVersion >= 0x10004 && !ParseCrashDat(crashDatPath)) {
-				WriteConsole(
-						"WARNING: Failed to load " + (std::string) crashDatPath + ", damage data will not be exported",
-						LOG_WARNINGS);
+	else if (!bIsBGMModel) {
+		if (nImportFileVersion <= 0x10003) {
+			auto vertexColorsPath = sFileNameNoExt.string() + "_sky_vtx.rad";
+			if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
+				WriteConsole("ERROR: Failed to load " + (std::string) vertexColorsPath + "!", LOG_ERRORS);
+				WaitAndExitOnFail();
 			}
-		}
-		else {
-			if (nImportFileVersion <= 0x10003) {
-				auto vertexColorsPath = sFileNameNoExt.string() + "_sky_vtx.rad";
-				if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
-					WriteConsole("ERROR: Failed to load " + (std::string) vertexColorsPath + "!", LOG_ERRORS);
-					WaitAndExitOnFail();
-				}
-			} else {
-				auto vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors.w32";
-				if (!std::filesystem::exists(vertexColorsPath))
-					vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors_w2.w32";
-				if (!std::filesystem::exists(vertexColorsPath))
-					vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
-				if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
-					WriteConsole("ERROR: Failed to load " + (std::string) vertexColorsPath + "!", LOG_ERRORS);
-					WaitAndExitOnFail();
-				}
+		} else {
+			auto vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors.w32";
+			if (!std::filesystem::exists(vertexColorsPath))
+				vertexColorsPath = sFileNameNoExt.string() + "_vertexcolors_w2.w32";
+			if (!std::filesystem::exists(vertexColorsPath))
+				vertexColorsPath = sFileFolder.string() + "vertexcolors_w2.w32";
+			if (!ParseVertexColors(vertexColorsPath) && bDumpIntoFBX) {
+				WriteConsole("ERROR: Failed to load " + (std::string) vertexColorsPath + "!", LOG_ERRORS);
+				WaitAndExitOnFail();
 			}
 		}
 	}
 
-	if (!bIsBGMModel) {
+	if (bIsBGMModel) {
+		// first look for modelname_crash.dat, then look for crash.dat in the folder
+		auto crashDatPath = sFileNameNoExt.string() + "_crash.dat";
+		if (!std::filesystem::exists(crashDatPath)) crashDatPath = sFileFolder.string() + "crash.dat";
+
+		if (nImportFileVersion >= 0x10004 && !ParseCrashDat(crashDatPath)) {
+			WriteConsole(
+					"WARNING: Failed to load " + (std::string) crashDatPath + ", damage data will not be exported",
+					LOG_WARNINGS);
+		}
+	}
+	else {
 		if (bDumpIntoW32 || bDumpIntoTextFile) {
 			auto bvhPath = sFileNameNoExt.string() + "_bvh.gen";
 			if (!std::filesystem::exists(bvhPath)) bvhPath = sFileFolder.string() + "track_bvh.gen";
