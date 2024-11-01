@@ -3,6 +3,7 @@ void CMD_ExportW32() { bDumpIntoW32 = true; }
 void CMD_ExportBGM() { bDumpIntoBGM = true; }
 void CMD_ExportText() { bDumpIntoTextFile = true; }
 void CMD_ExportBMP() { bDumpIntoBMP = true; }
+void CMD_ExportXboxBuffers() { bExportXboxBuffers = true; }
 void CMD_ExportBGM_FO1() {
 	bCreateBGMFromFBX = true;
 	nExportFileVersion = 0x10004;
@@ -235,6 +236,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-export_fbx", CMD_ExportFBX, "Exports the input file into an .fbx model", "Export formats" },
 		{ "-export_text", CMD_ExportText, "Exports the input file into a text dump" },
 		{ "-export_bmp", CMD_ExportBMP, "Exports the input .4b file into a BMP image" },
+		{ "-export_xbox_binary", CMD_ExportXboxBuffers, "Exports the input .bgm file's CPU and GPU pushbuffers to raw data" },
 		{ "-use_vanilla_names", CMD_UseVanillaNames, "Exports the files as their original names, e.g. track_geom.w32, track_bvh.gen" },
 
 		// export bgm versions
@@ -367,6 +369,7 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		!bCreateW32FromFBX &&
 		!bCreate4BFromBMP &&
 		!bCreateEmptyPlantVDB &&
+		!bExportXboxBuffers &&
 		!bEmptyOutTrackBVH) {
 		WriteConsole("WARNING: No export output specified, the tool will not generate any files!", LOG_ALWAYS);
 	}

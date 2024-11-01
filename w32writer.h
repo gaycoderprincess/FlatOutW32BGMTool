@@ -2192,3 +2192,15 @@ void FillW32FromFBX() {
 
 	WriteConsole("W32 data created", LOG_ALWAYS);
 }
+
+void WriteXboxBuffers() {
+	if (aXboxCPUBuffers.empty() || aXboxGPUBuffers.empty()) return;
+
+	std::ofstream cpu(sFileNameNoExt.string() + "_cpu.dat", std::ios::out | std::ios::binary );
+	if (!cpu.is_open()) return;
+	cpu.write((char*)aXboxCPUBuffers[0].data, aXboxCPUBuffers[0].count);
+
+	std::ofstream gpu(sFileNameNoExt.string() + "_gpu.dat", std::ios::out | std::ios::binary );
+	if (!gpu.is_open()) return;
+	gpu.write((char*)aXboxGPUBuffers[0].data, aXboxGPUBuffers[0].count);
+}

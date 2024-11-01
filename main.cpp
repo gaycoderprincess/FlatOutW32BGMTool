@@ -145,6 +145,10 @@ int main(int argc, char *argv[]) {
 					}
 				}
 
+				if (bExportXboxBuffers) {
+					WriteXboxBuffers();
+				}
+
 				if (bDumpIntoTextFile) {
 					if (bIsBGMModel) {
 						WriteBGMToText();

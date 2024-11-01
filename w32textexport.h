@@ -163,7 +163,7 @@ void WriteW32StreamsToText() {
 					while (j < dataSize) {
 						std::string out;
 						for (int k = 0; k < buf.vertexSize / sizeof(float); k++) {
-							if (k == nVertexColorOffset) {
+							if (k == nVertexColorOffset || (bIsXboxBetaModel && buf.vertexSize == 16)) {
 								out += std::format("0x{:X}", *(uint32_t*)&buf.data[j]);
 							} else {
 								out += std::to_string(buf.data[j]);
