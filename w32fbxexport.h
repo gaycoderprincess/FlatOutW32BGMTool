@@ -702,6 +702,7 @@ aiScene GenerateScene() {
 						if (!IsSurfaceValidAndExportable(surfaceId)) continue;
 						auto& surface = aSurfaces[surfaceId];
 						aMeshes.push_back(surface._nFBXModelId);
+						if (surface._nFBXCrashModelId >= 0) aMeshes.push_back(surface._nFBXCrashModelId);
 					}
 				}
 				meshNode->mMeshes = new uint32_t[aMeshes.size()];
