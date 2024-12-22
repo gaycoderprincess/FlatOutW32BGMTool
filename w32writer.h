@@ -646,6 +646,7 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		if (mat.sTextureNames[0].starts_with("indicators")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("rope")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].starts_with("streetlight_glass")) mat.nAlpha = 1;
+		if (mat.sTextureNames[0].starts_with("waterfall")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].ends_with("_alpha.tga")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].ends_with("_wire.tga")) mat.nAlpha = 1;
 		if (mat.sTextureNames[0].ends_with("_alpha.TGA")) mat.nAlpha = 1;

@@ -441,6 +441,19 @@ void AddFBXNodeFromFOUCTree(aiScene* scene, aiNode* parentNode, tFOUCTreeSurface
 	}
 }
 
+bool ShouldRallyTrophyMeshBeStatic(const std::string& name) {
+	auto nameLower = name;
+	std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), [](unsigned char c){ return std::tolower(c); });
+
+	if (nameLower.starts_with("checkpoint")) return false;
+	if (nameLower.starts_with("roadbar")) return false;
+	if (nameLower.starts_with("sign")) return false;
+	if (nameLower.starts_with("split_")) return false;
+	if (nameLower.starts_with("start")) return false;
+	if (nameLower.starts_with("plate")) return false;
+	return true;
+}
+
 aiScene GenerateScene() {
 	aiScene scene;
 	scene.mRootNode = new aiNode();
@@ -668,18 +681,29 @@ aiScene GenerateScene() {
 		}
 	}
 
+	aiNode* pRallyTrophyStaticMesh = nullptr;
+	if (bIsRallyTrophyModel && bIsRallyTrophyTrack) {
+		if (auto node = new aiNode()) {
+			pRallyTrophyStaticMesh = node;
+			node->mName = "StaticMesh";
+			scene.mRootNode->addChildren(1, &node);
+		}
+	}
+
 	if (auto node = new aiNode()) {
 		node->mName = bIsBGMModel || IsRallyTrophyCar() ? "BGMMesh" : "CompactMesh";
 		scene.mRootNode->addChildren(1, &node);
 		for (auto& compactMesh: aCompactMeshes) {
 			if (bFBXSkipHiddenProps && compactMesh.nFlags != 0xE000 && compactMesh.nFlags != nFBXSkipHiddenPropsFlag) continue;
 
+			auto parent = (bIsRallyTrophyModel && pRallyTrophyStaticMesh && ShouldRallyTrophyMeshBeStatic(compactMesh.sName1)) ? pRallyTrophyStaticMesh : node;
+
 			auto meshNode = new aiNode();
 			meshNode->mName = compactMesh.sName1;
 			FO2MatrixToFBXMatrix(compactMesh.mMatrix, &meshNode->mTransformation);
-			node->addChildren(1, &meshNode);
+			parent->addChildren(1, &meshNode);
 
-			if (!bIsBGMModel) {
+			if (!bIsBGMModel && parent == node) {
 				auto typeNode = new aiNode();
 				typeNode->mName = std::format("{}TYPE_{}", &compactMesh - &aCompactMeshes[0], compactMesh.sName2);
 				meshNode->addChildren(1, &typeNode);

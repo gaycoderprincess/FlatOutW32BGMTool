@@ -6,6 +6,7 @@
 #include <vector>
 #include <filesystem>
 #include <ranges>
+#include <algorithm>
 #include "assimp/Importer.hpp"
 #include "assimp/Exporter.hpp"
 #include "assimp/Logger.hpp"
