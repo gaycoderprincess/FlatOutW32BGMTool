@@ -624,15 +624,21 @@ aiNode* FindFBXNodeForStartpoint(int id) {
 }
 
 aiNode* FindFBXNodeForSplitpointLeft(int id) {
-	return FindFBXNodeInChild(GetFBXNodeForSplitpointsArray(), "Splitpoint" + std::to_string(id + 1) + "_Left");
+	auto node = FindFBXNodeInChild(GetFBXNodeForSplitpointsArray(), "Splitpoint" + std::to_string(id + 1) + "_Left");
+	if (!node) node = FindFBXNodeInChild(GetFBXNodeForSplitpointsArray(), std::format("Splitpoint1_Left.{:03}", id));
+	return node;
 }
 
 aiNode* FindFBXNodeForSplitpointRight(int id) {
-	return FindFBXNodeInChild(GetFBXNodeForSplitpointsArray(), "Splitpoint" + std::to_string(id + 1) + "_Right");
+	auto node = FindFBXNodeInChild(GetFBXNodeForSplitpointsArray(), "Splitpoint" + std::to_string(id + 1) + "_Right");
+	if (!node) node = FindFBXNodeInChild(GetFBXNodeForSplitpointsArray(), std::format("Splitpoint1_Right.{:03}", id));
+	return node;
 }
 
 aiNode* FindFBXNodeForSplitpointPos(int id) {
-	return FindFBXNodeInChild(GetFBXNodeForSplitpointsArray(), "Splitpoint" + std::to_string(id + 1) + "_Position");
+	auto node = FindFBXNodeInChild(GetFBXNodeForSplitpointsArray(), "Splitpoint" + std::to_string(id + 1) + "_Position");
+	if (!node) node = FindFBXNodeInChild(GetFBXNodeForSplitpointsArray(), std::format("Splitpoint1_Position.{:03}", id));
+	return node;
 }
 
 aiNode* FindFBXNodeForCompactMesh(const std::string& name) {
