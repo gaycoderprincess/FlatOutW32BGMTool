@@ -176,6 +176,9 @@ void CMD_W32_RetroDemoCarFixup() {
 void CMD_W32_ApplyStaticTransforms() {
 	bApplyStaticTransforms = true;
 }
+void CMD_W32_AddLightMaterials() {
+	bAddLightMaterials = true;
+}
 void CMD_W32_ExportAllLODs() {
 	bExportAllLODs = true;
 }
@@ -300,6 +303,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-rally_trophy_nodes", CMD_W32_RallyTrophyNodes, "Imports Rally Trophy splitpoints and startpoints" },
 		{ "-retro_demo_car_fixup", CMD_W32_RetroDemoCarFixup, "Parse material and object names with Retro Demo cars in mind" },
 		{ "-apply_static_transforms", CMD_W32_ApplyStaticTransforms, "Applies transforms to StaticBatch objects, completely broken and should never be used" },
+		{ "-add_light_materials", CMD_W32_AddLightMaterials, "Adds unused materials for car lights even if they're not in the model" },
 
 		{ "-export_all_lods", CMD_W32_ExportAllLODs, "Exports every LOD level of every model", "FBX export options" },
 

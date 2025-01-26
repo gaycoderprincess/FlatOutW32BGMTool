@@ -149,29 +149,66 @@ void WriteW32StreamsToText() {
 					}
 				}
 				else if (bDumpStreams) {
-					auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
+					if (bIsXboxBetaModel && buf.vertexSize == 16) {
+						struct tXboxVBuffer16 {
+							int16_t pos[3];
+							uint16_t unk[3];
+							int16_t uv[2];
+						};
+						static_assert(sizeof(tXboxVBuffer16) == 16);
 
-					int nVertexColorOffset = -1;
-					if ((buf.flags & 0x40) != 0) {
-						nVertexColorOffset = 3;
-						if ((buf.flags & 0x10) != 0) {
-							nVertexColorOffset = 6;
+						auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(uint16_t));
+						auto data = (tXboxVBuffer16*)buf.data;
+
+						for (int j = 0; j < buf.vertexCount; j++) {
+							std::string out;
+							out += std::format("{:.6f} ", data[j].pos[0] / 32767.0);
+							out += std::format("{:.6f} ", data[j].pos[1] / 32767.0);
+							out += std::format("{:.6f} ", data[j].pos[2] / 32767.0);
+							out += std::format("{:X} ", data[j].unk[0]);
+							out += std::format("{:X} ", data[j].unk[1]);
+							out += std::format("{:X} ", data[j].unk[2]);
+							out += std::format("{:.6f} ", data[j].uv[0] / 32767.0);
+							out += std::format("{:.6f} ", data[j].uv[1] / 32767.0);
+							WriteFile(out);
 						}
+
+						//size_t j = 0;
+						//while (j < dataSize) {
+						//	std::string out;
+						//	for (int k = 0; k < buf.vertexSize / sizeof(uint16_t); k++) {
+						//		out += std::format("{}", (data[j]) / 32767.0);
+						//		out += " ";
+						//		j++;
+						//	}
+						//	WriteFile(out);
+						//}
 					}
+					else {
+						auto dataSize = buf.vertexCount * (buf.vertexSize / sizeof(float));
 
-					size_t j = 0;
-					while (j < dataSize) {
-						std::string out;
-						for (int k = 0; k < buf.vertexSize / sizeof(float); k++) {
-							if (k == nVertexColorOffset || (bIsXboxBetaModel && buf.vertexSize == 16)) {
-								out += std::format("0x{:X}", *(uint32_t*)&buf.data[j]);
-							} else {
-								out += std::to_string(buf.data[j]);
+						int nVertexColorOffset = -1;
+						if ((buf.flags & 0x40) != 0) {
+							nVertexColorOffset = 3;
+							if ((buf.flags & 0x10) != 0) {
+								nVertexColorOffset = 6;
 							}
-							out += " ";
-							j++;
 						}
-						WriteFile(out);
+
+						size_t j = 0;
+						while (j < dataSize) {
+							std::string out;
+							for (int k = 0; k < buf.vertexSize / sizeof(float); k++) {
+								if (k == nVertexColorOffset) {
+									out += std::format("0x{:X}", *(uint32_t*)&buf.data[j]);
+								} else {
+									out += std::to_string(buf.data[j]);
+								}
+								out += " ";
+								j++;
+							}
+							WriteFile(out);
+						}
 					}
 				}
 			}
@@ -397,6 +434,8 @@ void WriteW32ModelsToText() {
 		WriteFile("vRadius.y: " + std::to_string(model.vRadius[1]));
 		WriteFile("vRadius.z: " + std::to_string(model.vRadius[2]));
 		WriteFile("fRadius: " + std::to_string(model.fRadius)); // this is entirely skipped in the reader and instead calculated
+		WriteFile(std::format("vAABBMin: {{ {}, {}, {} }}", model.vCenter[0] - model.vRadius[0], model.vCenter[1] - model.vRadius[1], model.vCenter[2] - model.vRadius[2]));
+		WriteFile(std::format("vAABBMax: {{ {}, {}, {} }}", model.vCenter[0] + model.vRadius[0], model.vCenter[1] + model.vRadius[1], model.vCenter[2] + model.vRadius[2]));
 		WriteFile("nNumSurfaces: " + std::to_string(model.aSurfaces.size()));
 		for (auto& surface : model.aSurfaces) {
 			WriteFile(std::to_string(surface));

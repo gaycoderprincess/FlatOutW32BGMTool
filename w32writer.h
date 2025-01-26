@@ -915,6 +915,28 @@ void FillBGMFromFBX() {
 		}
 	}
 
+	if (bAddLightMaterials) {
+		const char* aLightMaterials[] = {
+			"light_front_l",
+			"light_front_r",
+			"light_brake_l",
+			"light_brake_r",
+			"light_reverse_l",
+			"light_reverse_r",
+		};
+
+		for (auto& name : aLightMaterials) {
+			tMaterial mat;
+			mat.sName = mat._sFBXName = name;
+			mat.nNumTextures = 1;
+			mat.sTextureNames[0] = "lights.tga";
+			mat.v92 = 2;
+			mat.nShaderId = 10; // car lights
+			mat.nAlpha = 1;
+			aMaterials.push_back(mat);
+		}
+	}
+
 	if (bMenuCarCombineMaterials && aMaterials.size() > 16) {
 		WriteConsole("ERROR: Failed to combine enough materials to fit within the menucar limit! Mesh has " + std::to_string(aMaterials.size()) + " materials, max is 16", LOG_ERRORS);
 		WaitAndExitOnFail();
@@ -959,8 +981,8 @@ void FillBGMFromFBX() {
 		model.sName = bodyNode->mName.C_Str();
 		FixNameExtensions(model.sName);
 
-		float aabbMin[3] = {0, 0, 0};
-		float aabbMax[3] = {0, 0, 0};
+		float aabbMin[3] = {9999,9999,9999};
+		float aabbMax[3] = {-9999,-9999,-9999};
 
 		for (int j = -1; j < (int)bodyNode->mNumChildren; j++) {
 			aiNode* body001 = nullptr;
