@@ -366,18 +366,29 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 
 			// normals
 			if (mesh->HasNormals()) {
-				auto tangent = mesh->mTangents[i];
-				auto bitangent = mesh->mBitangents[i];
-				auto normal = mesh->mNormals[i];
-				if (pStaticRotationMatrix) {
-					tangent *= *pStaticRotationMatrix;
-					bitangent *= *pStaticRotationMatrix;
-					normal *= *pStaticRotationMatrix;
-				}
+				if (!mesh->HasTangentsAndBitangents()) {
+					WriteConsole("WARNING: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have tangents!", LOG_ERRORS);
+					//WaitAndExitOnFail();
 
-				FBXNormalsToFOUCNormals(&tangent, data->vTangents, false);
-				FBXNormalsToFOUCNormals(&bitangent, data->vBitangents, false);
-				FBXNormalsToFOUCNormals(&normal, data->vNormals, treeHack);
+					auto normal = mesh->mNormals[i];
+					FBXNormalsToFOUCNormals(&normal, data->vTangents, false);
+					FBXNormalsToFOUCNormals(&normal, data->vBitangents, false);
+					FBXNormalsToFOUCNormals(&normal, data->vNormals, treeHack);
+				}
+				else {
+					auto tangent = mesh->mTangents[i];
+					auto bitangent = mesh->mBitangents[i];
+					auto normal = mesh->mNormals[i];
+					if (pStaticRotationMatrix) {
+						tangent *= *pStaticRotationMatrix;
+						bitangent *= *pStaticRotationMatrix;
+						normal *= *pStaticRotationMatrix;
+					}
+
+					FBXNormalsToFOUCNormals(&tangent, data->vTangents, false);
+					FBXNormalsToFOUCNormals(&bitangent, data->vBitangents, false);
+					FBXNormalsToFOUCNormals(&normal, data->vNormals, treeHack);
+				}
 			}
 			else {
 				WriteConsole("ERROR: " + (std::string)mesh->mName.C_Str() + " uses a shader required to have normals!", LOG_ERRORS);
@@ -386,9 +397,9 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 			// vertex color
 			if (mesh->HasVertexColors(0)) {
 				uint8_t tmp[4] = {0, 0, 0, 0xFF};
-				tmp[0] = mesh->mColors[0][i].r * 255.0;
+				tmp[0] = mesh->mColors[0][i].b * 255.0;
 				tmp[1] = mesh->mColors[0][i].g * 255.0;
-				tmp[2] = mesh->mColors[0][i].b * 255.0;
+				tmp[2] = mesh->mColors[0][i].r * 255.0;
 				tmp[3] = mesh->mColors[0][i].a * 255.0;
 				*(uint32_t*)data->vVertexColors = *(uint32_t*)tmp;
 			}
@@ -616,6 +627,8 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	// custom alpha suffix
 	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
 	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
+
+	if (mat.sTextureNames[0].empty()) mat.sTextureNames[0] = mat.sName + ".tga";
 }
 
 void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees) {
@@ -788,6 +801,8 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 	if (bNeverUseTerrainShader && (mat.nShaderId == 1 || mat.nShaderId == 2)) {
 		mat.nShaderId = 0;
 	}
+
+	if (mat.sTextureNames[0].empty()) mat.sTextureNames[0] = mat.sName + ".tga";
 }
 
 tMaterial GetMaterialFromFBX(aiMaterial* fbxMaterial) {

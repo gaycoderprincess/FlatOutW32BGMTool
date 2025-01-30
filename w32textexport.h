@@ -94,10 +94,7 @@ void WriteW32StreamsToText() {
 								out += std::format("0x{:02X} ", value.vNormals[1]);
 								out += std::format("0x{:02X} ", value.vNormals[2]);
 								out += std::format("0x{:02X} ", value.vNormals[3]);
-								out += std::format("0x{:02X} ", value.vVertexColors[0]);
-								out += std::format("0x{:02X} ", value.vVertexColors[1]);
-								out += std::format("0x{:02X} ", value.vVertexColors[2]);
-								out += std::format("0x{:02X} ", value.vVertexColors[3]);
+								out += std::format("0x{:08X} ", *(uint32_t*)value.vVertexColors);
 								out += std::format("0x{:04X} ", value.vUV1[0]);
 								out += std::format("0x{:04X} ", value.vUV1[1]);
 								out += std::format("0x{:04X} ", value.vUV2[0]);
