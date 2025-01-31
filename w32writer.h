@@ -795,6 +795,11 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		}
 	}
 
+	if (mat.sName.starts_with("treehack_")) {
+		mat.nAlpha = 1;
+		mat._bIsCustomFOUCTree = true;
+	}
+
 	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
 
 	// terrain -> static prelit
