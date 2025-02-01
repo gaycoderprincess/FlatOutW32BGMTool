@@ -540,48 +540,157 @@ void FixNameExtensions(std::string& name) {
 	}
 }
 
+struct tShaderConfig {
+	struct tShaderMatchup {
+		std::string name;
+		int shaderId = -1;
+		bool forceAlphaOn = false;
+		bool forceAlphaOff = false;
+		bool treeHack = false;
+		bool isWater = false;
+		bool isTire = false;
+		bool isRim = false;
+		bool isMallFloor = false;
+
+		void ApplyToMaterial(tMaterial* mat) {
+			if (shaderId >= 0) {
+				mat->nShaderId = shaderId;
+				// car lights
+				if (shaderId == 10) {
+					mat->v92 = 2;
+				}
+			}
+			if (forceAlphaOn) mat->nAlpha = 1;
+			if (forceAlphaOff) mat->nAlpha = 0;
+			if (isWater) {
+				// water is a window in fo1/fo2, lol
+				if (bIsFOUCModel) {
+					mat->sTextureNames[0] = "puddle_normal.tga";
+					mat->nShaderId = 45; // puddle
+					mat->nAlpha = 1;
+				}
+				else {
+					mat->sTextureNames[0] = "alpha_windowshader.tga";
+					mat->nShaderId = 34; // reflecting window shader (static)
+					mat->nAlpha = 1;
+				}
+			}
+			if (isTire) {
+				mat->nShaderId = bIsFOUCModel ? 44 : 7; // fo2: car diffuse, uc: car tire
+				if (bCarForceTireAlpha) mat->nAlpha = 1;
+			}
+			if (isRim) {
+				mat->nShaderId = 9; // fo2: car tire, uc: car tire rim
+				if (!bIsFOUCModel) mat->nAlpha = 1;
+				if (bCarNoRimAlpha) mat->nAlpha = 0;
+				if (bCarForceRimAlpha) mat->nAlpha = 1;
+			}
+			if (bIsFOUCModel && isMallFloor) mat->nShaderId = 49; // lightmapped planar reflection
+			if (treeHack) {
+				mat->nAlpha = 1;
+				mat->_bIsCustomFOUCTree = true;
+			}
+		}
+	};
+	std::vector<tShaderMatchup> name;
+	std::vector<tShaderMatchup> name_prefix;
+	std::vector<tShaderMatchup> name_suffix;
+	std::vector<tShaderMatchup> texture;
+	std::vector<tShaderMatchup> texture_prefix;
+	std::vector<tShaderMatchup> texture_suffix;
+
+	void ApplyToMaterial(tMaterial* mat) {
+		for (auto& matchup : name) {
+			if (mat->sName == matchup.name) {
+				matchup.ApplyToMaterial(mat);
+			}
+		}
+		for (auto& matchup : name_prefix) {
+			if (mat->sName.starts_with(matchup.name)) {
+				matchup.ApplyToMaterial(mat);
+			}
+		}
+		for (auto& matchup : name_suffix) {
+			if (mat->sName.ends_with(matchup.name)) {
+				matchup.ApplyToMaterial(mat);
+			}
+		}
+		for (auto& matchup : texture) {
+			if (mat->sTextureNames[0] == matchup.name) {
+				matchup.ApplyToMaterial(mat);
+			}
+		}
+		for (auto& matchup : texture_prefix) {
+			if (mat->sTextureNames[0].starts_with(matchup.name)) {
+				matchup.ApplyToMaterial(mat);
+			}
+		}
+		for (auto& matchup : texture_suffix) {
+			if (mat->sTextureNames[0].ends_with(matchup.name)) {
+				matchup.ApplyToMaterial(mat);
+			}
+		}
+	}
+};
+tShaderConfig gBGMShaders, gW32StaticShaders, gW32DynamicShaders;
+
+void InitShaderConfig() {
+	static bool bInited = false;
+	if (bInited) return;
+	bInited = true;
+
+	tShaderConfig* config = nullptr;
+	std::vector<tShaderConfig::tShaderMatchup>* matchups = nullptr;
+
+	auto input = std::ifstream("shaders.txt");
+	for (std::string line; std::getline(input, line);) {
+		if (line.starts_with("!!BGM!!")) { config = &gBGMShaders; continue; }
+		if (line.starts_with("!!W32 STATIC!!")) { config = &gW32StaticShaders; continue; }
+		if (line.starts_with("!!W32 DYNAMIC!!")) { config = &gW32DynamicShaders; continue; }
+
+		if (!config) continue;
+		if (line.starts_with("[name]")) { matchups = &config->name; continue; }
+		if (line.starts_with("[name_prefix]")) { matchups = &config->name_prefix; continue; }
+		if (line.starts_with("[name_suffix]")) { matchups = &config->name_suffix; continue; }
+		if (line.starts_with("[texture]")) { matchups = &config->texture; continue; }
+		if (line.starts_with("[texture_prefix]")) { matchups = &config->texture_prefix; continue; }
+		if (line.starts_with("[texture_suffix]")) { matchups = &config->texture_suffix; continue; }
+		if (!matchups) continue;
+		if (line.starts_with("#")) continue;
+
+		auto equals = line.find('=');
+		if (equals == std::string::npos) continue;
+
+		auto name = line.substr(0, equals);
+		tShaderConfig::tShaderMatchup* matchup = nullptr;
+		for (auto& arr : *matchups) {
+			if (arr.name == name) {
+				matchup = &arr;
+				break;
+			}
+		}
+		if (!matchup) {
+			matchups->push_back(tShaderConfig::tShaderMatchup());
+			matchup = &(*matchups)[matchups->size()-1];
+			matchup->name = name;
+		}
+
+		auto data = line.substr(equals+1);
+		if (data == "FORCEALPHA") matchup->forceAlphaOn = true;
+		else if (data == "FORCEALPHAOFF") matchup->forceAlphaOff = true;
+		else if (data == "TREEHACK") matchup->treeHack = true;
+		else if (data == "WATER") matchup->isWater = true;
+		else if (data == "TIRE") matchup->isTire = true;
+		else if (data == "RIM") matchup->isRim = true;
+		else if (data == "MALLFLOOR") matchup->isMallFloor = true;
+		else matchup->shaderId = std::stoi(data);
+	}
+}
+
 void FixupFBXCarMaterial(tMaterial& mat) {
+	InitShaderConfig();
+
 	mat.nShaderId = 8; // car metal
-	if (mat.sName.starts_with("male")) mat.nShaderId = 26; // skinning
-	if (mat.sName.starts_with("female")) mat.nShaderId = 26; // skinning
-	if (mat.sName.starts_with("body")) mat.nShaderId = 5; // car body
-	if (mat.sName.starts_with("interior")) mat.nShaderId = 7; // car diffuse
-	if (mat.sName.starts_with("grille")) {
-		mat.nShaderId = 7; // car diffuse
-		mat.nAlpha = 1;
-	}
-	if (mat.sName.starts_with("shadow")) mat.nShaderId = 13; // shadow project
-	if (mat.sName.starts_with("window")) mat.nShaderId = 6; // car window
-	if (mat.sName.starts_with("shear")) mat.nShaderId = 11; // car shear
-	if (mat.sName.starts_with("shock")) mat.nShaderId = 12; // car scale
-	if (mat.sName.starts_with("spring")) mat.nShaderId = 12; // car scale
-	if (mat.sName.starts_with("scale")) mat.nShaderId = 12; // car scale
-	if (mat.sName.starts_with("tire")) {
-		mat.nShaderId = bIsFOUCModel ? 44 : 7; // fo2: car diffuse, uc: car tire
-		if (bCarForceTireAlpha) mat.nAlpha = 1;
-	}
-	if (mat.sName.starts_with("rim")) {
-		mat.nShaderId = 9; // fo2: car tire, uc: car tire rim
-		if (!bIsFOUCModel) mat.nAlpha = 1;
-		if (bCarNoRimAlpha) mat.nAlpha = 0;
-		if (bCarForceRimAlpha) mat.nAlpha = 1;
-	}
-	if (mat.sName.starts_with("massdoubler_texture")) mat.nShaderId = 3; // dynamic diffuse
-	if (mat.sName.starts_with("bomb_texture")) mat.nShaderId = 3; // dynamic diffuse
-	if (mat.sName.starts_with("powerarmour_texture")) mat.nShaderId = 3; // dynamic diffuse
-	if (mat.sName.starts_with("scoredoubler_texture")) mat.nShaderId = 3; // dynamic diffuse
-	if (mat.sName.starts_with("infinitro_texture")) mat.nShaderId = 3; // dynamic diffuse
-	if (mat.sName.starts_with("repair_texture")) mat.nShaderId = 3; // dynamic diffuse
-	if (mat.sName.starts_with("powerram_texture")) mat.nShaderId = 3; // dynamic diffuse
-	if (mat.sName.starts_with("massdoubler_texture")) mat.nShaderId = 3; // dynamic diffuse
-	if (mat.sName.starts_with("terrain") || mat.sName.starts_with("groundplane")) {
-		mat.nShaderId = 7; // car diffuse
-		mat.nAlpha = 1;
-	}
-	if (mat.sName.starts_with("light")) {
-		mat.v92 = 2;
-		mat.nShaderId = 10; // car lights
-	}
 	FixNameExtensions(mat.sName);
 
 	if (bRallyTrophyShaderFixup) {
@@ -605,23 +714,10 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 		if (mat.sTextureNames[0] == "interior_lo.tga" || mat.sTextureNames[0] == "Interior_Lo.tga") mat.sTextureNames[0] = "interior.tga";
 	}
 
-	// car lights have alpha
-	if (mat.sTextureNames[0] == "lights.tga" || mat.sTextureNames[0] == "windows.tga" || mat.sTextureNames[0] == "shock.tga") {
-		mat.nAlpha = 1;
-	}
-
-	// driver skins
-	if (mat.sTextureNames[0] == "Sue.tga" || mat.sTextureNames[0] == "Jack.tga") {
-		mat.nShaderId = 26;
-	}
-
 	// shadow project has no texture
 	if (mat.sName.starts_with("shadow")) mat.sTextureNames[0] = "";
 	// body always uses skin1.tga
 	if (mat.sName.starts_with("body")) mat.sTextureNames[0] = "skin1.tga";
-	// scaleshock and shearhock have no alpha
-	if (mat.sName.starts_with("scaleshock")) mat.nAlpha = 0;
-	if (mat.sName.starts_with("shearhock")) mat.nAlpha = 0;
 	// fouc tire_01 hack
 	if (bIsFOUCModel && (mat.sTextureNames[0].starts_with("tire_0") || mat.sTextureNames[0].starts_with("tire_1"))) mat.sTextureNames[0] = "tire.tga";
 	// custom alpha suffix
@@ -629,9 +725,13 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
 
 	if (mat.sTextureNames[0].empty()) mat.sTextureNames[0] = mat.sName + ".tga";
+
+	gBGMShaders.ApplyToMaterial(&mat);
 }
 
 void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees) {
+	InitShaderConfig();
+
 	if (bRallyTrophyShaderFixup) {
 		mat.nAlpha = 0;
 		mat.nShaderId = 0; // static prelit
@@ -713,46 +813,15 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		return;
 	}
 
-	mat.nAlpha = mat.sName.starts_with("alpha") || mat.sName.starts_with("Alpha") || mat.sName.starts_with("wirefence_");
+	mat.nAlpha = mat.sName.starts_with("alpha") || mat.sName.starts_with("Alpha");
 	if (isStaticModel) {
 		mat.nShaderId = 0; // static prelit
-		if (mat.sName.starts_with("dm_")) mat.nShaderId = 1; // terrain
-		if (mat.sName.starts_with("DM_")) mat.nShaderId = 1; // terrain
-		if (mat.sName.starts_with("terrain_")) mat.nShaderId = 1; // terrain
-		if (mat.sName.starts_with("sdm_")) mat.nShaderId = 2; // terrain specular
-		if (mat.sName.starts_with("SDM_")) mat.nShaderId = 2; // terrain specular
-		if (mat.sName.starts_with("sDM_")) mat.nShaderId = 2; // terrain specular
-		if (mat.sName.starts_with("restaurant_floor")) mat.nShaderId = 2; // terrain specular
-		if (mat.sName.starts_with("arena_jump_structure")) mat.nShaderId = 2; // terrain specular
-		if (mat.sName.starts_with("treetrunk")) mat.nShaderId = 19; // tree trunk
-		if (mat.sName.starts_with("alpha_treebranch")) mat.nShaderId = 20; // tree branch
-		if (mat.sName.starts_with("alpha_bushbranch")) mat.nShaderId = 20; // tree branch
-		if (mat.sName.starts_with("alpha_treelod")) mat.nShaderId = 21; // tree leaf
-		if (mat.sName.starts_with("alpha_treesprite")) mat.nShaderId = 21; // tree leaf
-		if (mat.sName.starts_with("alpha_bushlod")) mat.nShaderId = 21; // tree leaf
-		if (mat.sName.starts_with("alpha_bushsprite")) mat.nShaderId = 21; // tree leaf
-		if (mat.sName.starts_with("static_windows")) mat.nShaderId = 34; // reflecting window shader (static)
-		if (mat.sName.starts_with("reflection")) mat.nShaderId = 34; // reflecting window shader (static)
-		if (mat.sName.starts_with("puddle")) mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
-		if (bIsFOUCModel && mat.sName.starts_with("SDM_Mall_floor")) mat.nShaderId = 49; // lightmapped planar reflection
 		FixNameExtensions(mat.sName);
-		if (mat.sName == "water" || mat.sName == "Water") mat.nShaderId = bIsFOUCModel ? 45 : 34; // puddle : reflecting window shader (static)
 	}
 	else {
 		mat.nShaderId = 3; // dynamic diffuse
-		if (mat.sName.starts_with("alpha_dynwindowshader")) mat.nShaderId = 35; // reflecting window shader (dynamic)
-		if (mat.sName.starts_with("dynamic_windows")) mat.nShaderId = 35; // reflecting window shader (dynamic)
-		FixNameExtensions(mat.sName);
-		if (mat.sName.ends_with("_specular")) mat.nShaderId = 4; // dynamic specular, custom suffix for manual use
 	}
-
-	// retro demo
-	if (mat.sName.starts_with("road_tarmac")) mat.nShaderId = 1; // terrain
-	if (mat.sName.starts_with("road_gravel")) mat.nShaderId = 1; // terrain
-	if (mat.sName.starts_with("poles_wire")) mat.nAlpha = 1;
-	if (mat.sName.starts_with("forest_mixed_")) mat.nAlpha = 1;
-	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
-	if (mat.sName.ends_with("_alpha1")) mat.nAlpha = 1;
+	FixNameExtensions(mat.sName);
 
 	if (mat.sTextureNames[0] == "colormap.tga" || mat.sTextureNames[0] == "Colormap.tga") {
 		mat.nUseColormap = 1;
@@ -770,19 +839,6 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		mat.nShaderId = 34; // reflecting window shader (static)
 	}
 	if (mat.sTextureNames[0].starts_with("alpha") || mat.sTextureNames[0].starts_with("Alpha")) mat.nAlpha = 1;
-	// water is a window in fo1/fo2, lol
-	if (mat.sName == "water" || mat.sName == "Water" || mat.sName == "puddle_normal") {
-		if (bIsFOUCModel) {
-			mat.sTextureNames[0] = "puddle_normal.tga";
-			mat.nShaderId = 45; // puddle
-			mat.nAlpha = 1;
-		}
-		else {
-			mat.sTextureNames[0] = "alpha_windowshader.tga";
-			mat.nShaderId = 34; // reflecting window shader (static)
-			mat.nAlpha = 1;
-		}
-	}
 	if (bToughTrucksStadiumScreen && mat.sTextureNames[0] == "stadion_screen.tga") {
 		mat.sName = isStaticModel ? "screenmaterial_static" : "screenmaterial";
 		mat.nShaderId = isStaticModel ? 40 : 41; // static nonlit : dynamic nonlit
@@ -800,6 +856,7 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		mat._bIsCustomFOUCTree = true;
 	}
 
+	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
 	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
 
 	// terrain -> static prelit
@@ -808,6 +865,13 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 	}
 
 	if (mat.sTextureNames[0].empty()) mat.sTextureNames[0] = mat.sName + ".tga";
+
+	if (isStaticModel) {
+		gW32StaticShaders.ApplyToMaterial(&mat);
+	}
+	else {
+		gW32DynamicShaders.ApplyToMaterial(&mat);
+	}
 }
 
 tMaterial GetMaterialFromFBX(aiMaterial* fbxMaterial) {

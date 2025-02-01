@@ -174,6 +174,7 @@ std::string GetShaderName(int value, int version) {
 			case 52: return "Ambient particle shader";
 			case 53: return "Videoscreen shader (dynamic)";
 			case 54: return "Videoscreen shader (static)";
+			default: return "UNKNOWN";
 		}
 	}
 	else {

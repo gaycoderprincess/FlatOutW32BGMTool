@@ -1,0 +1,244 @@
+### Shader matchup config start
+
+!!BGM!!
+
+# exact material names
+[name]
+
+# material name prefixes
+[name_prefix]
+# cars
+body=5
+interior=7
+grille=7
+grille=FORCEALPHA
+shadow=13
+window=6
+shear=11
+shock=12
+spring=12
+scale=12
+scaleshock=FORCENOALPHA
+shearhock=FORCENOALPHA
+tire=TIRE
+rim=RIM
+light=10
+terrain=7
+terrain=FORCEALPHA
+groundplane=7
+groundplane=FORCEALPHA
+# ragdolls
+male=26
+female=26
+# powerups
+massdoubler_texture=3
+bomb_texture=3
+powerarmour_texture=3
+scoredoubler_texture=3
+infinitro_texture=3
+repair_texture=3
+powerram_texture=3
+
+# material name suffixes
+[name_suffix]
+
+# exact texture names
+[texture]
+Sue.tga=26
+Jack.tga=26
+lights.tga=FORCEALPHA
+windows.tga=FORCEALPHA
+shock.tga=FORCEALPHA
+
+# texture name prefixes
+[texture_prefix]
+
+# texture name suffixes
+[texture_suffix]
+
+!!W32 STATIC!!
+
+# exact material names
+[name]
+water=WATER
+Water=WATER
+
+# material name prefixes
+[name_prefix]
+dm_=1
+DM_=1
+terrain_=1
+sdm_=2
+SDM_=2
+sDM_=2
+restaurant_floor=2
+arena_jump_structure=2
+treetrunk=19
+alpha_treebranch=20
+alpha_bushbranch=20
+alpha_treelod=21
+alpha_treesprite=21
+alpha_bushlod=21
+alpha_bushsprite=21
+static_windows=34
+reflection=34
+puddle=WATER
+SDM_Mall_floor=MALLFLOOR
+wirefence_=FORCEALPHA
+# retro demo materials
+road_tarmac=1
+road_gravel=1
+poles_wire=FORCEALPHA
+forest_mixed_=FORCEALPHA
+
+# material name suffixes
+[name_suffix]
+_alpha1=FORCEALPHA
+
+# exact texture names
+[texture]
+
+# texture name prefixes
+[texture_prefix]
+
+# texture name suffixes
+[texture_suffix]
+
+!!W32 DYNAMIC!!
+
+# exact material names
+[name]
+
+# material name prefixes
+[name_prefix]
+alpha_dynwindowshader=35
+dynamic_windows=35
+poles_wire=FORCEALPHA
+forest_mixed_=FORCEALPHA
+wirefence_=FORCEALPHA
+
+# material name suffixes
+[name_suffix]
+_alpha1=FORCEALPHA
+_specular=4
+
+# exact texture names
+[texture]
+
+# texture name prefixes
+[texture_prefix]
+
+# texture name suffixes
+[texture_suffix]
+
+### Shader matchup config end
+
+# Special keywords:
+# FORCEALPHA
+# FORCEALPHAOFF
+# TREEHACK - alpha, more even lighting
+# WATER
+# TIRE - shader 44 (car tire) in FOUC, shader 7 (car diffuse) in FO2
+# RIM - shader 9 (car tire, car tire rim)
+# MALLFLOOR - shader 49 (lightmapped planar reflection) in FOUC
+
+# FO2 shader list:
+# 0: static prelit
+# 1: terrain
+# 2: terrain specular
+# 3: dynamic diffuse
+# 4: dynamic specular
+# 5: car body
+# 6: car window
+# 7: car diffuse
+# 8: car metal
+# 9: car tire
+# 10: car lights
+# 11: car shear
+# 12: car scale
+# 13: shadow project
+# 14: car lights unlit
+# 15: default
+# 16: vertex color
+# 17: shadow sampler
+# 18: grass
+# 19: tree trunk
+# 20: tree branch
+# 21: tree leaf
+# 22: particle
+# 23: sunflare
+# 24: intensitymap
+# 25: water
+# 26: skinning
+# 27: tree lod (default)
+# 28: DUMMY (streak shader on PS2)
+# 29: clouds (uvscroll)
+# 30: car bodylod
+# 31: vertex color static (dummy? same as vertexcolor)
+# 32: car window damaged
+# 33: skin shadow
+# 34: reflecting window shader (static)
+# 35: reflecting window shader (dynamic)
+# 36: @deprecated: old STATIC_SPECULAR, same as #35 - STATIC_WINDOW
+# 37: skybox
+# 38: ghost body
+# 39: static nonlit
+# 40: dynamic nonlit
+# 41: racemap
+
+# FOUC shader list:
+# 0: static prelit
+# 1: terrain
+# 2: terrain specular
+# 3: dynamic diffuse
+# 4: dynamic specular
+# 5: car body
+# 6: car window
+# 7: car diffuse
+# 8: car metal
+# 9: car tire rim
+# 10: car lights
+# 11: car shear
+# 12: car scale
+# 13: shadow project
+# 14: car lights unlit
+# 15: default
+# 16: vertex color
+# 17: shadow sampler
+# 18: grass
+# 19: tree trunk
+# 20: tree branch
+# 21: tree leaf
+# 22: particle
+# 23: sunflare
+# 24: intensitymap
+# 25: water
+# 26: skinning
+# 27: tree lod (default)
+# 28: @deprecated: streak shader on PS2
+# 29: clouds (uvscroll)
+# 30: car bodylod
+# 31: @deprecated: vertex color static (now used as depth buffer visualization shader)
+# 32: car window damaged
+# 33: skin shadow(deprecated)
+# 34: reflecting window shader (static)
+# 35: reflecting window shader (dynamic)
+# 36: @deprecated: old STATIC_SPECULAR, same as #35 - STATIC_WINDOW
+# 37: skybox
+# 38: horizon
+# 39: ghost body
+# 40: static nonlit
+# 41: dynamic nonlit
+# 42: skid marks
+# 43: car interior
+# 44: car tire
+# 45: puddle
+# 46: ambient shadow
+# 47: Local water shader
+# 48: Static specular/hilight shader (SHADER_STATIC_HILIGHT)
+# 49: Lightmapped planar reflection
+# 50: racemap
+# 51: HDR default shader (runtime)
+# 52: Ambient particle shader
+# 53: Videoscreen shader (dynamic)
+# 54: Videoscreen shader (static)
