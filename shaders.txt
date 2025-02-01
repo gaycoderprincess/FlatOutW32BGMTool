@@ -135,7 +135,7 @@ _specular=4
 
 # Special keywords:
 # FORCEALPHA
-# FORCEALPHAOFF
+# FORCENOALPHA
 # TREEHACK - alpha, more even lighting
 # WATER
 # TIRE - shader 44 (car tire) in FOUC, shader 7 (car diffuse) in FO2

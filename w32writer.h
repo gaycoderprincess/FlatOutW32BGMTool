@@ -677,7 +677,7 @@ void InitShaderConfig() {
 
 		auto data = line.substr(equals+1);
 		if (data == "FORCEALPHA") matchup->forceAlphaOn = true;
-		else if (data == "FORCEALPHAOFF") matchup->forceAlphaOff = true;
+		else if (data == "FORCENOALPHA") matchup->forceAlphaOff = true;
 		else if (data == "TREEHACK") matchup->treeHack = true;
 		else if (data == "WATER") matchup->isWater = true;
 		else if (data == "TIRE") matchup->isTire = true;
