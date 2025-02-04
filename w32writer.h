@@ -553,15 +553,6 @@ struct tShaderConfig {
 		bool isMallFloor = false;
 
 		void ApplyToMaterial(tMaterial* mat) {
-			if (shaderId >= 0) {
-				mat->nShaderId = shaderId;
-				// car lights
-				if (shaderId == 10) {
-					mat->v92 = 2;
-				}
-			}
-			if (forceAlphaOn) mat->nAlpha = 1;
-			if (forceAlphaOff) mat->nAlpha = 0;
 			if (isWater) {
 				// water is a window in fo1/fo2, lol
 				if (bIsFOUCModel) {
@@ -590,6 +581,15 @@ struct tShaderConfig {
 				mat->nAlpha = 1;
 				mat->_bIsCustomFOUCTree = true;
 			}
+			if (shaderId >= 0) {
+				mat->nShaderId = shaderId;
+				// car lights
+				if (shaderId == 10) {
+					mat->v92 = 2;
+				}
+			}
+			if (forceAlphaOn) mat->nAlpha = 1;
+			if (forceAlphaOff) mat->nAlpha = 0;
 		}
 	};
 	std::vector<tShaderMatchup> name;
