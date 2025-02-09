@@ -843,13 +843,6 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		mat.sName = isStaticModel ? "screenmaterial_static" : "screenmaterial";
 		mat.nShaderId = isStaticModel ? 40 : 41; // static nonlit : dynamic nonlit
 	}
-	// Trees outside of TreeMesh don't draw, replace their shaders to get around this
-	if (disallowTrees) {
-		if (mat.nShaderId == 19 || mat.nShaderId == 20 || mat.nShaderId == 21) {
-			if (mat.nShaderId != 19) mat._bIsCustomFOUCTree = true;
-			mat.nShaderId = 0;
-		}
-	}
 
 	if (mat.sName.starts_with("treehack_")) {
 		mat.nAlpha = 1;
@@ -859,11 +852,6 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
 	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
 
-	// terrain -> static prelit
-	if (bNeverUseTerrainShader && (mat.nShaderId == 1 || mat.nShaderId == 2)) {
-		mat.nShaderId = 0;
-	}
-
 	if (mat.sTextureNames[0].empty()) mat.sTextureNames[0] = mat.sName + ".tga";
 
 	if (isStaticModel) {
@@ -871,6 +859,19 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 	}
 	else {
 		gW32DynamicShaders.ApplyToMaterial(&mat);
+	}
+
+	// Trees outside of TreeMesh don't draw, replace their shaders to get around this
+	if (disallowTrees) {
+		if (mat.nShaderId == 19 || mat.nShaderId == 20 || mat.nShaderId == 21) {
+			if (mat.nShaderId != 19) mat._bIsCustomFOUCTree = true;
+			mat.nShaderId = 0;
+		}
+	}
+
+	// terrain -> static prelit
+	if (bNeverUseTerrainShader && (mat.nShaderId == 1 || mat.nShaderId == 2)) {
+		mat.nShaderId = 0;
 	}
 }
 
