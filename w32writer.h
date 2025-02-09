@@ -834,10 +834,6 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		}
 	}
 
-	if (mat.sTextureNames[0] == "null.tga") {
-		mat.sTextureNames[0] = "";
-		mat.nShaderId = 34; // reflecting window shader (static)
-	}
 	if (mat.sTextureNames[0].starts_with("alpha") || mat.sTextureNames[0].starts_with("Alpha")) mat.nAlpha = 1;
 	if (bToughTrucksStadiumScreen && mat.sTextureNames[0] == "stadion_screen.tga") {
 		mat.sName = isStaticModel ? "screenmaterial_static" : "screenmaterial";
@@ -853,6 +849,11 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
 
 	if (mat.sTextureNames[0].empty()) mat.sTextureNames[0] = mat.sName + ".tga";
+	
+	if (mat.sTextureNames[0] == "null.tga") {
+		mat.sTextureNames[0] = "";
+		mat.nShaderId = 34; // reflecting window shader (static)
+	}
 
 	if (isStaticModel) {
 		gW32StaticShaders.ApplyToMaterial(&mat);
