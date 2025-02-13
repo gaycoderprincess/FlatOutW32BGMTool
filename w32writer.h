@@ -395,7 +395,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 				WaitAndExitOnFail();
 			}
 			// vertex color
-			if (mesh->HasVertexColors(0)) {
+			if (!bNoVertexColors && mesh->HasVertexColors(0)) {
 				uint8_t tmp[4] = {0, 0, 0, 0xFF};
 				tmp[0] = mesh->mColors[0][i].b * 255.0;
 				tmp[1] = mesh->mColors[0][i].g * 255.0;
@@ -463,7 +463,7 @@ void CreateStreamsFromFBX(aiMesh* mesh, uint32_t flags, uint32_t vertexSize, flo
 				vertices += 3; // 3 floats
 			}
 			if ((flags & VERTEX_COLOR) != 0) {
-				if (mesh->HasVertexColors(0)) {
+				if (!bNoVertexColors && mesh->HasVertexColors(0)) {
 					uint8_t tmp[4] = {0, 0, 0, 0xFF};
 					tmp[0] = mesh->mColors[0][i].r * 255.0;
 					tmp[1] = mesh->mColors[0][i].g * 255.0;
@@ -600,33 +600,37 @@ struct tShaderConfig {
 	std::vector<tShaderMatchup> texture_suffix;
 
 	void ApplyToMaterial(tMaterial* mat) {
+		auto nameLower = mat->sName;
+		auto texLower = mat->sTextureNames[0];
+		std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), [](unsigned char c){ return std::tolower(c); });
+		std::transform(texLower.begin(), texLower.end(), texLower.begin(), [](unsigned char c){ return std::tolower(c); });
 		for (auto& matchup : name) {
-			if (mat->sName == matchup.name) {
+			if (nameLower == matchup.name) {
 				matchup.ApplyToMaterial(mat);
 			}
 		}
 		for (auto& matchup : name_prefix) {
-			if (mat->sName.starts_with(matchup.name)) {
+			if (nameLower.starts_with(matchup.name)) {
 				matchup.ApplyToMaterial(mat);
 			}
 		}
 		for (auto& matchup : name_suffix) {
-			if (mat->sName.ends_with(matchup.name)) {
+			if (nameLower.ends_with(matchup.name)) {
 				matchup.ApplyToMaterial(mat);
 			}
 		}
 		for (auto& matchup : texture) {
-			if (mat->sTextureNames[0] == matchup.name) {
+			if (texLower == matchup.name) {
 				matchup.ApplyToMaterial(mat);
 			}
 		}
 		for (auto& matchup : texture_prefix) {
-			if (mat->sTextureNames[0].starts_with(matchup.name)) {
+			if (texLower.starts_with(matchup.name)) {
 				matchup.ApplyToMaterial(mat);
 			}
 		}
 		for (auto& matchup : texture_suffix) {
-			if (mat->sTextureNames[0].ends_with(matchup.name)) {
+			if (texLower.ends_with(matchup.name)) {
 				matchup.ApplyToMaterial(mat);
 			}
 		}
@@ -643,6 +647,7 @@ void InitShaderConfig() {
 	std::vector<tShaderConfig::tShaderMatchup>* matchups = nullptr;
 
 	auto input = std::ifstream("shaders.txt");
+	if (!input.is_open()) return;
 	for (std::string line; std::getline(input, line);) {
 		if (line.starts_with("!!BGM!!")) { config = &gBGMShaders; continue; }
 		if (line.starts_with("!!W32 STATIC!!")) { config = &gW32StaticShaders; continue; }
@@ -662,6 +667,7 @@ void InitShaderConfig() {
 		if (equals == std::string::npos) continue;
 
 		auto name = line.substr(0, equals);
+		std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c){ return std::tolower(c); });
 		tShaderConfig::tShaderMatchup* matchup = nullptr;
 		for (auto& arr : *matchups) {
 			if (arr.name == name) {
@@ -687,8 +693,80 @@ void InitShaderConfig() {
 	}
 }
 
+struct tTextureMatchupConfig {
+	std::string materialName;
+	std::string textureName;
+};
+std::vector<tTextureMatchupConfig> aTextureMatchups;
+
+void InitTextureMatchupConfig() {
+	static bool bInited = false;
+	if (bInited) return;
+	bInited = true;
+
+	auto input = std::ifstream("textures.txt");
+	if (!input.is_open()) return;
+	for (std::string line; std::getline(input, line);) {
+		if (line.starts_with("#")) continue;
+
+		auto equals = line.find('=');
+		if (equals == std::string::npos) continue;
+
+		auto name = line.substr(0, equals);
+		tTextureMatchupConfig matchup;
+		matchup.materialName = name;
+		if (matchup.materialName.empty()) continue;
+		matchup.textureName = line.substr(equals+1);
+		if (matchup.textureName.empty()) continue;
+		std::transform(matchup.materialName.begin(), matchup.materialName.end(), matchup.materialName.begin(), [](unsigned char c){ return std::tolower(c); });
+		std::transform(matchup.textureName.begin(), matchup.textureName.end(), matchup.textureName.begin(), [](unsigned char c){ return std::tolower(c); });
+		aTextureMatchups.push_back(matchup);
+	}
+}
+
+struct tTextureReplacementConfig {
+	std::string textureNameIn;
+	std::string textureNameOut;
+};
+std::vector<tTextureReplacementConfig> aTextureReplacements;
+
+void InitTextureReplacementConfig() {
+	static bool bInited = false;
+	if (bInited) return;
+	bInited = true;
+
+	auto input = std::ifstream("textures_replace.txt");
+	if (!input.is_open()) return;
+	for (std::string line; std::getline(input, line);) {
+		if (line.starts_with("#")) continue;
+
+		auto equals = line.find('=');
+		if (equals == std::string::npos) continue;
+
+		auto name = line.substr(0, equals);
+		tTextureReplacementConfig matchup;
+		matchup.textureNameIn = name;
+		if (matchup.textureNameIn.empty()) continue;
+		matchup.textureNameOut = line.substr(equals+1);
+		if (matchup.textureNameOut.empty()) continue;
+		std::transform(matchup.textureNameIn.begin(), matchup.textureNameIn.end(), matchup.textureNameIn.begin(), [](unsigned char c){ return std::tolower(c); });
+		std::transform(matchup.textureNameOut.begin(), matchup.textureNameOut.end(), matchup.textureNameOut.begin(), [](unsigned char c){ return std::tolower(c); });
+		aTextureReplacements.push_back(matchup);
+	}
+}
+
+bool hasEnding(std::string const &fullString, std::string const &ending) {
+	if (fullString.length() >= ending.length()) {
+		return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+	} else {
+		return false;
+	}
+}
+
 void FixupFBXCarMaterial(tMaterial& mat) {
 	InitShaderConfig();
+	InitTextureMatchupConfig();
+	InitTextureReplacementConfig();
 
 	mat.nShaderId = 8; // car metal
 	FixNameExtensions(mat.sName);
@@ -724,13 +802,36 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
 	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
 
-	if (mat.sTextureNames[0].empty()) mat.sTextureNames[0] = mat.sName + ".tga";
+	if (mat.sTextureNames[0].empty()) {
+		auto name = mat.sName;
+		if (hasEnding(name, ".tga") || hasEnding(name, ".png") || hasEnding(name, ".dds") || hasEnding(name, ".bmp")) {
+			name.pop_back();
+			name.pop_back();
+			name.pop_back();
+			name.pop_back();
+		}
+		mat.sTextureNames[0] = name + ".tga";
+	}
+
+	auto matNameLower = mat.sName;
+	std::transform(matNameLower.begin(), matNameLower.end(), matNameLower.begin(), [](unsigned char c){ return std::tolower(c); });
+	for (auto& matchup : aTextureMatchups) {
+		if (matNameLower == matchup.materialName) mat.sTextureNames[0] = matchup.textureName;
+	}
+
+	auto texNameLower = mat.sTextureNames[0];
+	std::transform(texNameLower.begin(), texNameLower.end(), texNameLower.begin(), [](unsigned char c){ return std::tolower(c); });
+	for (auto& matchup : aTextureReplacements) {
+		if (texNameLower == matchup.textureNameIn) mat.sTextureNames[0] = matchup.textureNameOut;
+	}
 
 	gBGMShaders.ApplyToMaterial(&mat);
 }
 
 void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees) {
 	InitShaderConfig();
+	InitTextureMatchupConfig();
+	InitTextureReplacementConfig();
 
 	if (bRallyTrophyShaderFixup) {
 		mat.nAlpha = 0;
@@ -848,11 +949,32 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
 	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
 
-	if (mat.sTextureNames[0].empty()) mat.sTextureNames[0] = mat.sName + ".tga";
+	if (mat.sTextureNames[0].empty()) {
+		auto name = mat.sName;
+		if (hasEnding(name, ".tga") || hasEnding(name, ".png") || hasEnding(name, ".dds") || hasEnding(name, ".bmp")) {
+			name.pop_back();
+			name.pop_back();
+			name.pop_back();
+			name.pop_back();
+		}
+		mat.sTextureNames[0] = name + ".tga";
+	}
 	
 	if (mat.sTextureNames[0] == "null.tga") {
 		mat.sTextureNames[0] = "";
 		mat.nShaderId = 34; // reflecting window shader (static)
+	}
+
+	auto matNameLower = mat.sName;
+	std::transform(matNameLower.begin(), matNameLower.end(), matNameLower.begin(), [](unsigned char c){ return std::tolower(c); });
+	for (auto& matchup : aTextureMatchups) {
+		if (matNameLower == matchup.materialName) mat.sTextureNames[0] = matchup.textureName;
+	}
+
+	auto texNameLower = mat.sTextureNames[0];
+	std::transform(texNameLower.begin(), texNameLower.end(), texNameLower.begin(), [](unsigned char c){ return std::tolower(c); });
+	for (auto& matchup : aTextureReplacements) {
+		if (texNameLower == matchup.textureNameIn) mat.sTextureNames[0] = matchup.textureNameOut;
 	}
 
 	if (isStaticModel) {
@@ -1492,7 +1614,77 @@ void CreateW32ObjectsFromFBX() {
 	}
 }
 
+struct tPropConfig {
+	struct tPropNameMatchup {
+		std::string name;
+		std::string dynamicName;
+	};
+	std::vector<tPropNameMatchup> name;
+	std::vector<tPropNameMatchup> name_prefix;
+	std::vector<tPropNameMatchup> name_suffix;
+
+	bool ApplyToProp(tCompactMesh* mesh) {
+		auto nameLower = mesh->sName1;
+		std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), [](unsigned char c){ return std::tolower(c); });
+		for (auto& matchup : name) {
+			if (nameLower == matchup.name) {
+				mesh->sName2 = matchup.dynamicName;
+				return true;
+			}
+		}
+		for (auto& matchup : name_prefix) {
+			if (nameLower.starts_with(matchup.name)) {
+				mesh->sName2 = matchup.dynamicName;
+				return true;
+			}
+		}
+		for (auto& matchup : name_suffix) {
+			if (nameLower.ends_with(matchup.name)) {
+				mesh->sName2 = matchup.dynamicName;
+				return true;
+			}
+		}
+		return false;
+	}
+};
+tPropConfig gPropConfig, gRallyTrophyPropConfig;
+
+void InitPropConfig() {
+	static bool bInited = false;
+	if (bInited) return;
+	bInited = true;
+
+	tPropConfig* config = nullptr;
+	std::vector<tPropConfig::tPropNameMatchup>* matchups = nullptr;
+
+	auto input = std::ifstream("prop_overrides.txt");
+	if (!input.is_open()) return;
+	for (std::string line; std::getline(input, line);) {
+		if (line.starts_with("!!FLATOUT!!")) { config = &gPropConfig; continue; }
+		if (line.starts_with("!!RALLYTROPHY!!")) { config = &gRallyTrophyPropConfig; continue; }
+
+		if (!config) continue;
+		if (line.starts_with("[name]")) { matchups = &config->name; continue; }
+		if (line.starts_with("[name_prefix]")) { matchups = &config->name_prefix; continue; }
+		if (line.starts_with("[name_suffix]")) { matchups = &config->name_suffix; continue; }
+		if (!matchups) continue;
+		if (line.starts_with("#")) continue;
+
+		auto equals = line.find('=');
+		if (equals == std::string::npos) continue;
+
+		auto name = line.substr(0, equals);
+		std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c){ return std::tolower(c); });
+		tPropConfig::tPropNameMatchup matchup;
+		matchup.name = name;
+		matchup.dynamicName = line.substr(equals+1);
+		matchups->push_back(matchup);
+	}
+}
+
 void AddCompactMeshFromFBXNode(aiNode* prop, int defaultGroup) {
+	InitPropConfig();
+
 	if (auto model = CreateModelFromMesh(prop)) {
 		std::string dynamicType;
 		int group = defaultGroup;
@@ -1516,9 +1708,19 @@ void AddCompactMeshFromFBXNode(aiNode* prop, int defaultGroup) {
 		mesh.sName1 = prop->mName.C_Str();
 		if (dynamicType.empty() && !bAllowEmptyPropTypes) {
 			std::string defType = "metal_light";
-			if (bRallyTrophyShaderFixup && (mesh.sName1.starts_with("checkpoint") || mesh.sName1.starts_with("roadbar"))) defType = "wood_light";
-			WriteConsole("WARNING: Prop " + mesh.sName1 + " has no dynamic type! Defaulting to " + defType, LOG_WARNINGS);
-			mesh.sName2 = defType;
+
+			bool applied = false;
+			if (bRallyTrophyShaderFixup && gRallyTrophyPropConfig.ApplyToProp(&mesh)) {
+				applied = true;
+			}
+			if (!bRallyTrophyShaderFixup && gPropConfig.ApplyToProp(&mesh)) {
+				applied = true;
+			}
+
+			if (!applied) {
+				WriteConsole("WARNING: Prop " + mesh.sName1 + " has no dynamic type! Defaulting to " + defType, LOG_WARNINGS);
+				mesh.sName2 = defType;
+			}
 		}
 		else {
 			mesh.sName2 = dynamicType;

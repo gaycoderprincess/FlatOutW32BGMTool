@@ -158,6 +158,9 @@ void CMD_W32_NoMaterialReuse() {
 void CMD_W32_NoTreeHack() {
 	bNoTreeHack = true;
 }
+void CMD_W32_NoVertexColors() {
+	bNoVertexColors = true;
+}
 void CMD_W32_NoBushes() {
 	bFBXNoBushes = true;
 }
@@ -296,6 +299,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-clear_old_materials", CMD_W32_ClearOriginalMaterials, "Removes all original materials from the w32 before importing the ones from the .fbx" },
 		{ "-no_material_reuse", CMD_W32_NoMaterialReuse, "Ignores all original w32 materials, instead always importing new ones from the .fbx" },
 		{ "-no_tree_hack", CMD_W32_NoTreeHack, "Disables the adjusting of normal vectors for tree shaders in Ultimate Carnage" },
+		{ "-no_vertex_colors", CMD_W32_NoVertexColors, "Removes all vertex colors from the input file" },
 		{ "-remove_bushes", CMD_W32_NoBushes, "Removes all surfaces using alpha_bushbranch when importing from .fbx" },
 		{ "-allow_empty_prop_types", CMD_W32_AllowEmptyPropTypes, "Disables defaulting to metal_light for empty prop types" },
 		{ "-never_use_terrain_shader", CMD_W32_NeverUseTerrainShader, "Always use static prelit instead of the dual-UV terrain shader" },

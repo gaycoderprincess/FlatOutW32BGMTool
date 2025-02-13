@@ -52,6 +52,7 @@ bool bCarNoRimAlpha = false;
 bool bCarForceRimAlpha = false;
 bool bCarForceTireAlpha = false;
 bool bMakeAllDoubleSided = false;
+bool bNoVertexColors = false;
 bool bNoMaterialPriorities = false;
 bool bReplaceCommonWithGrille = false;
 bool bToughTrucksStadiumScreen = false;
