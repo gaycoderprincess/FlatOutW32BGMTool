@@ -1,0 +1,4 @@
+### Texture replacement config
+### Usage:
+### texturename.tga=texturename2.tga
+

@@ -1,0 +1,4 @@
+### Texture matchup config
+### Usage:
+### materialname=texturename.tga
+

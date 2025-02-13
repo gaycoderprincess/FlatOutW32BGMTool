@@ -1,0 +1,27 @@
+### Prop dynamic type matchup config start
+
+!!FLATOUT!!
+
+# exact prop names
+[name]
+
+# prop name prefixes
+[name_prefix]
+
+# prop name suffixes
+[name_suffix]
+
+!!RALLYTROPHY!!
+
+# exact prop names
+[name]
+
+# prop name prefixes
+[name_prefix]
+checkpoint=wood_light
+roadbar=wood_light
+
+# prop name suffixes
+[name_suffix]
+
+### Prop dynamic type matchup config end
