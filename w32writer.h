@@ -798,9 +798,6 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	if (mat.sName.starts_with("body")) mat.sTextureNames[0] = "skin1.tga";
 	// fouc tire_01 hack
 	if (bIsFOUCModel && (mat.sTextureNames[0].starts_with("tire_0") || mat.sTextureNames[0].starts_with("tire_1"))) mat.sTextureNames[0] = "tire.tga";
-	// custom alpha suffix
-	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
-	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
 
 	if (mat.sTextureNames[0].empty()) {
 		auto name = mat.sName;
@@ -826,6 +823,10 @@ void FixupFBXCarMaterial(tMaterial& mat) {
 	}
 
 	gBGMShaders.ApplyToMaterial(&mat);
+
+	// custom alpha suffix
+	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
+	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
 }
 
 void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees) {
@@ -946,9 +947,6 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 		mat._bIsCustomFOUCTree = true;
 	}
 
-	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
-	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
-
 	if (mat.sTextureNames[0].empty()) {
 		auto name = mat.sName;
 		if (hasEnding(name, ".tga") || hasEnding(name, ".png") || hasEnding(name, ".dds") || hasEnding(name, ".bmp")) {
@@ -996,6 +994,9 @@ void FixupFBXMapMaterial(tMaterial& mat, bool isStaticModel, bool disallowTrees)
 	if (bNeverUseTerrainShader && (mat.nShaderId == 1 || mat.nShaderId == 2)) {
 		mat.nShaderId = 0;
 	}
+
+	if (mat.sName.ends_with("_alpha")) mat.nAlpha = 1;
+	if (mat.sName.ends_with("_noalpha")) mat.nAlpha = 0;
 }
 
 tMaterial GetMaterialFromFBX(aiMaterial* fbxMaterial) {
