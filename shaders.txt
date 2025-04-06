@@ -90,6 +90,7 @@ road_tarmac=1
 road_gravel=1
 poles_wire=FORCEALPHA
 forest_mixed_=FORCEALPHA
+aplha_=FORCEALPHA
 
 # material name suffixes
 [name_suffix]
@@ -97,6 +98,7 @@ _alpha1=FORCEALPHA
 
 # exact texture names
 [texture]
+water.tga=WATER
 
 # texture name prefixes
 [texture_prefix]
@@ -111,11 +113,13 @@ _alpha1=FORCEALPHA
 
 # material name prefixes
 [name_prefix]
+alpha_dynwindows=35
 alpha_dynwindowshader=35
 dynamic_windows=35
 poles_wire=FORCEALPHA
 forest_mixed_=FORCEALPHA
 wirefence_=FORCEALPHA
+aplha_=FORCEALPHA
 
 # material name suffixes
 [name_suffix]

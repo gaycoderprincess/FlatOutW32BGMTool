@@ -671,8 +671,7 @@ aiScene GenerateScene() {
 		node->mName = "Objects";
 		scene.mRootNode->addChildren(1, &node);
 		for (auto& object : aObjects) {
-			uint32_t tmpFlags = object.nFlags - (object.nFlags % 0x1000);
-			if (bFBXSkipHiddenProps && tmpFlags != 0xE000 && tmpFlags != nFBXSkipHiddenPropsFlag) continue;
+			if (bFBXSkipHiddenProps && (object.nFlags & nFBXSkipHiddenPropsFlag) == 0) continue;
 
 			auto objectNode = new aiNode();
 			objectNode->mName = object.sName1;
@@ -694,7 +693,7 @@ aiScene GenerateScene() {
 		node->mName = bIsBGMModel || IsRallyTrophyCar() ? "BGMMesh" : "CompactMesh";
 		scene.mRootNode->addChildren(1, &node);
 		for (auto& compactMesh: aCompactMeshes) {
-			if (bFBXSkipHiddenProps && compactMesh.nFlags != 0xE000 && compactMesh.nFlags != nFBXSkipHiddenPropsFlag) continue;
+			if (bFBXSkipHiddenProps && (compactMesh.nFlags & nFBXSkipHiddenPropsFlag) == 0) continue;
 
 			auto parent = (bIsRallyTrophyModel && pRallyTrophyStaticMesh && ShouldRallyTrophyMeshBeStatic(compactMesh.sName1)) ? pRallyTrophyStaticMesh : node;
 
