@@ -1596,6 +1596,16 @@ tModel* CreateModelFromMesh(aiNode* node) {
 	model.vRadius[0] = std::abs(aabb.mMax[0] - aabb.mMin[0]) * 0.5;
 	model.vRadius[1] = std::abs(aabb.mMax[1] - aabb.mMin[1]) * 0.5;
 	model.vRadius[2] = std::abs(aabb.mMax[2] - aabb.mMin[2]) * 0.5;
+	// hack for downtown maps
+	if (model.sName.starts_with("dyn_streetlight_largepole_")) {
+		//model.vCenter[0] = 1.990231;
+		model.vCenter[1] = 0.380852;
+		model.vCenter[2] = model.vCenter[0] = -0.005263;
+		//model.vRadius[0] = 2.124183;
+		model.vRadius[1] = 5.630850;
+		model.vRadius[2] = model.vRadius[0] = 0.146277;
+		model.fRadius = 6.019969;
+	}
 	for (auto& surface : surfaces) {
 		model.aSurfaces.push_back(surface);
 	}
