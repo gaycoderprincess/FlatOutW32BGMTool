@@ -7,15 +7,18 @@ void CMD_ExportXboxBuffers() { bExportXboxBuffers = true; }
 void CMD_ExportBGM_FO1() {
 	bCreateBGMFromFBX = true;
 	nExportFileVersion = 0x10004;
+	bIsBGMModel = true;
 }
 void CMD_ExportBGM_FO2() {
 	bCreateBGMFromFBX = true;
 	nExportFileVersion = 0x20000;
+	bIsBGMModel = true;
 }
 void CMD_ExportBGM_FOUC() {
 	bCreateBGMFromFBX = true;
 	nExportFileVersion = 0x20000;
 	bIsFOUCModel = true;
+	bIsBGMModel = true;
 }
 void CMD_ExportW32_FO1() {
 	bCreateW32FromFBX = true;
