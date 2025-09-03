@@ -29,6 +29,7 @@
 #include "w32textexport.h"
 #include "w32fbxexport.h"
 #include "plants.h"
+#include "cdbparser.h"
 #include "commandline.h"
 
 bool ParseFBX() {
@@ -79,7 +80,10 @@ int main(int argc, char *argv[]) {
 		WriteConsole("ERROR: Failed to load " + std::filesystem::absolute(sFileName).string() + "! (File doesn't exist)", LOG_ERRORS);
 		WaitAndExitOnFail();
 	}
-	if (bCreate4BFromBMP) {
+	if (hasEnding(sFileName.generic_string(), "cdb.gen")) {
+		ParseTrackCDB(sFileName);
+	}
+	else if (bCreate4BFromBMP) {
 		Write4BFromBMP();
 	}
 	else if (bCreateW32FromFBX) {
