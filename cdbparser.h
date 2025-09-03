@@ -10,7 +10,7 @@ struct tCDB2Header {
 };
 static_assert(sizeof(tCDB2Header) == 64 - 8);
 
-struct __attribute__((packed)) tFO1CollisionIndex {
+struct __attribute__((packed)) tFO1CollisionPoly {
 	struct tInt24 {
 		uint8_t data[3];
 
@@ -58,7 +58,7 @@ struct __attribute__((packed)) tFO1CollisionIndex {
 		return ((ptr32[2] >> 6) & 0x3FFFFFC) / 4;
 	}
 };
-static_assert(sizeof(tFO1CollisionIndex) == 0xC);
+static_assert(sizeof(tFO1CollisionPoly) == 0xC);
 
 /*
 -15.397871 -35.542915 -305.60184 10526 49537
@@ -85,11 +85,26 @@ struct tFO1CollisionRegion {
 
 	// first byte is 3 bytes
 	struct __attribute__((packed)) tFlags {
-		uint8_t indexCount : 3;
+		uint8_t polyCount : 3;
 		uint8_t hasIndices : 1; // (v20 & 0x10) != 0 otherwise used as next region index
 		uint8_t unk1 : 4;
 		uint16_t index;
 		uint8_t unk2;
+
+		int GetPolyCount() {
+			auto v20 = (uint32_t*)this;
+			return ((v20[0] >> 5) & 0x7F) + 1;
+		}
+
+		bool HasIndices() {
+			auto v20 = (uint32_t*)this;
+			return (v20[0] & 0x10) != 0;
+		}
+
+		int GetIndex() {
+			auto v20 = (uint32_t*)this;
+			return (v20[0] >> 12);
+		}
 	} nFlags;
 	int16_t nXPosition;
 	int16_t nXSize;
@@ -97,27 +112,39 @@ struct tFO1CollisionRegion {
 	int16_t nYSize;
 	int16_t nZPosition;
 	int16_t nZSize;
+
+	aiVector3D GetPosition(float coordMult[3]) {
+		return aiVector3D(nXPosition * coordMult[0], nYPosition * coordMult[1], nZPosition * coordMult[2]);
+	}
+
+	aiVector3D GetSize(float coordMult[3]) {
+		return aiVector3D(nXSize * coordMult[0], nYSize * coordMult[1], nZSize * coordMult[2]);
+	}
 };
 static_assert(sizeof(tFO1CollisionRegion) == 0x10);
 
 struct tExportCollisionRegion {
-	std::vector<tFO1CollisionIndex> aIndices;
+	std::vector<tFO1CollisionPoly> aPolys;
+	int originalId = 0;
+	aiVector3D position;
 };
 std::vector<tExportCollisionRegion> aCollisionRegions;
-void ReadCollisionRegion(const tFO1CollisionRegion* region, const tFO1CollisionIndex* indices, const tFO1CollisionVertex* vertices) {
-	if (region->nFlags.hasIndices) {
+void ReadCollisionRegion(tFO1CollisionRegion* region, const tFO1CollisionRegion* regions, const tFO1CollisionPoly* polys, float* posMult) {
+	if (region->nFlags.HasIndices()) {
 		tExportCollisionRegion tmp;
-		for (int i = 0; i < region->nFlags.indexCount + 1; i++) {
-			auto index = indices[region->nFlags.index + i];
-			tmp.aIndices.push_back(index);
+		tmp.originalId = region - regions;
+		tmp.position = region->GetPosition(posMult);
+		for (int i = 0; i < region->nFlags.GetPolyCount(); i++) {
+			auto index = polys[region->nFlags.GetIndex() + i];
+			tmp.aPolys.push_back(index);
 		}
 		aCollisionRegions.push_back(tmp);
 	}
-	//else {
-	//	// adds an offset to the current region index
-	//	ReadCollisionRegion(&region[region->nFlags.index], indices, vertices);
-	//	ReadCollisionRegion(&region[region->nFlags.index+1], indices, vertices);
-	//}
+	else {
+		// adds an offset to the current region index
+		ReadCollisionRegion(&region[region->nFlags.GetIndex()], regions, polys, posMult);
+		ReadCollisionRegion(&region[region->nFlags.GetIndex()+1], regions, polys, posMult);
+	}
 }
 
 bool ParseTrackCDB(const std::filesystem::path& fileName) {
@@ -171,7 +198,7 @@ bool ParseTrackCDB(const std::filesystem::path& fileName) {
 		}
 		else {
 			for (int i = 0; i < numIndices; i++) {
-				auto nData = (tFO1CollisionIndex*)indices;
+				auto nData = (tFO1CollisionPoly*)indices;
 				WriteFile(std::format("{} {} {} flags {} material {} unk {} {}", nData[i].nVertex1.Get(), nData[i].nVertex2.Get(), nData[i].nVertex3.Get(), nData[i].nFlags, (int)nData[i].nMaterial, (int)nData[i].nUnk2, nData[i].nUnk3));
 			}
 		}
@@ -210,8 +237,12 @@ bool ParseTrackCDB(const std::filesystem::path& fileName) {
 		fin.read((char*)region, tmp * 16);
 		for (int i = 0; i < tmp; i++) {
 			auto nData = (tFO1CollisionRegion*)region;
-			WriteFile(std::format("indexCount {} hasIndices {} index {} unk1 {} unk2 {}", (int)nData[i].nFlags.indexCount, (int)nData[i].nFlags.hasIndices, (int)nData[i].nFlags.index, (int)nData[i].nFlags.unk1, nData[i].nFlags.unk2));
-			WriteFile(std::format("extents {} {} {} {} {} {}", nData[i].nXPosition, nData[i].nXSize, nData[i].nYPosition, nData[i].nYSize, nData[i].nZPosition, nData[i].nZSize));
+			WriteFile(std::format("Region {}", i));
+			WriteFile(std::format("indexCount {} hasIndices {} index {} unk1 {} unk2 {}", nData[i].nFlags.GetPolyCount(), (int)nData[i].nFlags.HasIndices(), nData[i].nFlags.GetIndex(), (int)nData[i].nFlags.unk1, nData[i].nFlags.unk2));
+			auto pos = nData[i].GetPosition(values2);
+			auto size = nData[i].GetSize(values2);
+			WriteFile(std::format("pos {} {} {}", pos.x, pos.y, pos.z));
+			WriteFile(std::format("size {} {} {}", size.x, size.y, size.z));
 		}
 
 		int numMaterials = 31;
@@ -224,19 +255,19 @@ bool ParseTrackCDB(const std::filesystem::path& fileName) {
 		//	}
 		//	//oneRegion.aIndices.push_back(nData[i]);
 		//}
-		for (int i = 0; i < numMaterials; i++) {
-			tExportCollisionRegion matRegion;
-			for (int j = 0; j < numIndices; j++) {
-				auto nData = (tFO1CollisionIndex*)indices;
-				if (nData[j].nMaterial != i) continue;
-				matRegion.aIndices.push_back(nData[j]);
-			}
-			if (matRegion.aIndices.empty()) continue;
-			aCollisionRegions.push_back(matRegion);
-		}
+		//for (int i = 0; i < numMaterials; i++) {
+		//	tExportCollisionRegion matRegion;
+		//	for (int j = 0; j < numIndices; j++) {
+		//		auto nData = (tFO1CollisionIndex*)indices;
+		//		if (nData[j].nMaterial != i) continue;
+		//		matRegion.aIndices.push_back(nData[j]);
+		//	}
+		//	if (matRegion.aIndices.empty()) continue;
+		//	aCollisionRegions.push_back(matRegion);
+		//}
 		//aCollisionRegions.push_back(oneRegion);
 
-		//ReadCollisionRegion((tFO1CollisionRegion*)region, (tFO1CollisionIndex*)indices, (tFO1CollisionVertex*)vertices);
+		ReadCollisionRegion(&((tFO1CollisionRegion*)region)[0], (tFO1CollisionRegion*)region, (tFO1CollisionPoly*)indices, values2);
 
 		//vCoordMultipliers1.x: 90.79545
 		//vCoordMultipliers1.y: 715.3839
@@ -302,24 +333,24 @@ bool ParseTrackCDB(const std::filesystem::path& fileName) {
 
 		for (int i = 0; i < aCollisionRegions.size(); i++) {
 			auto region = &aCollisionRegions[i];
-			if (region->aIndices.empty()) {
+			if (region->aPolys.empty()) {
 				WriteConsole(std::format("ERROR: region is empty!"), LOG_ERRORS);
 				return false;
 			}
 
-			int numVertices = region->aIndices.size()*3;
+			int numVertices = region->aPolys.size()*3;
 			int currentVertex = 0;
 
 			auto mesh = new aiMesh;
 			scene.mMeshes[i] = mesh;
 			mesh->mVertices = new aiVector3D[numVertices];
 			mesh->mNumVertices = numVertices;
-			mesh->mMaterialIndex = region->aIndices[0].nMaterial;
+			mesh->mMaterialIndex = region->aPolys[0].nMaterial;
 
-			mesh->mFaces = new aiFace[region->aIndices.size()];
-			mesh->mNumFaces = region->aIndices.size();
-			for (int j = 0; j < region->aIndices.size(); j++) {
-				auto index = region->aIndices[j];
+			mesh->mFaces = new aiFace[region->aPolys.size()];
+			mesh->mNumFaces = region->aPolys.size();
+			for (int j = 0; j < region->aPolys.size(); j++) {
+				auto index = region->aPolys[j];
 				auto vertex1 = (float*)(&vertices[index.nVertex1.Get()*4]);
 				auto vertex2 = (float*)(&vertices[index.nVertex2.Get()*4]);
 				auto vertex3 = (float*)(&vertices[index.nVertex3.Get()*4]);
@@ -354,10 +385,15 @@ bool ParseTrackCDB(const std::filesystem::path& fileName) {
 			}
 
 			if (auto node = new aiNode()) {
-				node->mName = std::format("Mesh{}", i+1);
+				node->mName = std::format("Mesh{}", region->originalId);
 				node->mMeshes = new uint32_t[1];
 				node->mNumMeshes = 1;
 				node->mMeshes[0] = i;
+				// testing
+				//auto pos = region->position;
+				//node->mTransformation.a4 = pos.x;
+				//node->mTransformation.b4 = pos.y;
+				//node->mTransformation.c4 = pos.z;
 				scene.mRootNode->addChildren(1, &node);
 			}
 		}
