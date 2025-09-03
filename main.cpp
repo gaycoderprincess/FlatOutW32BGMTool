@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
 			WriteConsole("Parsing finished", LOG_ALWAYS);
 
 			if (bDumpIntoFBX) FO1CDB::WriteToFBX();
-			FO1CDB::WriteToFile();
+			//FO1CDB::WriteToFile();
 		}
 	}
 	else if (bCreate4BFromBMP) {

@@ -8,6 +8,7 @@ struct tCDB2Header {
 };
 static_assert(sizeof(tCDB2Header) == 64 - 8);
 
+// 4C09A5 updates car light level
 
 namespace FO1CDB {
 	const char* aMaterialNames[] = {
@@ -44,6 +45,37 @@ namespace FO1CDB {
 		"Camera only col",
 	};
 
+    uint8_t nWeirdPolyMatchupThing[] = {
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        8,
+        9,
+        0xA,
+        0x10,
+        0x11,
+        0x12,
+        0x14,
+        0x15,
+        0x16,
+        0x18,
+        0x19,
+        0x1A,
+        0x20,
+        0x21,
+        0x22,
+        0x24,
+        0x25,
+        0x26,
+        0x28,
+        0x29,
+        0x2A,
+    };
+	const int nNumWeirdPolyMatchupThing = sizeof(nWeirdPolyMatchupThing)/sizeof(nWeirdPolyMatchupThing[0]);
+
 	struct __attribute__((packed)) tCDBPoly {
 		struct tInt24 {
 			uint8_t data[3];
@@ -70,15 +102,93 @@ namespace FO1CDB {
 		// ground 27
 
 		uint8_t nFlags; // +0
-		uint8_t nMaterial : 6; // +1
-		uint8_t nUnk2 : 2; // +1 breaks shadows and tire collision if nulled
-		uint8_t nUnk3; // +1 breaks shadows and tire collision if nulled
+		uint16_t nMaterialAndOtherStuff; // +1
 		tInt24 nVertex1; // +3
 		tInt24 nVertex2; // +6
 		tInt24 nVertex3; // +9
 
 		tCDBPoly() {
 			memset(this,0,sizeof(*this));
+		}
+
+		int GetMaterial() {
+			return nMaterialAndOtherStuff & 0x1F;
+		}
+
+		void SetMaterial(int i) {
+			nMaterialAndOtherStuff &= ~0x1F;
+			nMaterialAndOtherStuff |= i & 0x1F;
+		}
+
+		int GetPolyMinMatchup() {
+			return (nMaterialAndOtherStuff >> 6) & 0x1F;
+		}
+		int GetPolyMaxMatchup() {
+			return nMaterialAndOtherStuff >> 11;
+		}
+
+		void SetPolyMinMatchup(int i) {
+			nMaterialAndOtherStuff &= ~(0x1F << 6);
+			nMaterialAndOtherStuff |= (i & 0x1F) << 6;
+		}
+		void SetPolyMaxMatchup(int i) {
+			nMaterialAndOtherStuff &= ~(0xFF << 11);
+			nMaterialAndOtherStuff |= i << 11;
+		}
+
+		bool IsPolyMinMatchupValid(float* vertices) {
+			auto poly1 = GetPolyMinMatchup();
+			auto poly2 = GetPolyMaxMatchup();
+			if (poly1 >= nNumWeirdPolyMatchupThing || poly2 >= nNumWeirdPolyMatchupThing) {
+				WriteConsole(std::format("WARNING: poly matchup overflow!! {} {}, max {}", poly1, poly2, nNumWeirdPolyMatchupThing), LOG_WARNINGS);
+				return true;
+			}
+
+			auto v20 = nWeirdPolyMatchupThing[poly1];
+			auto x2 = v20 & 3;
+			auto y2 = (v20 >> 2) & 3;
+			auto z2 = (v20 >> 4) & 3;
+
+			float* coords[3] = {&vertices[nVertex1.Get()], &vertices[nVertex2.Get()], &vertices[nVertex3.Get()]};
+
+			float minX = std::min(coords[0][0], std::min(coords[1][0], coords[2][0]));
+			float minY = std::min(coords[0][1], std::min(coords[1][1], coords[2][1]));
+			float minZ = std::min(coords[0][2], std::min(coords[1][2], coords[2][2]));
+
+			float fx2 = coords[x2][0];
+			float fy2 = coords[y2][1];
+			float fz2 = coords[z2][2];
+
+			if (fx2 != minX) return false;
+			if (fy2 != minY) return false;
+			if (fz2 != minZ) return false;
+			return true;
+		}
+
+		bool IsPolyMaxMatchupValid(float* vertices) {
+			auto poly1 = GetPolyMinMatchup();
+			auto poly2 = GetPolyMaxMatchup();
+			if (poly1 >= nNumWeirdPolyMatchupThing || poly2 >= nNumWeirdPolyMatchupThing) return true;
+
+			auto v19 = nWeirdPolyMatchupThing[poly2];
+			auto x1 = v19 & 3;
+			auto y1 = (v19 >> 2) & 3;
+			auto z1 = (v19 >> 4) & 3;
+
+			float* coords[3] = {&vertices[nVertex1.Get()], &vertices[nVertex2.Get()], &vertices[nVertex3.Get()]};
+
+			float maxX = std::max(coords[0][0], std::max(coords[1][0], coords[2][0]));
+			float maxY = std::max(coords[0][1], std::max(coords[1][1], coords[2][1]));
+			float maxZ = std::max(coords[0][2], std::max(coords[1][2], coords[2][2]));
+
+			float fx1 = coords[x1][0];
+			float fy1 = coords[y1][1];
+			float fz1 = coords[z1][2];
+
+			if (fx1 != maxX) return false;
+			if (fy1 != maxY) return false;
+			if (fz1 != maxZ) return false;
+			return true;
 		}
 	};
 	static_assert(sizeof(tCDBPoly) == 0xC);
@@ -224,7 +334,7 @@ namespace FO1CDB {
 			tExportCollisionRegion matRegion;
 			for (int j = 0; j < nNumPolys; j++) {
 				auto poly = aPolys[j];
-				if (poly.nMaterial != i) continue;
+				if (poly.GetMaterial() != i) continue;
 				matRegion.aPolys.push_back(poly);
 			}
 			if (matRegion.aPolys.empty()) continue;
@@ -262,7 +372,7 @@ namespace FO1CDB {
 			scene.mMeshes[i] = mesh;
 			mesh->mVertices = new aiVector3D[numVertices];
 			mesh->mNumVertices = numVertices;
-			mesh->mMaterialIndex = region->aPolys[0].nMaterial;
+			mesh->mMaterialIndex = region->aPolys[0].GetMaterial();
 
 			mesh->mFaces = new aiFace[region->aPolys.size()];
 			mesh->mNumFaces = region->aPolys.size();
@@ -356,7 +466,36 @@ namespace FO1CDB {
 		if (bDumpIntoTextFile) {
 			for (int i = 0; i < nNumPolys; i++) {
 				auto nData = aPolys[i];
-				WriteFile(std::format("{} {} {} flags {} material {} unk {} {}", nData.nVertex1.Get(), nData.nVertex2.Get(), nData.nVertex3.Get(), nData.nFlags, (int)nData.nMaterial, (int)nData.nUnk2, nData.nUnk3));
+				auto poly1 = nData.GetPolyMinMatchup();
+				auto poly2 = nData.GetPolyMaxMatchup();
+				if (!nData.IsPolyMinMatchupValid(aVertices) || !nData.IsPolyMaxMatchupValid(aVertices)) {
+					WriteConsole(std::format("WARNING: {} poly matchup invalid", i), LOG_WARNINGS);
+				}
+				auto v20 = nWeirdPolyMatchupThing[poly1];
+				auto v19 = nWeirdPolyMatchupThing[poly2];
+				auto x1 = v19 & 3;
+				auto x2 = v20 & 3;
+				auto y1 = (v19 >> 2) & 3;
+				auto y2 = (v20 >> 2) & 3;
+				auto z1 = (v19 >> 4) & 3;
+				auto z2 = (v20 >> 4) & 3;
+				WriteFile(std::format("{} {} {} flags {} material {} unk {} {} ({} {} {} {} {} {})", nData.nVertex1.Get(), nData.nVertex2.Get(), nData.nVertex3.Get(), nData.nFlags, nData.GetMaterial(), poly1, poly2, x1, x2, y1, y2, z1, z2));
+
+				float* coords[] = {&aVertices[nData.nVertex1.Get()], &aVertices[nData.nVertex2.Get()], &aVertices[nData.nVertex3.Get()]};
+
+				float fx1 = coords[x1][0];
+				float fx2 = coords[x2][0];
+				float fy1 = coords[y1][1];
+				float fy2 = coords[y2][1];
+				float fz1 = coords[z1][2];
+				float fz2 = coords[z2][2];
+
+				auto v1 = NyaVec3(aVertices[nData.nVertex1.Get()], aVertices[nData.nVertex1.Get()+1], aVertices[nData.nVertex1.Get()+2]);
+				auto v2 = NyaVec3(aVertices[nData.nVertex2.Get()], aVertices[nData.nVertex2.Get()+1], aVertices[nData.nVertex2.Get()+2]);
+				auto v3 = NyaVec3(aVertices[nData.nVertex3.Get()], aVertices[nData.nVertex3.Get()+1], aVertices[nData.nVertex3.Get()+2]);
+
+				WriteFile(std::format("{} {} {} {} {} {} {} {} {}", v1.x, v1.y, v1.z, v2.x, v2.y, v2.z, v3.x, v3.y, v3.z));
+				WriteFile(std::format("min {} {} {} max {} {} {}", fx1, fy1, fz1, fx2, fy2, fz2));
 			}
 		}
 
@@ -512,27 +651,41 @@ namespace FO1CDB {
 	std::vector<tCDBRegion> aFBXRegions;
 	void CreateCDBFromMesh(aiMesh* mesh) {
 		for (int i = 0; i < mesh->mNumFaces; i++) {
+			auto face = &mesh->mFaces[i];
 			tCDBPoly poly;
 			poly.nFlags = 27; // todo trees 1 objects 3 water 6 ground 27
-			poly.nMaterial = 1; // todo
+			poly.SetMaterial(1); // todo
 			poly.nVertex1.Set(aFBXVertices.size());
 			poly.nVertex2.Set(aFBXVertices.size()+3);
 			poly.nVertex3.Set(aFBXVertices.size()+6);
-			aFBXPolys.push_back(poly);
 
-			aFBXVertices.push_back(-mesh->mVertices[mesh->mFaces[i].mIndices[0]].x);
-			aFBXVertices.push_back(mesh->mVertices[mesh->mFaces[i].mIndices[0]].y);
-			aFBXVertices.push_back(mesh->mVertices[mesh->mFaces[i].mIndices[0]].z);
-			aFBXVertices.push_back(-mesh->mVertices[mesh->mFaces[i].mIndices[1]].x);
-			aFBXVertices.push_back(mesh->mVertices[mesh->mFaces[i].mIndices[1]].y);
-			aFBXVertices.push_back(mesh->mVertices[mesh->mFaces[i].mIndices[1]].z);
-			aFBXVertices.push_back(-mesh->mVertices[mesh->mFaces[i].mIndices[2]].x);
-			aFBXVertices.push_back(mesh->mVertices[mesh->mFaces[i].mIndices[2]].y);
-			aFBXVertices.push_back(mesh->mVertices[mesh->mFaces[i].mIndices[2]].z);
+			aFBXVertices.push_back(-mesh->mVertices[face->mIndices[2]].x);
+			aFBXVertices.push_back(mesh->mVertices[face->mIndices[2]].y);
+			aFBXVertices.push_back(mesh->mVertices[face->mIndices[2]].z);
+			aFBXVertices.push_back(-mesh->mVertices[face->mIndices[1]].x);
+			aFBXVertices.push_back(mesh->mVertices[face->mIndices[1]].y);
+			aFBXVertices.push_back(mesh->mVertices[face->mIndices[1]].z);
+			aFBXVertices.push_back(-mesh->mVertices[face->mIndices[0]].x);
+			aFBXVertices.push_back(mesh->mVertices[face->mIndices[0]].y);
+			aFBXVertices.push_back(mesh->mVertices[face->mIndices[0]].z);
+
+			int tmp = 0;
+			do {
+				poly.SetPolyMinMatchup(tmp++);
+			} while (!poly.IsPolyMinMatchupValid(&aFBXVertices[0]));
+			tmp = 0;
+			do {
+
+				poly.SetPolyMaxMatchup(tmp++);
+			} while (!poly.IsPolyMaxMatchupValid(&aFBXVertices[0]));
+
+			aFBXPolys.push_back(poly);
 		}
 	}
 
 	void FillFromFBX() {
+		WriteConsole(std::format("Processing {} meshes", pParsedFBXScene->mNumMeshes), LOG_ALWAYS);
+
 		for (int i = 0; i < pParsedFBXScene->mNumMeshes; i++) {
 			CreateCDBFromMesh(pParsedFBXScene->mMeshes[i]);
 		}
@@ -553,6 +706,7 @@ namespace FO1CDB {
 		// first region
 		tCDBRegion region;
 		region.nFlags.SetIndex(1);
+		region.nFlags.SetUnknownFlag(0xF); // todo no idea what this is
 		region.nXPosition = 0;
 		region.nYPosition = 0;
 		region.nZPosition = 0;
@@ -583,6 +737,7 @@ namespace FO1CDB {
 				// node
 				tCDBRegion region1;
 				region1.nFlags.SetIndex(2);
+				region1.nFlags.SetUnknownFlag(0xF); // todo no idea what this is
 				region1.nXPosition = 0;
 				region1.nYPosition = 0;
 				region1.nZPosition = 0;
@@ -597,7 +752,7 @@ namespace FO1CDB {
 
 			// data
 			tCDBRegion region2;
-			region2.nFlags.SetUnknownFlag(0xF);
+			region2.nFlags.SetUnknownFlag(0xF); // todo no idea what this is
 			region2.nFlags.SetHasPolys(true);
 			region2.nFlags.SetIndex(currPoly);
 			region2.nFlags.SetPolyCount(numPolysToAdd);
