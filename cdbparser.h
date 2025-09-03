@@ -104,7 +104,7 @@ struct tExportCollisionRegion {
 	std::vector<tFO1CollisionIndex> aIndices;
 };
 std::vector<tExportCollisionRegion> aCollisionRegions;
-void ReadCollisionRegion(const tFO1CollisionRegion* region, const tFO1CollisionRegion* regions, const tFO1CollisionIndex* indices, const tFO1CollisionVertex* vertices) {
+void ReadCollisionRegion(const tFO1CollisionRegion* region, const tFO1CollisionIndex* indices, const tFO1CollisionVertex* vertices) {
 	if (region->nFlags.hasIndices) {
 		tExportCollisionRegion tmp;
 		for (int i = 0; i < region->nFlags.indexCount + 1; i++) {
@@ -114,8 +114,9 @@ void ReadCollisionRegion(const tFO1CollisionRegion* region, const tFO1CollisionR
 		aCollisionRegions.push_back(tmp);
 	}
 	//else {
-	//	ReadCollisionRegion(&regions[region->nFlags.index], regions, indices, vertices);
-	//	ReadCollisionRegion(&regions[region->nFlags.index+1], regions, indices, vertices);
+	//	// adds an offset to the current region index
+	//	ReadCollisionRegion(&region[region->nFlags.index], indices, vertices);
+	//	ReadCollisionRegion(&region[region->nFlags.index+1], indices, vertices);
 	//}
 }
 
@@ -235,10 +236,7 @@ bool ParseTrackCDB(const std::filesystem::path& fileName) {
 		}
 		//aCollisionRegions.push_back(oneRegion);
 
-		//for (int i = 0; i < tmp; i++) {
-		//	auto nData = (tFO1CollisionRegion*)region;
-		//	ReadCollisionRegion(&nData[i], (tFO1CollisionRegion*)region, (tFO1CollisionIndex*)indices, (tFO1CollisionVertex*)vertices);
-		//}
+		//ReadCollisionRegion((tFO1CollisionRegion*)region, (tFO1CollisionIndex*)indices, (tFO1CollisionVertex*)vertices);
 
 		//vCoordMultipliers1.x: 90.79545
 		//vCoordMultipliers1.y: 715.3839
