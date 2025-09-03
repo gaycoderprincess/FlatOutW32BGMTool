@@ -29,8 +29,16 @@ struct __attribute__((packed)) tFO1CollisionIndex {
 	// byte_68BDF4[v7 >> 11]
 	// byte_68BDF4[(v7 >> 6) & 0x1F]
 
+	// nFlags:
+	// trees 1
+	// objects 3
+	// water 6
+	// ground 27
+
 	uint8_t nFlags; // +0
-	uint16_t nUnknownId; // +1 breaks shadows and tire collision if nulled
+	uint8_t nMaterial : 6; // +1
+	uint8_t nUnk2 : 2; // +1 breaks shadows and tire collision if nulled
+	uint8_t nUnk3; // +1 breaks shadows and tire collision if nulled
 	tInt24 nVertex1; // +3
 	tInt24 nVertex2; // +6
 	tInt24 nVertex3; // +9
@@ -83,7 +91,12 @@ struct tFO1CollisionRegion {
 		uint16_t index;
 		uint8_t unk2;
 	} nFlags;
-	uint16_t nExtents[6]; // 4 6 8 10 12 14
+	int16_t nXPosition;
+	int16_t nXSize;
+	int16_t nYPosition;
+	int16_t nYSize;
+	int16_t nZPosition;
+	int16_t nZSize;
 };
 static_assert(sizeof(tFO1CollisionRegion) == 0x10);
 
@@ -100,10 +113,10 @@ void ReadCollisionRegion(const tFO1CollisionRegion* region, const tFO1CollisionR
 		}
 		aCollisionRegions.push_back(tmp);
 	}
-	else {
-		ReadCollisionRegion(&regions[region->nFlags.index], regions, indices, vertices);
-		ReadCollisionRegion(&regions[region->nFlags.index+1], regions, indices, vertices);
-	}
+	//else {
+	//	ReadCollisionRegion(&regions[region->nFlags.index], regions, indices, vertices);
+	//	ReadCollisionRegion(&regions[region->nFlags.index+1], regions, indices, vertices);
+	//}
 }
 
 bool ParseTrackCDB(const std::filesystem::path& fileName) {
@@ -126,28 +139,22 @@ bool ParseTrackCDB(const std::filesystem::path& fileName) {
 	if (identifier == 0x62626161) { // "aabb"
 		uint32_t tmp;
 		fin.read((char*)&tmp, 4);
-		WriteFile(std::format("nValue1: {:X}", tmp));
+		WriteFile(std::format("nValue1: 0x{:X}", tmp));
 		fin.read((char*)&tmp, 4);
-		WriteFile(std::format("nValue2: {:X}", tmp));
+		WriteFile(std::format("nValue2: 0x{:X}", tmp));
 		fin.read((char*)&tmp, 4);
-		WriteFile(std::format("nVertexSize: {:X}", tmp));
+		WriteFile(std::format("nVertexSize: 0x{:X}", tmp));
 
 		auto vertices = new uint8_t[tmp];
 		fin.read((char*)vertices, tmp);
-
-		if (tmp % sizeof(tFO1CollisionVertex) != 0) {
-			WriteConsole(std::format("Truncated {} bytes from vertex array", (tmp % sizeof(tFO1CollisionVertex))), LOG_ALWAYS);
-			tmp -= (tmp % sizeof(tFO1CollisionVertex));
-		}
 
 		for (int i = 0; i < tmp / sizeof(tFO1CollisionVertex); i++) {
 			auto fData = (tFO1CollisionVertex*)vertices;
 			WriteFile(std::format("{} {} {} {} {}", fData[i].fPosition[0], fData[i].fPosition[1], fData[i].fPosition[2], fData[i].fMultipliers[0], fData[i].fMultipliers[1]));
 		}
-		uint32_t numVertices = tmp / sizeof(tFO1CollisionVertex);
 
 		fin.read((char*)&tmp, 4);
-		WriteFile(std::format("nIndexSize: {:X}", tmp));
+		WriteFile(std::format("nIndexCount: {}", tmp));
 
 		uint32_t data2Size = tmp * 12;
 		if (bCDBIsRetroDemo) data2Size = tmp * 16;
@@ -164,8 +171,7 @@ bool ParseTrackCDB(const std::filesystem::path& fileName) {
 		else {
 			for (int i = 0; i < numIndices; i++) {
 				auto nData = (tFO1CollisionIndex*)indices;
-				auto vertData = (tFO1CollisionVertex*)vertices;
-				WriteFile(std::format("{} {} {} flags {} unk {}", nData[i].nVertex1.Get(), nData[i].nVertex2.Get(), nData[i].nVertex3.Get(), nData[i].nFlags, (int)nData[i].nUnknownId));
+				WriteFile(std::format("{} {} {} flags {} material {} unk {} {}", nData[i].nVertex1.Get(), nData[i].nVertex2.Get(), nData[i].nVertex3.Get(), nData[i].nFlags, (int)nData[i].nMaterial, (int)nData[i].nUnk2, nData[i].nUnk3));
 			}
 		}
 
@@ -197,25 +203,101 @@ bool ParseTrackCDB(const std::filesystem::path& fileName) {
 		WriteFile(std::format("vCoordMultipliersInv2.z: {}", values2[2]));
 
 		fin.read((char*)&tmp, 4);
-		WriteFile(std::format("nSomeData3Size: {:X}", tmp));
+		WriteFile(std::format("nRegionCount: {}", tmp));
 
 		auto region = new uint8_t[tmp * 16];
 		fin.read((char*)region, tmp * 16);
 		for (int i = 0; i < tmp; i++) {
 			auto nData = (tFO1CollisionRegion*)region;
 			WriteFile(std::format("indexCount {} hasIndices {} index {} unk1 {} unk2 {}", (int)nData[i].nFlags.indexCount, (int)nData[i].nFlags.hasIndices, (int)nData[i].nFlags.index, (int)nData[i].nFlags.unk1, nData[i].nFlags.unk2));
-			WriteFile(std::format("extents {} {} {} {} {} {}", nData[i].nExtents[0], nData[i].nExtents[1], nData[i].nExtents[2], nData[i].nExtents[3], nData[i].nExtents[4], nData[i].nExtents[5]));
+			WriteFile(std::format("extents {} {} {} {} {} {}", nData[i].nXPosition, nData[i].nXSize, nData[i].nYPosition, nData[i].nYSize, nData[i].nZPosition, nData[i].nZSize));
 		}
 
-		ReadCollisionRegion((tFO1CollisionRegion*)region, (tFO1CollisionRegion*)region, (tFO1CollisionIndex*)indices, (tFO1CollisionVertex*)vertices);
+		int numMaterials = 31;
+
+		//tExportCollisionRegion oneRegion;
+		//for (int i = 0; i < numIndices; i++) {
+		//	auto nData = (tFO1CollisionIndex*)indices;
+		//	if (nData->nFlags > 64) {
+		//		WriteConsole(std::format("flags found {}", nData->nFlags), LOG_ALWAYS);
+		//	}
+		//	//oneRegion.aIndices.push_back(nData[i]);
+		//}
+		for (int i = 0; i < numMaterials; i++) {
+			tExportCollisionRegion matRegion;
+			for (int j = 0; j < numIndices; j++) {
+				auto nData = (tFO1CollisionIndex*)indices;
+				if (nData[j].nMaterial != i) continue;
+				matRegion.aIndices.push_back(nData[j]);
+			}
+			if (matRegion.aIndices.empty()) continue;
+			aCollisionRegions.push_back(matRegion);
+		}
+		//aCollisionRegions.push_back(oneRegion);
+
+		//for (int i = 0; i < tmp; i++) {
+		//	auto nData = (tFO1CollisionRegion*)region;
+		//	ReadCollisionRegion(&nData[i], (tFO1CollisionRegion*)region, (tFO1CollisionIndex*)indices, (tFO1CollisionVertex*)vertices);
+		//}
+
+		//vCoordMultipliers1.x: 90.79545
+		//vCoordMultipliers1.y: 715.3839
+		//vCoordMultipliers1.z: 91.06016
+		//vCoordMultipliers2.x: 90.79268
+		//vCoordMultipliers2.y: 715.3621
+		//vCoordMultipliers2.z: 91.05737
+		//vCoordMultipliersInv1.x: 0.011013768
+		//vCoordMultipliersInv1.y: 0.0013978508
+		//vCoordMultipliersInv1.z: 0.010981752
+		//vCoordMultipliersInv2.x: 0.011014104
+		//vCoordMultipliersInv2.y: 0.0013978934
+		//vCoordMultipliersInv2.z: 0.010982087
 
 		aiScene scene;
 		scene.mRootNode = new aiNode();
 
 		// materials
-		scene.mMaterials = new aiMaterial*[1];
-		scene.mMaterials[0] = new aiMaterial();
-		scene.mNumMaterials = 1;
+		scene.mMaterials = new aiMaterial*[numMaterials];
+		for (int i = 0; i < numMaterials; i++) {
+			const char* materialNames[] = {
+				"NoCollision",
+				"Tarmac (Road)",
+				"Tarmac Mark (Road)",
+				"Hard (Road)",
+				"Hard Mark (Road)",
+				"Medium (Road)",
+				"Medium Mark (Road)",
+				"Soft (Road)",
+				"Soft Mark (Road)",
+				"Ice (Road)",
+				"Ice Mark (Road)",
+				"Snow (Road)",
+				"Snow Mark (Road)",
+				"Bank Sand (terrain)",
+				"Grass (terrain)",
+				"Forest (terrain)",
+				"Sand (terrain)",
+				"Rock (terrain)",
+				"Mould (terrain)",
+				"Snow  (terrain)",
+				"Concrete (Object)",
+				"Rock (Object)",
+				"Metal (Object)",
+				"Wood (Object)",
+				"Tree (Object)",
+				"Bush",
+				"Rubber (Object)",
+				"Water",
+				"No Camera Col",
+				"Reset",
+				"Camera only col",
+			};
+
+			scene.mMaterials[i] = new aiMaterial();
+			aiString matName(materialNames[i]);
+			scene.mMaterials[i]->AddProperty(&matName, AI_MATKEY_NAME);
+		}
+		scene.mNumMaterials = numMaterials;
 
 		scene.mMeshes = new aiMesh*[aCollisionRegions.size()];
 		scene.mNumMeshes = aCollisionRegions.size();
@@ -227,25 +309,36 @@ bool ParseTrackCDB(const std::filesystem::path& fileName) {
 				return false;
 			}
 
+			int numVertices = region->aIndices.size()*3;
+			int currentVertex = 0;
+
 			auto mesh = new aiMesh;
 			scene.mMeshes[i] = mesh;
 			mesh->mVertices = new aiVector3D[numVertices];
 			mesh->mNumVertices = numVertices;
-			for (int j = 0; j < numVertices; j++) {
-				auto fData = (tFO1CollisionVertex*)vertices;
-				mesh->mVertices[j].x = fData[j].fPosition[0];
-				mesh->mVertices[j].y = fData[j].fPosition[1];
-				mesh->mVertices[j].z = fData[j].fPosition[2];
-			}
+			mesh->mMaterialIndex = region->aIndices[0].nMaterial;
 
 			mesh->mFaces = new aiFace[region->aIndices.size()];
 			mesh->mNumFaces = region->aIndices.size();
 			for (int j = 0; j < region->aIndices.size(); j++) {
 				auto index = region->aIndices[j];
+				auto vertex1 = (float*)(&vertices[index.nVertex1.Get()*4]);
+				auto vertex2 = (float*)(&vertices[index.nVertex2.Get()*4]);
+				auto vertex3 = (float*)(&vertices[index.nVertex3.Get()*4]);
+				mesh->mVertices[currentVertex].x = vertex1[0];
+				mesh->mVertices[currentVertex].y = vertex1[1];
+				mesh->mVertices[currentVertex].z = vertex1[2];
+				mesh->mVertices[currentVertex + 1].x = vertex2[0];
+				mesh->mVertices[currentVertex + 1].y = vertex2[1];
+				mesh->mVertices[currentVertex + 1].z = vertex2[2];
+				mesh->mVertices[currentVertex + 2].x = vertex3[0];
+				mesh->mVertices[currentVertex + 2].y = vertex3[1];
+				mesh->mVertices[currentVertex + 2].z = vertex3[2];
+
 				mesh->mFaces[j].mIndices = new uint32_t[3];
-				mesh->mFaces[j].mIndices[0] = index.GetFirstVertex();
-				mesh->mFaces[j].mIndices[1] = index.GetSecondVertex();
-				mesh->mFaces[j].mIndices[2] = index.GetThirdVertex();
+				mesh->mFaces[j].mIndices[0] = currentVertex++;
+				mesh->mFaces[j].mIndices[1] = currentVertex++;
+				mesh->mFaces[j].mIndices[2] = currentVertex++;
 				mesh->mFaces[j].mNumIndices = 3;
 
 				if (mesh->mFaces[j].mIndices[0] < 0 || mesh->mFaces[j].mIndices[0] >= mesh->mNumVertices) {
