@@ -115,11 +115,11 @@ namespace FO1CDB {
 			uint32_t value;
 
 			int GetUnknownFlag() {
-				return (*(uint8_t*)&value) & 0xFFF;
+				return (*(uint8_t*)&value) & 0xF;
 			}
 
 			void SetUnknownFlag(int i) {
-				*(uint8_t*)&value |= i;
+				*(uint8_t*)&value |= i & 0xF;
 			}
 
 			int GetPolyCount() {
@@ -475,8 +475,6 @@ namespace FO1CDB {
 
 		file.write((char*)&nNumPolys, 4);
 		for (int i = 0; i < nNumPolys; i++) {
-			//aPolys[i].nUnk2 = 0;
-			//aPolys[i].nUnk3 = 0;
 			file.write((char*)&aPolys[i], sizeof(aPolys[i]));
 		}
 
@@ -501,17 +499,6 @@ namespace FO1CDB {
 
 		file.write((char*)&nNumRegions, 4);
 		for (int i = 0; i < nNumRegions; i++) {
-			int polyCount = aRegions[i].nFlags.GetPolyCount();
-			int index = aRegions[i].nFlags.GetIndex();
-			bool hasPolys = aRegions[i].nFlags.HasPolys();
-			auto value = aRegions[i].nFlags.GetUnknownFlag();
-			aRegions[i].nFlags.value = 0;
-			aRegions[i].nFlags.SetHasPolys(hasPolys);
-			aRegions[i].nFlags.SetIndex(index);
-			if (hasPolys) {
-				aRegions[i].nFlags.SetPolyCount(polyCount);
-			}
-			aRegions[i].nFlags.SetUnknownFlag(0xF);
 			file.write((char*)&aRegions[i], sizeof(aRegions[i]));
 		}
 
@@ -589,7 +576,6 @@ namespace FO1CDB {
 		while (numPolysLeft) {
 			int numPolysToAdd = numPolysLeft;
 			if (numPolysToAdd > 0x7F) numPolysToAdd = 0x7F;
-			//if (numPolysToAdd > 1) numPolysToAdd = 1;
 
 			numPolysLeft -= numPolysToAdd;
 
