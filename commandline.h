@@ -36,6 +36,9 @@ void CMD_ExportW32_FOUC() {
 	nImportFileVersion = 0x20002;
 	nExportFileVersion = 0x20002;
 }
+void CMD_ExportCDB_FO1() {
+	bCreateCDBFromFBX = true;
+}
 void CMD_Export4B() {
 	bCreate4BFromBMP = true;
 }
@@ -258,6 +261,8 @@ tCommandlineArgument aArguments[] = {
 		{ "-create_fo2_w32", CMD_ExportW32_FO2, "Creates a FlatOut 2 .w32 from an input .fbx file" },
 		{ "-create_fouc_w32", CMD_ExportW32_FOUC, "Creates a FlatOut: Ultimate Carnage .w32 from an input .fbx file" },
 
+		{ "-create_fo1_cdb", CMD_ExportCDB_FO1, "Creates a FlatOut 1 cdb.gen from an input .fbx file", "FBX to CDB" },
+
 		// export 4B
 		{ "-create_4b", CMD_Export4B, "Creates a 4B map from an input .bmp file", "BMP to 4B" },
 
@@ -378,6 +383,7 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 		!bDumpIntoTextFile &&
 		!bCreateBGMFromFBX &&
 		!bCreateW32FromFBX &&
+		!bCreateCDBFromFBX &&
 		!bCreate4BFromBMP &&
 		!bCreateEmptyPlantVDB &&
 		!bExportXboxBuffers &&
@@ -411,7 +417,7 @@ void ProcessCommandlineArguments(int argc, char* argv[]) {
 	}
 
 	sFileName = argv[1];
-	if (bCreateBGMFromFBX || bCreateW32FromFBX) {
+	if (bCreateBGMFromFBX || bCreateW32FromFBX || bCreateCDBFromFBX) {
 		sFBXFileName = argv[1];
 	}
 	else if (bLoadFBX) {

@@ -60,6 +60,7 @@ bool ParseFBX() {
 	static Assimp::Importer importer;
 	pParsedFBXScene = importer.ReadFile(sFBXFileName.string().c_str(), flags);
 	if (bImportAndAutoMatchAllMeshesFromFBX) return pParsedFBXScene != nullptr;
+	if (bCreateCDBFromFBX) return pParsedFBXScene != nullptr;
 	if (bCreateBGMFromFBX) return pParsedFBXScene != nullptr && GetFBXNodeForBGMMeshArray() && GetFBXNodeForObjectsArray();
 	return pParsedFBXScene != nullptr && GetFBXNodeForStaticBatchArray() && GetFBXNodeForTreeMeshArray() && GetFBXNodeForCompactMeshArray();
 }
@@ -80,7 +81,17 @@ int main(int argc, char *argv[]) {
 		WriteConsole("ERROR: Failed to load " + std::filesystem::absolute(sFileName).string() + "! (File doesn't exist)", LOG_ERRORS);
 		WaitAndExitOnFail();
 	}
-	if (hasEnding(sFileName.generic_string(), "cdb.gen")) {
+	if (bCreateCDBFromFBX) {
+		if (!ParseFBX()) {
+			WriteConsole("ERROR: Failed to load " + sFBXFileName.string() + "!", LOG_ERRORS);
+			WaitAndExitOnFail();
+		}
+		else {
+			FO1CDB::FillFromFBX();
+			FO1CDB::WriteToFile();
+		}
+	}
+	else if (hasEnding(sFileName.generic_string(), "_cdb.gen")) {
 		if (!ParseTrackCDB(sFileName)) {
 			WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 			WaitAndExitOnFail();
@@ -89,6 +100,7 @@ int main(int argc, char *argv[]) {
 			WriteConsole("Parsing finished", LOG_ALWAYS);
 
 			if (bDumpIntoFBX) FO1CDB::WriteToFBX();
+			FO1CDB::WriteToFile();
 		}
 	}
 	else if (bCreate4BFromBMP) {

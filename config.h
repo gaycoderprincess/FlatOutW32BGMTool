@@ -44,6 +44,7 @@ bool bFBXNoBushes = false;
 bool bUngroupMovedPropsFromFBX = false;
 bool bCreateBGMFromFBX = false;
 bool bCreateW32FromFBX = false;
+bool bCreateCDBFromFBX = false;
 bool bCreate4BFromBMP = false;
 bool bUseVanillaNames = false;
 bool bLoadFBX = false;
