@@ -724,7 +724,7 @@ namespace FO1CDB {
 
 		auto mult2 = radius * (1.0 / 32767.0);
 
-		// todo this could be done better
+		// todo this needs to be divided into segments, the game can't handle it as-is
 		int currPoly = 0;
 		int numPolysLeft = aFBXPolys.size();
 		while (numPolysLeft) {
