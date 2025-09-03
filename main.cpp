@@ -81,7 +81,15 @@ int main(int argc, char *argv[]) {
 		WaitAndExitOnFail();
 	}
 	if (hasEnding(sFileName.generic_string(), "cdb.gen")) {
-		ParseTrackCDB(sFileName);
+		if (!ParseTrackCDB(sFileName)) {
+			WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
+			WaitAndExitOnFail();
+		}
+		else {
+			WriteConsole("Parsing finished", LOG_ALWAYS);
+
+			if (bDumpIntoFBX) FO1CDB::WriteToFBX();
+		}
 	}
 	else if (bCreate4BFromBMP) {
 		Write4BFromBMP();
