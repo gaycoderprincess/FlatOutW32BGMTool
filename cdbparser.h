@@ -716,14 +716,22 @@ namespace FO1CDB {
 			return count;
 		}
 
+		bool* vertsAdded = nullptr;
 		void GenerateMeshChildren(float* vertices, float coordMult[3]) {
-			auto min = data.GetPosition(coordMult) - data.GetSize(coordMult);
-			auto max = data.GetPosition(coordMult) + data.GetSize(coordMult);
+			if (!vertsAdded) {
+				vertsAdded = new bool[nNumVertices];
+				memset(vertsAdded, 0, nNumVertices);
+			}
+
+			auto min = data.GetPosition(coordMult) - data.GetSize(coordMult) * 2;
+			auto max = data.GetPosition(coordMult) + data.GetSize(coordMult) * 2;
 			for (auto& poly : aFBXPolys) {
 				auto polyMin = poly.GetAABBMin(vertices);
 				auto polyMax = poly.GetAABBMax(vertices);
+				if (vertsAdded[&poly-&aFBXPolys[0]]) continue;
 				if (polyMin.x < min.x || polyMin.y < min.y || polyMin.z < min.z) continue;
 				if (polyMax.x > max.x || polyMax.y > max.y || polyMax.z > max.z) continue;
+				vertsAdded[&poly-&aFBXPolys[0]] = true;
 
 				auto polyMid = polyMin;
 				polyMid.x = std::lerp(polyMin.x, polyMax.x, 0.5);
@@ -749,9 +757,14 @@ namespace FO1CDB {
 			data.SetPosition(position, coordMult);
 			data.SetSize(size, coordMult);
 
-			if (data.nXSize < 16 || size.x < 8) {
-				if (data.nYSize < 16 || size.y < 8) {
+			if (data.nXSize < 16 || size.x < 4) {
+				if (data.nYSize < 16 || size.y < 4) {
 					GenerateMeshChildren(vertices, coordMult);
+					// add a bit of leeway, todo this is kinda hacky
+					//auto newSize = size;
+					//newSize.x *= 2;
+					//newSize.y *= 2;
+					//data.SetSize(newSize, coordMult);
 					return;
 				}
 
