@@ -123,6 +123,7 @@ namespace FO1CDB {
 		int GetPolyMinMatchup() {
 			return (nMaterialAndOtherStuff >> 6) & 0x1F;
 		}
+
 		int GetPolyMaxMatchup() {
 			return nMaterialAndOtherStuff >> 11;
 		}
@@ -134,6 +135,24 @@ namespace FO1CDB {
 		void SetPolyMaxMatchup(int i) {
 			nMaterialAndOtherStuff &= ~(0xFF << 11);
 			nMaterialAndOtherStuff |= i << 11;
+		}
+
+		auto GetAABBMin(float* vertices) {
+			float* coords[3] = {&vertices[nVertex1.Get()], &vertices[nVertex2.Get()], &vertices[nVertex3.Get()]};
+
+			float x = std::min(coords[0][0], std::min(coords[1][0], coords[2][0]));
+			float y = std::min(coords[0][1], std::min(coords[1][1], coords[2][1]));
+			float z = std::min(coords[0][2], std::min(coords[1][2], coords[2][2]));
+			return NyaVec3(x, y, z);
+		}
+
+		auto GetAABBMax(float* vertices) {
+			float* coords[3] = {&vertices[nVertex1.Get()], &vertices[nVertex2.Get()], &vertices[nVertex3.Get()]};
+
+			float x = std::max(coords[0][0], std::max(coords[1][0], coords[2][0]));
+			float y = std::max(coords[0][1], std::max(coords[1][1], coords[2][1]));
+			float z = std::max(coords[0][2], std::max(coords[1][2], coords[2][2]));
+			return NyaVec3(x, y, z);
 		}
 
 		bool IsPolyMinMatchupValid(float* vertices) {
@@ -683,6 +702,191 @@ namespace FO1CDB {
 		}
 	}
 
+	struct tCDBNodeTree {
+		tCDBRegion data;
+		std::vector<tCDBNodeTree> children;
+		std::vector<tCDBRegion> meshChildren;
+
+		int GetTotalChildren() {
+			int count = 0;
+			for (auto& child : children) {
+				count += child.GetTotalChildren() + 1;
+			}
+			return count;
+		}
+
+		void GenerateMeshChildren(float* vertices, float coordMult[3]) {
+			auto min = data.GetPosition(coordMult) - data.GetSize(coordMult);
+			auto max = data.GetPosition(coordMult) + data.GetSize(coordMult);
+			for (auto& poly : aFBXPolys) {
+				auto polyMin = poly.GetAABBMin(vertices);
+				auto polyMax = poly.GetAABBMax(vertices);
+				if (polyMin.x < min.x || polyMin.y < min.y || polyMin.z < min.z) continue;
+				if (polyMax.x > max.x || polyMax.y > max.y || polyMax.z > max.z) continue;
+
+				tCDBRegion region;
+				region.nFlags.SetIndex(&poly-&aFBXPolys[0]);
+				region.nFlags.SetHasPolys(true);
+				region.nFlags.SetUnknownFlag(0xF);
+				region.nFlags.SetPolyCount(1);
+				meshChildren.push_back(region);
+			}
+		}
+
+		void Generate(const NyaVec3& position, const NyaVec3& size, float* vertices, float coordMult[3]) {
+			data.nFlags.SetIndex(1);
+			data.nFlags.SetUnknownFlag(0xF); // todo no idea what this is
+			data.SetPosition(position, coordMult);
+			data.SetSize(size, coordMult);
+
+			if (data.nXSize < 16 || size.x < 8) {
+				if (data.nYSize < 16 || size.y < 8) {
+					GenerateMeshChildren(vertices, coordMult);
+					return;
+				}
+
+				// halve y
+				auto sizeHalf = size;
+				sizeHalf.y /= 2.0;
+				auto topLeft = position;
+				topLeft.y -= sizeHalf.y;
+
+				children.push_back({});
+				auto child = &children[children.size()-1];
+				child->Generate(topLeft, sizeHalf, vertices, coordMult);
+				children.push_back({});
+				child = &children[children.size()-1];
+				topLeft.y += sizeHalf.y * 2;
+				child->Generate(topLeft, sizeHalf, vertices, coordMult);
+			}
+			else {
+				// halve x
+				auto sizeHalf = size;
+				sizeHalf.x /= 2.0;
+				auto topLeft = position;
+				topLeft.x -= sizeHalf.x;
+
+				children.push_back({});
+				auto child = &children[children.size()-1];
+				child->Generate(topLeft, sizeHalf, vertices, coordMult);
+				children.push_back({});
+				child = &children[children.size()-1];
+				topLeft.x += sizeHalf.x * 2;
+				child->Generate(topLeft, sizeHalf, vertices, coordMult);
+			}
+		}
+
+		int GetNumRegionsAdded() {
+			if (children.empty()) {
+				tCDBRegion regionEnd;
+				regionEnd.nFlags.SetHasPolys(true);
+				regionEnd.nFlags.SetPolyCount(1);
+				regionEnd.nFlags.SetIndex(0);
+				regionEnd.nFlags.SetUnknownFlag(0);
+				if (meshChildren.empty()) {
+					// two empty dummy regions, this is a dead end
+					return 2;
+				}
+				return meshChildren.size()*2;
+			}
+			else {
+				return children[0].GetNumRegionsAdded() + children[1].GetNumRegionsAdded();
+			}
+		}
+
+		void CreateRegions() {
+			if (!children.empty() && children.size() != 2) {
+				WriteConsole("ERROR: region child count != 2", LOG_ERRORS);
+				return;
+			}
+			if (children.empty()) {
+				tCDBRegion regionEnd;
+				regionEnd.nFlags.SetHasPolys(true);
+				regionEnd.nFlags.SetPolyCount(1);
+				regionEnd.nFlags.SetIndex(0);
+				regionEnd.nFlags.SetUnknownFlag(0);
+				if (meshChildren.empty()) {
+					// two empty dummy regions, this is a dead end
+					aFBXRegions.push_back(regionEnd);
+					aFBXRegions.push_back(regionEnd);
+				}
+				else {
+					for (auto& mesh : meshChildren) {
+						aFBXRegions.push_back(mesh);
+						// end of meshes, dead end
+						if (&mesh == &meshChildren[meshChildren.size()-1]) {
+							aFBXRegions.push_back(regionEnd);
+						}
+						else {
+							// go to next
+							tCDBRegion region;
+							region.nFlags.SetHasPolys(false);
+							region.nFlags.SetIndex(1);
+							region.nFlags.SetUnknownFlag(0xF);
+							region.nXPosition = data.nXPosition;
+							region.nYPosition = data.nYPosition;
+							region.nZPosition = data.nZPosition;
+							region.nXSize = data.nXSize;
+							region.nYSize = data.nYSize;
+							region.nZSize = data.nZSize;
+							aFBXRegions.push_back(region);
+						}
+					}
+				}
+			}
+			else {
+
+			}
+			/*for (auto& child : children) {
+				if (child.meshChildren.empty()) {
+					tCDBRegion region = child.data;
+					region.nFlags.SetIndex(2);
+					region.nFlags.SetUnknownFlag(0xF);
+					aFBXRegions.push_back(region);
+
+					// dumb dummy data region so i dont have to do weird redirects like vanilla
+					region.nXSize = 0;
+					region.nYSize = 0;
+					region.nXSize = 0;
+					region.nFlags.SetIndex(0);
+					region.nFlags.SetHasPolys(true);
+					region.nFlags.SetPolyCount(1);
+					region.nFlags.SetUnknownFlag(0);
+					aFBXRegions.push_back(region);
+				}
+				else {
+					for (auto& mesh : child.meshChildren) {
+						//bool last = &mesh == &child.meshChildren[child.meshChildren.size()-1];
+						//if (last) {
+						//	// dumb dummy data region so i dont have to do weird redirects like vanilla
+						//	region = child.data;
+						//	region.nXSize = 0;
+						//	region.nYSize = 0;
+						//	region.nXSize = 0;
+						//	region.nFlags.SetIndex(0);
+						//	region.nFlags.SetHasPolys(true);
+						//	region.nFlags.SetPolyCount(1);
+						//	region.nFlags.SetUnknownFlag(0);
+						//	aFBXRegions.push_back(region);
+						//}
+						//else {
+						auto region = child.data;
+						region.nFlags.SetIndex(2);
+						region.nFlags.SetUnknownFlag(0xF);
+						region.nFlags.SetHasPolys(false);
+						region.nFlags.SetPolyCount(1);
+						aFBXRegions.push_back(region);
+						//}
+
+						region = child.data;
+						aFBXRegions.push_back(region);
+					}
+				}
+			}*/
+		}
+	};
+	tCDBNodeTree gFBXRootNode;
+
 	void FillFromFBX() {
 		WriteConsole(std::format("Processing {} meshes", pParsedFBXScene->mNumMeshes), LOG_ALWAYS);
 
@@ -703,18 +907,6 @@ namespace FO1CDB {
 			aPolys[i] = aFBXPolys[i];
 		}
 
-		// first region
-		tCDBRegion region;
-		region.nFlags.SetIndex(1);
-		region.nFlags.SetUnknownFlag(0xF); // todo no idea what this is
-		region.nXPosition = 0;
-		region.nYPosition = 0;
-		region.nZPosition = 0;
-		region.nXSize = 32767;
-		region.nYSize = 32767;
-		region.nZSize = 32767;
-		aFBXRegions.push_back(region);
-
 		auto min = GetAABBMin();
 		auto max = GetAABBMax();
 		auto radius = max;
@@ -724,8 +916,75 @@ namespace FO1CDB {
 
 		auto mult2 = radius * (1.0 / 32767.0);
 
+		// first region
+		gFBXRootNode.data.nFlags.SetIndex(1);
+		gFBXRootNode.data.nFlags.SetUnknownFlag(0xF); // todo no idea what this is
+		gFBXRootNode.data.nXPosition = 0;
+		gFBXRootNode.data.nYPosition = 0;
+		gFBXRootNode.data.nZPosition = 0;
+		gFBXRootNode.data.nXSize = 32767;
+		gFBXRootNode.data.nYSize = 32767;
+		gFBXRootNode.data.nZSize = 32767;
+		gFBXRootNode.Generate(gFBXRootNode.data.GetPosition(&mult2.x), gFBXRootNode.data.GetSize(&mult2.x), aVertices, &mult2.x);
+
+		if (!gFBXRootNode.meshChildren.empty()) {
+			WriteConsole("ERROR: Collision model too small!", LOG_ERRORS);
+			return;
+		}
+
+		// todo increase region sizes if any polys are out of bounds
+		tCDBRegion root = gFBXRootNode.data;
+		aFBXRegions.push_back(root);
+		// todo add null last one
+		for (auto& child : gFBXRootNode.children) {
+			tCDBRegion region = child.data;
+			region.nFlags.SetIndex(2);
+			region.nFlags.SetUnknownFlag(0xF);
+			aFBXRegions.push_back(region);
+
+			if (child.meshChildren.empty()) {
+				// dumb dummy data region so i dont have to do weird redirects like vanilla
+				region.nXSize = 0;
+				region.nYSize = 0;
+				region.nXSize = 0;
+				region.nFlags.SetIndex(0);
+				region.nFlags.SetHasPolys(true);
+				region.nFlags.SetPolyCount(1);
+				region.nFlags.SetUnknownFlag(0);
+				aFBXRegions.push_back(region);
+			}
+			else {
+				for (auto& mesh : child.meshChildren) {
+					//bool last = &mesh == &child.meshChildren[child.meshChildren.size()-1];
+					//if (last) {
+					//	// dumb dummy data region so i dont have to do weird redirects like vanilla
+					//	region = child.data;
+					//	region.nXSize = 0;
+					//	region.nYSize = 0;
+					//	region.nXSize = 0;
+					//	region.nFlags.SetIndex(0);
+					//	region.nFlags.SetHasPolys(true);
+					//	region.nFlags.SetPolyCount(1);
+					//	region.nFlags.SetUnknownFlag(0);
+					//	aFBXRegions.push_back(region);
+					//}
+					//else {
+						region = child.data;
+						region.nFlags.SetIndex(2);
+						region.nFlags.SetUnknownFlag(0xF);
+						region.nFlags.SetHasPolys(false);
+						region.nFlags.SetPolyCount(1);
+						aFBXRegions.push_back(region);
+					//}
+
+					tCDBRegion region = child.data;
+					aFBXRegions.push_back(region);
+				}
+			}
+		}
+
 		// todo this needs to be divided into segments, the game can't handle it as-is
-		int currPoly = 0;
+		/*int currPoly = 0;
 		int numPolysLeft = aFBXPolys.size();
 		while (numPolysLeft) {
 			int numPolysToAdd = numPolysLeft;
@@ -761,7 +1020,7 @@ namespace FO1CDB {
 			region2.SetSize({radius, radius, radius}, &mult2.x); // todo
 			aFBXRegions.push_back(region2);
 			currPoly += numPolysToAdd;
-		}
+		}*/
 
 		nNumRegions = aFBXRegions.size();
 		aRegions = new tCDBRegion[nNumRegions];
