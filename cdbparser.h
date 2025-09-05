@@ -708,6 +708,7 @@ namespace FO1CDB {
 		tCDBRegion data;
 		std::vector<tCDBNodeTree> children;
 		std::vector<tCDBRegion> meshChildren;
+		tCDBNodeTree* parent = nullptr;
 
 		int GetTotalChildren() {
 			int count = 0;
@@ -723,25 +724,50 @@ namespace FO1CDB {
 			(currentMin.z < otherMax.z) && (currentMax.z > otherMin.z);
 		}
 
+		bool RecalculateAABB(const NyaVec3& polyMin, const NyaVec3& polyMax, float coordMult[3]) {
+			auto pos = data.GetPosition(coordMult);
+			auto min = pos - data.GetSize(coordMult);
+			auto max = pos + data.GetSize(coordMult);
+			auto newMin = min;
+			auto newMax = max;
+			newMin.x = std::min(polyMin.x, min.x);
+			newMin.z = std::min(polyMin.z, min.z);
+			newMax.x = std::max(polyMax.x, max.x);
+			newMax.z = std::max(polyMax.z, max.z);
+			if (newMin.x != min.x || newMax.x != max.x || newMin.z != min.z || newMax.z != max.z) {
+				auto newSize = newMax - newMin;
+				data.SetSize(newSize / 2, coordMult); // todo is the / 2 required
+				data.nXSize += 8;
+				data.nYSize += 8;
+				data.nZSize += 8;
+				return true;
+			}
+			return false;
+		}
+
 		void GenerateMeshChildren(float* vertices, float coordMult[3]) {
 			if (!vertsAdded) {
 				vertsAdded = new bool[nNumPolys];
 				memset(vertsAdded, 0, nNumPolys);
 			}
 
-			auto min = data.GetPosition(coordMult) - data.GetSize(coordMult);
-			auto max = data.GetPosition(coordMult) + data.GetSize(coordMult);
-			//WriteConsole(std::format("min {} {} max {} {}", min.x, min.z, max.x, max.z), LOG_ALWAYS);
+			auto pos = data.GetPosition(coordMult);
+			auto min = pos - data.GetSize(coordMult);
+			auto max = pos + data.GetSize(coordMult);
 			for (auto& poly : aFBXPolys) {
 				auto polyMin = poly.GetAABBMin(vertices);
 				auto polyMax = poly.GetAABBMax(vertices);
 				//if (vertsAdded[&poly-&aFBXPolys[0]]) continue;
-				//if (polyMin.x < min.x || polyMin.y < min.y || polyMin.z < min.z) continue;
-				//if (polyMax.x > max.x || polyMax.y > max.y || polyMax.z > max.z) continue;
-				//if (!(polyMin.x > min.x && polyMin.z > min.z && polyMax.x > min.x && polyMax.z > min.z)) continue;
-				//if (!(polyMin.x < max.x && polyMin.z < max.z && polyMax.x < max.x && polyMax.z < max.z)) continue;
 				if (!IsPolyIntersecting(polyMin, polyMax, min, max)) continue;
 				vertsAdded[&poly-&aFBXPolys[0]] = true;
+
+				//if (RecalculateAABB(polyMin, polyMax, coordMult)) {
+				//	auto pParent = parent;
+				//	while (pParent) {
+				//		if (!pParent->RecalculateAABB(polyMin, polyMax, coordMult)) break;
+				//		pParent = pParent->parent;
+				//	}
+				//}
 
 				auto polyMid = polyMin;
 				polyMid.x = std::lerp(polyMin.x, polyMax.x, 0.5);
@@ -785,11 +811,13 @@ namespace FO1CDB {
 				topLeft.z -= sizeHalf.z;
 
 				children.push_back({});
-				auto child = &children[children.size()-1];
-				child->Generate(topLeft, sizeHalf, vertices, coordMult);
 				children.push_back({});
+				auto child = &children[children.size()-2];
+				child->parent = this;
+				child->Generate(topLeft, sizeHalf, vertices, coordMult);
 				child = &children[children.size()-1];
 				topLeft.z += sizeHalf.z * 2;
+				child->parent = this;
 				child->Generate(topLeft, sizeHalf, vertices, coordMult);
 			}
 			else {
