@@ -13,6 +13,7 @@ This tool is currently capable of:
 - Editing tracks in FlatOut 1, 2 and Ultimate Carnage
 - Importing new tracks into FlatOut 1, 2 and Ultimate Carnage
 - Importing vehicle models into FlatOut 1, 2 and Ultimate Carnage
+- Importing track collision into FlatOut 1
 
 Thanks to Gulbroz for their existing work on this format, it was a great jumping-off point.
 
@@ -31,6 +32,7 @@ Thanks to Gulbroz for their existing work on this format, it was a great jumping
 - `-create_fo1_w32` - Exports an .fbx into a FlatOut 1 track w32
 - `-create_fo2_w32` - Exports an .fbx into a FlatOut 2 track w32
 - `-create_fouc_w32` - Exports an .fbx into a FlatOut: Ultimate Carnage track w32
+- `-create_fo1_cdb` - Exports an .fbx into a FlatOut 1 track collision cdb.gen
 - `-export_fbx` - Exports the map into a viewable .fbx file
 - `-export_w32` - Exports the map into a .w32 file (this should yield an identical file if there are no additional arguments, if it doesn't then file a bug report!)
 - `-export_text` - Exports the map into a human-readable text file
