@@ -679,15 +679,15 @@ namespace FO1CDB {
 			poly.nVertex2.Set(aFBXVertices.size()+3);
 			poly.nVertex3.Set(aFBXVertices.size()+6);
 
-			aFBXVertices.push_back(-mesh->mVertices[face->mIndices[2]].x);
+			aFBXVertices.push_back(mesh->mVertices[face->mIndices[2]].x);
 			aFBXVertices.push_back(mesh->mVertices[face->mIndices[2]].y);
-			aFBXVertices.push_back(mesh->mVertices[face->mIndices[2]].z);
-			aFBXVertices.push_back(-mesh->mVertices[face->mIndices[1]].x);
+			aFBXVertices.push_back(-mesh->mVertices[face->mIndices[2]].z);
+			aFBXVertices.push_back(mesh->mVertices[face->mIndices[1]].x);
 			aFBXVertices.push_back(mesh->mVertices[face->mIndices[1]].y);
-			aFBXVertices.push_back(mesh->mVertices[face->mIndices[1]].z);
-			aFBXVertices.push_back(-mesh->mVertices[face->mIndices[0]].x);
+			aFBXVertices.push_back(-mesh->mVertices[face->mIndices[1]].z);
+			aFBXVertices.push_back(mesh->mVertices[face->mIndices[0]].x);
 			aFBXVertices.push_back(mesh->mVertices[face->mIndices[0]].y);
-			aFBXVertices.push_back(mesh->mVertices[face->mIndices[0]].z);
+			aFBXVertices.push_back(-mesh->mVertices[face->mIndices[0]].z);
 
 			int tmp = 0;
 			do {
@@ -703,6 +703,7 @@ namespace FO1CDB {
 		}
 	}
 
+	bool* vertsAdded = nullptr;
 	struct tCDBNodeTree {
 		tCDBRegion data;
 		std::vector<tCDBNodeTree> children;
@@ -716,21 +717,30 @@ namespace FO1CDB {
 			return count;
 		}
 
-		bool* vertsAdded = nullptr;
+		bool IsPolyIntersecting(NyaVec3 currentMin, NyaVec3 currentMax, NyaVec3 otherMin, NyaVec3 otherMax) {
+			return (currentMin.x < otherMax.x) && (currentMax.x > otherMin.x) &&
+			//(currentMin.y < otherMax.y) && (currentMax.y > otherMin.y) &&
+			(currentMin.z < otherMax.z) && (currentMax.z > otherMin.z);
+		}
+
 		void GenerateMeshChildren(float* vertices, float coordMult[3]) {
 			if (!vertsAdded) {
-				vertsAdded = new bool[nNumVertices];
-				memset(vertsAdded, 0, nNumVertices);
+				vertsAdded = new bool[nNumPolys];
+				memset(vertsAdded, 0, nNumPolys);
 			}
 
-			auto min = data.GetPosition(coordMult) - data.GetSize(coordMult) * 2;
-			auto max = data.GetPosition(coordMult) + data.GetSize(coordMult) * 2;
+			auto min = data.GetPosition(coordMult) - data.GetSize(coordMult);
+			auto max = data.GetPosition(coordMult) + data.GetSize(coordMult);
+			//WriteConsole(std::format("min {} {} max {} {}", min.x, min.z, max.x, max.z), LOG_ALWAYS);
 			for (auto& poly : aFBXPolys) {
 				auto polyMin = poly.GetAABBMin(vertices);
 				auto polyMax = poly.GetAABBMax(vertices);
-				if (vertsAdded[&poly-&aFBXPolys[0]]) continue;
-				if (polyMin.x < min.x || polyMin.y < min.y || polyMin.z < min.z) continue;
-				if (polyMax.x > max.x || polyMax.y > max.y || polyMax.z > max.z) continue;
+				//if (vertsAdded[&poly-&aFBXPolys[0]]) continue;
+				//if (polyMin.x < min.x || polyMin.y < min.y || polyMin.z < min.z) continue;
+				//if (polyMax.x > max.x || polyMax.y > max.y || polyMax.z > max.z) continue;
+				//if (!(polyMin.x > min.x && polyMin.z > min.z && polyMax.x > min.x && polyMax.z > min.z)) continue;
+				//if (!(polyMin.x < max.x && polyMin.z < max.z && polyMax.x < max.x && polyMax.z < max.z)) continue;
+				if (!IsPolyIntersecting(polyMin, polyMax, min, max)) continue;
 				vertsAdded[&poly-&aFBXPolys[0]] = true;
 
 				auto polyMid = polyMin;
@@ -758,28 +768,28 @@ namespace FO1CDB {
 			data.SetSize(size, coordMult);
 
 			if (data.nXSize < 16 || size.x < 4) {
-				if (data.nYSize < 16 || size.y < 4) {
+				if (data.nZSize < 16 || size.z < 4) {
 					GenerateMeshChildren(vertices, coordMult);
 					// add a bit of leeway, todo this is kinda hacky
 					//auto newSize = size;
 					//newSize.x *= 2;
-					//newSize.y *= 2;
+					//newSize.z *= 2;
 					//data.SetSize(newSize, coordMult);
 					return;
 				}
 
 				// halve y
 				auto sizeHalf = size;
-				sizeHalf.y /= 2.0;
+				sizeHalf.z /= 2.0;
 				auto topLeft = position;
-				topLeft.y -= sizeHalf.y;
+				topLeft.z -= sizeHalf.z;
 
 				children.push_back({});
 				auto child = &children[children.size()-1];
 				child->Generate(topLeft, sizeHalf, vertices, coordMult);
 				children.push_back({});
 				child = &children[children.size()-1];
-				topLeft.y += sizeHalf.y * 2;
+				topLeft.z += sizeHalf.z * 2;
 				child->Generate(topLeft, sizeHalf, vertices, coordMult);
 			}
 			else {
@@ -929,6 +939,13 @@ namespace FO1CDB {
 
 		// todo increase region sizes if any polys are out of bounds
 		gFBXRootNode.CreateRegions();
+		int count = 0;
+		for (int i = 0; i < nNumPolys; i++) {
+			if (!vertsAdded[i]) {
+				count++;
+			}
+		}
+		WriteConsole(std::format("{}/{} verts missed", count, nNumPolys), LOG_ALWAYS);
 
 		nNumRegions = aFBXRegions.size();
 		aRegions = new tCDBRegion[nNumRegions];
