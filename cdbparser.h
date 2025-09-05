@@ -666,15 +666,80 @@ namespace FO1CDB {
 		WriteConsole("CDB export finished", LOG_ALWAYS);
 	}
 
+	struct tFO2MaterialMatchup {
+		std::string matName;
+		int materialId;
+	};
+	std::vector<tFO2MaterialMatchup> aFO2Materials = {
+		{"col_1_", 1}, // NoCollision
+		{"col_2_", 2}, // Tarmac (Road)
+		{"col_3_", 3}, // Tarmac Mark (Road)
+		{"col_4_", 2}, // Asphalt (Road) -> Tarmac (Road)
+		{"col_5_", 3}, // Asphalt Mark (Road) -> Tarmac Mark (Road)
+		{"col_6_", 3}, // Cement Mark (Road) -> Tarmac Mark (Road)
+		{"col_7_", 3}, // Cement Mark (Road) -> Tarmac Mark (Road)
+		{"col_8_", 4}, // Hard (Road)
+		{"col_9_", 5}, // Hard Mark (Road)
+		{"col_10_", 6}, // Medium (Road)
+		{"col_11_", 7}, // Medium Mark (Road)
+		{"col_12_", 8}, // Soft (Road)
+		{"col_13_", 9}, // Soft Mark (Road)
+		{"col_14_", 10}, // Ice (Road)
+		{"col_15_", 11}, // Ice Mark (Road)
+		{"col_16_", 12}, // Snow (Road)
+		{"col_17_", 13}, // Snow Mark (Road)
+		{"col_18_", 6}, // Dirt (Road) -> Medium (Road)
+		{"col_19_", 7}, // Dirt Mark (Road) -> Medium Mark (Road)
+		{"col_20_", 2}, // Bridge Metal (Road) -> Tarmac (Road)
+		{"col_21_", 2}, // Bridge Wooden (Road) -> Tarmac (Road)
+		{"col_22_", 2}, // Curb (Terrain) -> Tarmac (Road)
+		{"col_23_", 14}, // Bank Sand (Terrain)
+		{"col_24_", 15}, // Grass (Terrain)
+		{"col_25_", 16}, // Forest (Terrain)
+		{"col_26_", 17}, // Sand (Terrain)
+		{"col_27_", 18}, // Rock (Terrain)
+		{"col_28_", 19}, // Mould (Terrain)
+		{"col_29_", 20}, // Snow (Terrain)
+		{"col_30_", 16}, // Field (Terrain) -> Forest (Terrain)
+		{"col_31_", 19}, // Wet (Terrain) -> Mould (Terrain)
+		{"col_32_", 21}, // Concrete (Object)
+		{"col_33_", 22}, // Rock (Object)
+		{"col_34_", 23}, // Metal (Object)
+		{"col_35_", 24}, // Wood (Object)
+		{"col_36_", 25}, // Tree (Object)
+		{"col_37_", 26}, // Bush (Object)
+		{"col_38_", 27}, // Rubber (Object)
+		{"col_39_", 28}, // Water (Water)
+		{"col_40_", 28}, // River (Water) -> Water (Water)
+		{"col_41_", 28}, // Puddle (Water) -> Water (Water)
+		{"col_42_", 29}, // No Camera Col
+		{"col_43_", 31}, // Camera only col
+		{"col_44_", 30}, // Reset
+		// todo stunt materials
+		{"col_49_", 2}, // Stunt Tarmac -> Tarmac (Road)
+	};
+
 	std::vector<float> aFBXVertices;
 	std::vector<tCDBPoly> aFBXPolys;
 	std::vector<tCDBRegion> aFBXRegions;
-	void CreateCDBFromMesh(aiMesh* mesh) {
+	void CreateCDBFromMesh(aiMesh* mesh, aiMaterial* material) {
+		int materialId = -1;
+		std::string matName = material->GetName().C_Str();
+		for (auto& material : aMaterialNames) {
+			if (matName == material) materialId = &material - &aMaterialNames[0];
+		}
+		for (auto& material : aFO2Materials) {
+			if (matName.starts_with(material.matName)) materialId = material.materialId;
+		}
+		if (materialId == -1) {
+			WriteConsole(std::format("WARNING: Failed to find material for {}, defaulting to tarmac", matName), LOG_WARNINGS);
+			materialId = 1;
+		}
 		for (int i = 0; i < mesh->mNumFaces; i++) {
 			auto face = &mesh->mFaces[i];
 			tCDBPoly poly;
 			poly.nFlags = 27; // todo trees 1 objects 3 water 6 ground 27
-			poly.SetMaterial(1); // todo
+			poly.SetMaterial(materialId); // todo
 			poly.nVertex1.Set(aFBXVertices.size());
 			poly.nVertex2.Set(aFBXVertices.size()+3);
 			poly.nVertex3.Set(aFBXVertices.size()+6);
@@ -912,7 +977,7 @@ namespace FO1CDB {
 		WriteConsole(std::format("Processing {} meshes", pParsedFBXScene->mNumMeshes), LOG_ALWAYS);
 
 		for (int i = 0; i < pParsedFBXScene->mNumMeshes; i++) {
-			CreateCDBFromMesh(pParsedFBXScene->mMeshes[i]);
+			CreateCDBFromMesh(pParsedFBXScene->mMeshes[i], pParsedFBXScene->mMaterials[pParsedFBXScene->mMeshes[i]->mMaterialIndex]);
 		}
 
 		nNumVertices = aFBXVertices.size();
