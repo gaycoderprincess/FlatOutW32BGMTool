@@ -321,18 +321,14 @@ namespace FO1CDB {
 	};
 	std::vector<tExportCollisionRegion> aCollisionRegions;
 
-	float* aVertices = nullptr;
-	tCDBPoly* aPolys = nullptr;
-	tCDBRegion* aRegions = nullptr;
-	int nNumVertices = 0;
-	int nNumPolys = 0;
-	int nNumRegions = 0;
-	float fPosMultiplier[3] = {};
+	std::vector<float> aVertices;
+	std::vector<tCDBPoly> aPolys;
+	std::vector<tCDBRegion> aRegions;
 
 	void ReadCollisionRegion(tCDBRegion* region) {
 		if (region->nFlags.HasPolys()) {
 			tExportCollisionRegion tmp;
-			tmp.originalId = region - aRegions;
+			tmp.originalId = region - &aRegions[0];
 			for (int i = 0; i < region->nFlags.GetPolyCount(); i++) {
 				auto index = aPolys[region->nFlags.GetIndex() + i];
 				tmp.aPolys.push_back(index);
@@ -352,8 +348,7 @@ namespace FO1CDB {
 		// use to read per material
 		for (int i = 0; i < numMaterials; i++) {
 			tExportCollisionRegion matRegion;
-			for (int j = 0; j < nNumPolys; j++) {
-				auto poly = aPolys[j];
+			for (auto& poly : aPolys) {
 				if (poly.GetMaterial() != i) continue;
 				matRegion.aPolys.push_back(poly);
 			}
@@ -467,9 +462,12 @@ namespace FO1CDB {
 		fin.read((char*)&tmp, 4);
 		if (bDumpIntoTextFile) WriteFile(std::format("nVertexSize: 0x{:X}", tmp));
 
-		aVertices = new float[tmp/4];
-		fin.read((char*)aVertices, tmp);
-		nNumVertices = tmp/4;
+		aVertices.reserve(tmp/4);
+		for (int i = 0; i < tmp/4; i++) {
+			float value;
+			fin.read((char*)&value, 4);
+			aVertices.push_back(value);
+		}
 
 		//for (int i = 0; i < tmp / sizeof(tFO1CollisionVertex); i++) {
 		//	auto fData = aFO1CDBVertices;
@@ -479,17 +477,19 @@ namespace FO1CDB {
 		fin.read((char*)&tmp, 4);
 		if (bDumpIntoTextFile) WriteFile(std::format("nIndexCount: {}", tmp));
 
-		aPolys = new tCDBPoly[tmp];
-		fin.read((char*)aPolys, tmp*sizeof(tCDBPoly));
-		nNumPolys = tmp;
+		aPolys.reserve(tmp);
+		for (int i = 0; i < tmp; i++) {
+			tCDBPoly value;
+			fin.read((char*)&value, sizeof(tCDBPoly));
+			aPolys.push_back(value);
+		}
 
 		if (bDumpIntoTextFile) {
-			for (int i = 0; i < nNumPolys; i++) {
-				auto nData = aPolys[i];
+			for (auto& nData : aPolys) {
 				auto poly1 = nData.GetPolyMinMatchup();
 				auto poly2 = nData.GetPolyMaxMatchup();
-				if (!nData.IsPolyMinMatchupValid(aVertices) || !nData.IsPolyMaxMatchupValid(aVertices)) {
-					WriteConsole(std::format("WARNING: {} poly matchup invalid", i), LOG_WARNINGS);
+				if (!nData.IsPolyMinMatchupValid(&aVertices[0]) || !nData.IsPolyMaxMatchupValid(&aVertices[0])) {
+					WriteConsole(std::format("WARNING: {} poly matchup invalid", &nData - &aPolys[0]), LOG_WARNINGS);
 				}
 				auto v20 = nWeirdPolyMatchupThing[poly1];
 				auto v19 = nWeirdPolyMatchupThing[poly2];
@@ -543,24 +543,27 @@ namespace FO1CDB {
 		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv1.x: {}", values2[0]));
 		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv1.y: {}", values2[1]));
 		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv1.z: {}", values2[2]));
-		fin.read((char*)fPosMultiplier, sizeof(fPosMultiplier));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv2.x: {}", fPosMultiplier[0]));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv2.y: {}", fPosMultiplier[1]));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv2.z: {}", fPosMultiplier[2]));
+		fin.read((char*)values2, sizeof(values2));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv2.x: {}", values2[0]));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv2.y: {}", values2[1]));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv2.z: {}", values2[2]));
 
 		fin.read((char*)&tmp, 4);
 		if (bDumpIntoTextFile) WriteFile(std::format("nRegionCount: {}", tmp));
 
-		aRegions = new tCDBRegion[tmp];
-		fin.read((char*)aRegions, tmp * sizeof(tCDBRegion));
-		nNumRegions = tmp;
+		aRegions.reserve(tmp);
+		for (int i = 0; i < tmp; i++) {
+			tCDBRegion value;
+			fin.read((char*)&value, sizeof(tCDBRegion));
+			aRegions.push_back(value);
+		}
+
 		if (bDumpIntoTextFile) {
-			for (int i = 0; i < nNumRegions; i++) {
-				auto nData = aRegions[i];
-				WriteFile(std::format("Region {}", i));
+			for (auto& nData : aRegions) {
+				WriteFile(std::format("Region {}", &nData - &aRegions[0]));
 				WriteFile(std::format("polyCount {} hasPolys {} index {} unk {}", nData.nFlags.GetPolyCount(), (int)nData.nFlags.HasPolys(), nData.nFlags.GetIndex(), nData.nFlags.GetUnknownFlag()));
-				auto pos = nData.GetPosition(fPosMultiplier);
-				auto size = nData.GetSize(fPosMultiplier);
+				auto pos = nData.GetPosition(values2);
+				auto size = nData.GetSize(values2);
 				WriteFile(std::format("pos {} {} {}", pos.x, pos.y, pos.z));
 				WriteFile(std::format("size {} {} {}", size.x, size.y, size.z));
 			}
@@ -570,8 +573,7 @@ namespace FO1CDB {
 
 	NyaVec3 GetAABBMin() {
 		NyaVec3 min = {9999, 9999, 9999};
-		for (int i = 0; i < nNumPolys; i++) {
-			auto poly = aPolys[i];
+		for (auto& poly : aPolys) {
 			auto vertex1 = &aVertices[poly.nVertex1.Get()];
 			auto vertex2 = &aVertices[poly.nVertex2.Get()];
 			auto vertex3 = &aVertices[poly.nVertex3.Get()];
@@ -590,8 +592,7 @@ namespace FO1CDB {
 
 	NyaVec3 GetAABBMax() {
 		NyaVec3 max = {-9999, -9999, -9999};
-		for (int i = 0; i < nNumPolys; i++) {
-			auto poly = aPolys[i];
+		for (auto& poly : aPolys) {
 			auto vertex1 = &aVertices[poly.nVertex1.Get()];
 			auto vertex2 = &aVertices[poly.nVertex2.Get()];
 			auto vertex3 = &aVertices[poly.nVertex3.Get()];
@@ -609,9 +610,9 @@ namespace FO1CDB {
 	}
 
 	void WriteToFile() {
-		if (nNumVertices <= 0) return;
-		if (nNumPolys <= 0) return;
-		if (nNumRegions <= 0) return;
+		if (aVertices.empty()) return;
+		if (aPolys.empty()) return;
+		if (aRegions.empty()) return;
 
 		WriteConsole("Writing output cdb file...", LOG_ALWAYS);
 
@@ -626,16 +627,13 @@ namespace FO1CDB {
 		file.write((char*)&nValue1, 4);
 		file.write((char*)&nValue1, 4); // unused
 
-		int count = nNumVertices*4;
+		int count = aVertices.size()*4;
 		file.write((char*)&count, 4);
-		for (int i = 0; i < nNumVertices; i++) {
-			file.write((char*)&aVertices[i], sizeof(aVertices[i]));
-		}
+		file.write((char*)&aVertices[0], sizeof(aVertices[0])*aVertices.size());
 
-		file.write((char*)&nNumPolys, 4);
-		for (int i = 0; i < nNumPolys; i++) {
-			file.write((char*)&aPolys[i], sizeof(aPolys[i]));
-		}
+		count = aPolys.size();
+		file.write((char*)&count, 4);
+		file.write((char*)&aPolys[0], sizeof(aPolys[0])*aPolys.size());
 
 		file.write((char*)&nValue1, 4); // center x
 		file.write((char*)&nValue1, 4); // center y
@@ -656,10 +654,9 @@ namespace FO1CDB {
 		file.write((char*)&mult2, sizeof(mult2));
 		file.write((char*)&mult2, sizeof(mult2));
 
-		file.write((char*)&nNumRegions, 4);
-		for (int i = 0; i < nNumRegions; i++) {
-			file.write((char*)&aRegions[i], sizeof(aRegions[i]));
-		}
+		count = aRegions.size();
+		file.write((char*)&count, 4);
+		file.write((char*)&aRegions[0], sizeof(aRegions[0])*aRegions.size());
 
 		file.flush();
 
@@ -719,9 +716,6 @@ namespace FO1CDB {
 		{"col_49_", 2}, // Stunt Tarmac -> Tarmac (Road)
 	};
 
-	std::vector<float> aFBXVertices;
-	std::vector<tCDBPoly> aFBXPolys;
-	std::vector<tCDBRegion> aFBXRegions;
 	void CreateCDBFromMesh(aiMesh* mesh, aiMaterial* material) {
 		int materialId = -1;
 		std::string matName = material->GetName().C_Str();
@@ -738,33 +732,36 @@ namespace FO1CDB {
 		for (int i = 0; i < mesh->mNumFaces; i++) {
 			auto face = &mesh->mFaces[i];
 			tCDBPoly poly;
-			poly.nFlags = 27; // todo trees 1 objects 3 water 6 ground 27
+			poly.nFlags = 27;
+			if (materialId >= 21 && materialId <= 27) poly.nFlags = 3; // object
+			if (materialId == 25) poly.nFlags = 1; // tree
+			if (materialId == 28) poly.nFlags = 6; // water
 			poly.SetMaterial(materialId); // todo
-			poly.nVertex1.Set(aFBXVertices.size());
-			poly.nVertex2.Set(aFBXVertices.size()+3);
-			poly.nVertex3.Set(aFBXVertices.size()+6);
+			poly.nVertex1.Set(aVertices.size());
+			poly.nVertex2.Set(aVertices.size()+3);
+			poly.nVertex3.Set(aVertices.size()+6);
 
-			aFBXVertices.push_back(mesh->mVertices[face->mIndices[2]].x);
-			aFBXVertices.push_back(mesh->mVertices[face->mIndices[2]].y);
-			aFBXVertices.push_back(-mesh->mVertices[face->mIndices[2]].z);
-			aFBXVertices.push_back(mesh->mVertices[face->mIndices[1]].x);
-			aFBXVertices.push_back(mesh->mVertices[face->mIndices[1]].y);
-			aFBXVertices.push_back(-mesh->mVertices[face->mIndices[1]].z);
-			aFBXVertices.push_back(mesh->mVertices[face->mIndices[0]].x);
-			aFBXVertices.push_back(mesh->mVertices[face->mIndices[0]].y);
-			aFBXVertices.push_back(-mesh->mVertices[face->mIndices[0]].z);
+			aVertices.push_back(mesh->mVertices[face->mIndices[2]].x);
+			aVertices.push_back(mesh->mVertices[face->mIndices[2]].y);
+			aVertices.push_back(-mesh->mVertices[face->mIndices[2]].z);
+			aVertices.push_back(mesh->mVertices[face->mIndices[1]].x);
+			aVertices.push_back(mesh->mVertices[face->mIndices[1]].y);
+			aVertices.push_back(-mesh->mVertices[face->mIndices[1]].z);
+			aVertices.push_back(mesh->mVertices[face->mIndices[0]].x);
+			aVertices.push_back(mesh->mVertices[face->mIndices[0]].y);
+			aVertices.push_back(-mesh->mVertices[face->mIndices[0]].z);
 
 			int tmp = 0;
 			do {
 				poly.SetPolyMinMatchup(tmp++);
-			} while (!poly.IsPolyMinMatchupValid(&aFBXVertices[0]));
+			} while (!poly.IsPolyMinMatchupValid(&aVertices[0]));
 			tmp = 0;
 			do {
 
 				poly.SetPolyMaxMatchup(tmp++);
-			} while (!poly.IsPolyMaxMatchupValid(&aFBXVertices[0]));
+			} while (!poly.IsPolyMaxMatchupValid(&aVertices[0]));
 
-			aFBXPolys.push_back(poly);
+			aPolys.push_back(poly);
 		}
 	}
 
@@ -812,19 +809,19 @@ namespace FO1CDB {
 
 		void GenerateMeshChildren(float* vertices, float coordMult[3]) {
 			if (!vertsAdded) {
-				vertsAdded = new bool[nNumPolys];
-				memset(vertsAdded, 0, nNumPolys);
+				vertsAdded = new bool[aPolys.size()];
+				memset(vertsAdded, 0, aPolys.size());
 			}
 
 			auto pos = data.GetPosition(coordMult);
 			auto min = pos - data.GetSize(coordMult);
 			auto max = pos + data.GetSize(coordMult);
-			for (auto& poly : aFBXPolys) {
+			for (auto& poly : aPolys) {
 				auto polyMin = poly.GetAABBMin(vertices);
 				auto polyMax = poly.GetAABBMax(vertices);
 				//if (vertsAdded[&poly-&aFBXPolys[0]]) continue;
 				if (!IsPolyIntersecting(polyMin, polyMax, min, max)) continue;
-				vertsAdded[&poly-&aFBXPolys[0]] = true;
+				vertsAdded[&poly-&aPolys[0]] = true;
 
 				//if (RecalculateAABB(polyMin, polyMax, coordMult)) {
 				//	auto pParent = parent;
@@ -843,7 +840,7 @@ namespace FO1CDB {
 
 				tCDBRegion region;
 				region.nFlags.SetHasPolys(true);
-				region.nFlags.SetIndex(&poly-&aFBXPolys[0]);
+				region.nFlags.SetIndex(&poly-&aPolys[0]);
 				region.nFlags.SetUnknownFlag(0xF);
 				region.nFlags.SetPolyCount(1);
 				region.SetPosition(polyMid, coordMult);
@@ -928,15 +925,15 @@ namespace FO1CDB {
 			if (children.empty()) {
 				if (meshChildren.empty()) {
 					// two empty dummy regions, this is a dead end
-					aFBXRegions.push_back(regionEnd);
-					aFBXRegions.push_back(regionEnd);
+					aRegions.push_back(regionEnd);
+					aRegions.push_back(regionEnd);
 				}
 				else {
 					for (auto& mesh : meshChildren) {
-						aFBXRegions.push_back(mesh);
+						aRegions.push_back(mesh);
 						// end of meshes, dead end
 						if (&mesh == &meshChildren[meshChildren.size()-1]) {
-							aFBXRegions.push_back(regionEnd);
+							aRegions.push_back(regionEnd);
 						}
 						else {
 							// go to next
@@ -950,7 +947,7 @@ namespace FO1CDB {
 							region.nXSize = data.nXSize;
 							region.nYSize = data.nYSize;
 							region.nZSize = data.nZSize;
-							aFBXRegions.push_back(region);
+							aRegions.push_back(region);
 						}
 					}
 				}
@@ -960,12 +957,12 @@ namespace FO1CDB {
 				region.nFlags.SetUnknownFlag(0xF);
 				region.nFlags.SetHasPolys(false);
 				region.nFlags.SetIndex(children[0].GetNumRegionsAdded()+2);
-				aFBXRegions.push_back(region);
+				aRegions.push_back(region);
 				region = data;
 				region.nFlags.SetUnknownFlag(0xF);
 				region.nFlags.SetHasPolys(false);
 				region.nFlags.SetIndex(1);
-				aFBXRegions.push_back(region);
+				aRegions.push_back(region);
 				children[0].CreateRegions();
 				children[1].CreateRegions();
 			}
@@ -978,19 +975,6 @@ namespace FO1CDB {
 
 		for (int i = 0; i < pParsedFBXScene->mNumMeshes; i++) {
 			CreateCDBFromMesh(pParsedFBXScene->mMeshes[i], pParsedFBXScene->mMaterials[pParsedFBXScene->mMeshes[i]->mMaterialIndex]);
-		}
-
-		nNumVertices = aFBXVertices.size();
-		nNumPolys = aFBXPolys.size();
-
-		aVertices = new float[nNumVertices];
-		for (int i = 0; i < nNumVertices; i++) {
-			aVertices[i] = aFBXVertices[i];
-		}
-
-		aPolys = new tCDBPoly[nNumPolys];
-		for (int i = 0; i < nNumPolys; i++) {
-			aPolys[i] = aFBXPolys[i];
 		}
 
 		auto min = GetAABBMin();
@@ -1011,40 +995,25 @@ namespace FO1CDB {
 		gFBXRootNode.data.nXSize = 32767;
 		gFBXRootNode.data.nYSize = 32767;
 		gFBXRootNode.data.nZSize = 32767;
-		gFBXRootNode.Generate(gFBXRootNode.data.GetPosition(&mult2.x), gFBXRootNode.data.GetSize(&mult2.x), aVertices, &mult2.x);
+		gFBXRootNode.Generate(gFBXRootNode.data.GetPosition(&mult2.x), gFBXRootNode.data.GetSize(&mult2.x), &aVertices[0], &mult2.x);
 
 		if (!gFBXRootNode.meshChildren.empty()) {
 			WriteConsole("ERROR: Collision model too small!", LOG_ERRORS);
 			return;
 		}
 
-		//tCDBRegion root;
-		//root.nFlags.SetIndex(1);
-		//root.nFlags.SetUnknownFlag(0xF); // todo no idea what this is
-		//root.nXPosition = 0;
-		//root.nYPosition = 0;
-		//root.nZPosition = 0;
-		//root.nXSize = 32767;
-		//root.nYSize = 32767;
-		//root.nZSize = 32767;
-		//aFBXRegions.push_back(root);
-		aFBXRegions.push_back(gFBXRootNode.data);
+		aRegions.push_back(gFBXRootNode.data);
 
 		// todo increase region sizes if any polys are out of bounds
 		gFBXRootNode.CreateRegions();
+		
 		int count = 0;
-		for (int i = 0; i < nNumPolys; i++) {
+		for (int i = 0; i < aPolys.size(); i++) {
 			if (!vertsAdded[i]) {
 				count++;
 			}
 		}
-		WriteConsole(std::format("{}/{} verts missed", count, nNumPolys), LOG_ALWAYS);
-
-		nNumRegions = aFBXRegions.size();
-		aRegions = new tCDBRegion[nNumRegions];
-		for (int i = 0; i < nNumRegions; i++) {
-			aRegions[i] = aFBXRegions[i];
-		}
+		WriteConsole(std::format("{}/{} verts missed", count, aPolys.size()), LOG_ALWAYS);
 	}
 }
 
