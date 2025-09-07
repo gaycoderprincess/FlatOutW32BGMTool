@@ -14,6 +14,7 @@ bool bFBXExportBVHNodes = false;
 bool bIsToughTrucksModel = false;
 bool bIsRallyTrophyModel = false;
 bool bIsRallyTrophyTrack = false;
+bool bIsRetroDemoCDB = false;
 
 bool IsRallyTrophyCar() {
 	if (!bIsRallyTrophyModel) return false;

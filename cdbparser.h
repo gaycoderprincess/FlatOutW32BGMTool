@@ -477,45 +477,43 @@ namespace FO1CDB {
 		fin.read((char*)&tmp, 4);
 		if (bDumpIntoTextFile) WriteFile(std::format("nIndexCount: {}", tmp));
 
-		aPolys.reserve(tmp);
-		for (int i = 0; i < tmp; i++) {
-			tCDBPoly value;
-			fin.read((char*)&value, sizeof(tCDBPoly));
-			aPolys.push_back(value);
+		if (bIsRetroDemoCDB) {
+			for (int i = 0; i < tmp; i++) {
+				struct tTemp {
+					uint8_t nFlags; // +0
+					uint8_t nMaterial; // +1
+					uint16_t nUnknown; // +2
+					uint32_t nVertexOffset[3]; // +4
+
+					int GetVertexOffset(int id) {
+						return nVertexOffset[id] / 4;
+					}
+				} retro;
+				static_assert(sizeof(tTemp) == 0x10);
+
+				fin.read((char*)&retro, sizeof(retro));
+
+				tCDBPoly value;
+				value.nFlags = retro.nFlags;
+				value.SetMaterial(retro.nMaterial);
+				value.nVertex1.Set(retro.GetVertexOffset(0));
+				value.nVertex2.Set(retro.GetVertexOffset(1));
+				value.nVertex3.Set(retro.GetVertexOffset(2));
+				aPolys.push_back(value);
+			}
+		}
+		else {
+			aPolys.reserve(tmp);
+			for (int i = 0; i < tmp; i++) {
+				tCDBPoly value;
+				fin.read((char*)&value, sizeof(tCDBPoly));
+				aPolys.push_back(value);
+			}
 		}
 
 		if (bDumpIntoTextFile) {
 			for (auto& nData : aPolys) {
-				auto poly1 = nData.GetPolyMinMatchup();
-				auto poly2 = nData.GetPolyMaxMatchup();
-				if (!nData.IsPolyMinMatchupValid(&aVertices[0]) || !nData.IsPolyMaxMatchupValid(&aVertices[0])) {
-					WriteConsole(std::format("WARNING: {} poly matchup invalid", &nData - &aPolys[0]), LOG_WARNINGS);
-				}
-				auto v20 = nWeirdPolyMatchupThing[poly1];
-				auto v19 = nWeirdPolyMatchupThing[poly2];
-				auto x1 = v19 & 3;
-				auto x2 = v20 & 3;
-				auto y1 = (v19 >> 2) & 3;
-				auto y2 = (v20 >> 2) & 3;
-				auto z1 = (v19 >> 4) & 3;
-				auto z2 = (v20 >> 4) & 3;
-				WriteFile(std::format("{} {} {} flags {} material {} unk {} {} ({} {} {} {} {} {})", nData.nVertex1.Get(), nData.nVertex2.Get(), nData.nVertex3.Get(), nData.nFlags, nData.GetMaterial(), poly1, poly2, x1, x2, y1, y2, z1, z2));
-
-				float* coords[] = {&aVertices[nData.nVertex1.Get()], &aVertices[nData.nVertex2.Get()], &aVertices[nData.nVertex3.Get()]};
-
-				float fx1 = coords[x1][0];
-				float fx2 = coords[x2][0];
-				float fy1 = coords[y1][1];
-				float fy2 = coords[y2][1];
-				float fz1 = coords[z1][2];
-				float fz2 = coords[z2][2];
-
-				auto v1 = NyaVec3(aVertices[nData.nVertex1.Get()], aVertices[nData.nVertex1.Get()+1], aVertices[nData.nVertex1.Get()+2]);
-				auto v2 = NyaVec3(aVertices[nData.nVertex2.Get()], aVertices[nData.nVertex2.Get()+1], aVertices[nData.nVertex2.Get()+2]);
-				auto v3 = NyaVec3(aVertices[nData.nVertex3.Get()], aVertices[nData.nVertex3.Get()+1], aVertices[nData.nVertex3.Get()+2]);
-
-				WriteFile(std::format("{} {} {} {} {} {} {} {} {}", v1.x, v1.y, v1.z, v2.x, v2.y, v2.z, v3.x, v3.y, v3.z));
-				WriteFile(std::format("min {} {} {} max {} {} {}", fx1, fy1, fz1, fx2, fy2, fz2));
+				WriteFile(std::format("{} {} {} flags {} material {} unk {}", nData.nVertex1.Get(), nData.nVertex2.Get(), nData.nVertex3.Get(), nData.nFlags, nData.GetMaterial(), (uint32_t)nData.nMaterialAndOtherStuff));
 			}
 		}
 
@@ -1006,7 +1004,7 @@ namespace FO1CDB {
 
 		// todo increase region sizes if any polys are out of bounds
 		gFBXRootNode.CreateRegions();
-		
+
 		int count = 0;
 		for (int i = 0; i < aPolys.size(); i++) {
 			if (!vertsAdded[i]) {
@@ -1020,7 +1018,7 @@ namespace FO1CDB {
 bool ParseTrackCDB(const std::filesystem::path& fileName) {
 	WriteConsole("Parsing CDB data...", LOG_ALWAYS);
 
-	if (fileName.extension() != ".gen") {
+	if (fileName.extension() != ".gen" && fileName.extension() != ".cdb") {
 		return false;
 	}
 

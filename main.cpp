@@ -91,7 +91,9 @@ int main(int argc, char *argv[]) {
 			FO1CDB::WriteToFile();
 		}
 	}
-	else if (hasEnding(sFileName.generic_string(), "_cdb.gen")) {
+	else if (hasEnding(sFileName.generic_string(), "_cdb.gen") || sFileName.extension() == ".cdb") {
+		if (sFileName.extension() == ".cdb") bIsRetroDemoCDB = true;
+
 		if (!ParseTrackCDB(sFileName)) {
 			WriteConsole("ERROR: Failed to load " + sFileName.string() + "!", LOG_ERRORS);
 			WaitAndExitOnFail();
