@@ -37,12 +37,46 @@ namespace FO1CDB {
 		"Metal (Object)",
 		"Wood (Object)",
 		"Tree (Object)",
-		"Bush",
+		"Bush (Object)",
 		"Rubber (Object)",
 		"Water",
 		"No Camera Col",
 		"Reset",
 		"Camera only col",
+	};
+
+	enum eMaterials {
+		NOCOLLISION = 1,
+		TARMAC_ROAD,
+		TARMAC_MARK_ROAD,
+		HARD_ROAD,
+		HARD_MARK_ROAD,
+		MEDIUM_ROAD,
+		MEDIUM_MARK_ROAD,
+		SOFT_ROAD,
+		SOFT_MARK_ROAD,
+		ICE_ROAD,
+		ICE_MARK_ROAD,
+		SNOW_ROAD,
+		SNOW_MARK_ROAD,
+		BANK_SAND_TERRAIN,
+		GRASS_TERRAIN,
+		FOREST_TERRAIN,
+		SAND_TERRAIN,
+		ROCK_TERRAIN,
+		MOULD_TERRAIN,
+		SNOW_TERRAIN,
+		CONCRETE_OBJECT,
+		ROCK_OBJECT,
+		METAL_OBJECT,
+		WOOD_OBJECT,
+		TREE_OBJECT,
+		BUSH_OBJECT,
+		RUBBER_OBJECT,
+		WATER,
+		NO_CAMERA_COL,
+		RESET,
+		CAMERA_ONLY_COL,
 	};
 
     uint8_t nWeirdPolyMatchupThing[] = {
@@ -342,6 +376,42 @@ namespace FO1CDB {
 		}
 	}
 
+	int ConvertRetroDemoMaterial(int id) {
+		switch (id) {
+			case 1: return NOCOLLISION;
+			case 2: return TARMAC_ROAD;
+			case 3: return TARMAC_MARK_ROAD;
+			case 4: return HARD_ROAD;
+			case 5: return HARD_MARK_ROAD;
+			case 6: return MEDIUM_ROAD;
+			case 7: return MEDIUM_MARK_ROAD;
+			case 8: return SOFT_ROAD;
+			case 9: return SOFT_MARK_ROAD;
+			case 10: return ICE_ROAD;
+			case 11: return ICE_MARK_ROAD;
+			case 12: return SNOW_ROAD;
+			case 13: return SNOW_MARK_ROAD;
+			case 14: return BANK_SAND_TERRAIN;
+			case 15: return GRASS_TERRAIN;
+			case 16: return FOREST_TERRAIN;
+			case 17: return SAND_TERRAIN;
+			case 18: return ROCK_TERRAIN;
+			case 19: return MOULD_TERRAIN;
+			case 20: return CONCRETE_OBJECT;
+			case 21: return SNOW_TERRAIN;
+			case 22: return ROCK_OBJECT;
+			case 23: return METAL_OBJECT;
+			case 24: return WOOD_OBJECT;
+			case 25: return TREE_OBJECT;
+			case 26: return BUSH_OBJECT;
+			case 27: return RUBBER_OBJECT;
+			case 28: return WATER;
+			case 29: return RESET;
+			default:
+				return TARMAC_ROAD;
+		}
+	}
+
 	void WriteToFBX() {
 		int numMaterials = sizeof(aMaterialNames)/sizeof(aMaterialNames[0]);
 
@@ -478,6 +548,7 @@ namespace FO1CDB {
 		if (bDumpIntoTextFile) WriteFile(std::format("nIndexCount: {}", tmp));
 
 		if (bIsRetroDemoCDB) {
+			aPolys.reserve(tmp);
 			for (int i = 0; i < tmp; i++) {
 				struct tTemp {
 					uint8_t nFlags; // +0
@@ -495,10 +566,21 @@ namespace FO1CDB {
 
 				tCDBPoly value;
 				value.nFlags = retro.nFlags;
-				value.SetMaterial(retro.nMaterial);
+				value.SetMaterial(ConvertRetroDemoMaterial(retro.nMaterial));
 				value.nVertex1.Set(retro.GetVertexOffset(0));
 				value.nVertex2.Set(retro.GetVertexOffset(1));
 				value.nVertex3.Set(retro.GetVertexOffset(2));
+
+				int tmp = 0;
+				do {
+					value.SetPolyMinMatchup(tmp++);
+				} while (!value.IsPolyMinMatchupValid(&aVertices[0]));
+				tmp = 0;
+				do {
+
+					value.SetPolyMaxMatchup(tmp++);
+				} while (!value.IsPolyMaxMatchupValid(&aVertices[0]));
+
 				aPolys.push_back(value);
 			}
 		}
@@ -666,52 +748,52 @@ namespace FO1CDB {
 		int materialId;
 	};
 	std::vector<tFO2MaterialMatchup> aFO2Materials = {
-		{"col_1_", 1}, // NoCollision
-		{"col_2_", 2}, // Tarmac (Road)
-		{"col_3_", 3}, // Tarmac Mark (Road)
-		{"col_4_", 2}, // Asphalt (Road) -> Tarmac (Road)
-		{"col_5_", 3}, // Asphalt Mark (Road) -> Tarmac Mark (Road)
-		{"col_6_", 3}, // Cement Mark (Road) -> Tarmac Mark (Road)
-		{"col_7_", 3}, // Cement Mark (Road) -> Tarmac Mark (Road)
-		{"col_8_", 4}, // Hard (Road)
-		{"col_9_", 5}, // Hard Mark (Road)
-		{"col_10_", 6}, // Medium (Road)
-		{"col_11_", 7}, // Medium Mark (Road)
-		{"col_12_", 8}, // Soft (Road)
-		{"col_13_", 9}, // Soft Mark (Road)
-		{"col_14_", 10}, // Ice (Road)
-		{"col_15_", 11}, // Ice Mark (Road)
-		{"col_16_", 12}, // Snow (Road)
-		{"col_17_", 13}, // Snow Mark (Road)
-		{"col_18_", 6}, // Dirt (Road) -> Medium (Road)
-		{"col_19_", 7}, // Dirt Mark (Road) -> Medium Mark (Road)
-		{"col_20_", 2}, // Bridge Metal (Road) -> Tarmac (Road)
-		{"col_21_", 2}, // Bridge Wooden (Road) -> Tarmac (Road)
-		{"col_22_", 2}, // Curb (Terrain) -> Tarmac (Road)
-		{"col_23_", 14}, // Bank Sand (Terrain)
-		{"col_24_", 15}, // Grass (Terrain)
-		{"col_25_", 16}, // Forest (Terrain)
-		{"col_26_", 17}, // Sand (Terrain)
-		{"col_27_", 18}, // Rock (Terrain)
-		{"col_28_", 19}, // Mould (Terrain)
-		{"col_29_", 20}, // Snow (Terrain)
-		{"col_30_", 16}, // Field (Terrain) -> Forest (Terrain)
-		{"col_31_", 19}, // Wet (Terrain) -> Mould (Terrain)
-		{"col_32_", 21}, // Concrete (Object)
-		{"col_33_", 22}, // Rock (Object)
-		{"col_34_", 23}, // Metal (Object)
-		{"col_35_", 24}, // Wood (Object)
-		{"col_36_", 25}, // Tree (Object)
-		{"col_37_", 26}, // Bush (Object)
-		{"col_38_", 27}, // Rubber (Object)
-		{"col_39_", 28}, // Water (Water)
-		{"col_40_", 28}, // River (Water) -> Water (Water)
-		{"col_41_", 28}, // Puddle (Water) -> Water (Water)
-		{"col_42_", 29}, // No Camera Col
-		{"col_43_", 31}, // Camera only col
-		{"col_44_", 30}, // Reset
+		{"col_1_", NOCOLLISION},
+		{"col_2_", TARMAC_ROAD},
+		{"col_3_", TARMAC_MARK_ROAD},
+		{"col_4_", TARMAC_ROAD}, // Asphalt (Road)
+		{"col_5_", TARMAC_MARK_ROAD}, // Asphalt Mark (Road)
+		{"col_6_", TARMAC_ROAD}, // Cement Mark (Road)
+		{"col_7_", TARMAC_MARK_ROAD}, // Cement Mark (Road)
+		{"col_8_", HARD_ROAD},
+		{"col_9_", HARD_MARK_ROAD},
+		{"col_10_", MEDIUM_ROAD},
+		{"col_11_", MEDIUM_MARK_ROAD},
+		{"col_12_", SOFT_ROAD},
+		{"col_13_", SOFT_MARK_ROAD},
+		{"col_14_", ICE_ROAD},
+		{"col_15_", ICE_MARK_ROAD},
+		{"col_16_", SNOW_ROAD},
+		{"col_17_", SNOW_MARK_ROAD},
+		{"col_18_", MEDIUM_ROAD}, // Dirt (Road)
+		{"col_19_", MEDIUM_MARK_ROAD}, // Dirt Mark (Road)
+		{"col_20_", TARMAC_ROAD}, // Bridge Metal (Road)
+		{"col_21_", TARMAC_ROAD}, // Bridge Wooden (Road)
+		{"col_22_", TARMAC_ROAD}, // Curb (Terrain)
+		{"col_23_", BANK_SAND_TERRAIN},
+		{"col_24_", GRASS_TERRAIN},
+		{"col_25_", FOREST_TERRAIN},
+		{"col_26_", SAND_TERRAIN},
+		{"col_27_", ROCK_TERRAIN},
+		{"col_28_", MOULD_TERRAIN},
+		{"col_29_", SNOW_TERRAIN},
+		{"col_30_", FOREST_TERRAIN}, // Field (Terrain)
+		{"col_31_", MOULD_TERRAIN}, // Wet (Terrain)
+		{"col_32_", CONCRETE_OBJECT},
+		{"col_33_", ROCK_OBJECT},
+		{"col_34_", METAL_OBJECT},
+		{"col_35_", WOOD_OBJECT},
+		{"col_36_", TREE_OBJECT},
+		{"col_37_", BUSH_OBJECT},
+		{"col_38_", RUBBER_OBJECT},
+		{"col_39_", WATER},
+		{"col_40_", WATER}, // River (Water)
+		{"col_41_", WATER}, // Puddle (Water)
+		{"col_42_", NO_CAMERA_COL},
+		{"col_43_", CAMERA_ONLY_COL},
+		{"col_44_", RESET},
 		// todo stunt materials
-		{"col_49_", 2}, // Stunt Tarmac -> Tarmac (Road)
+		{"col_49_", TARMAC_ROAD}, // Stunt Tarmac -> Tarmac (Road)
 	};
 
 	void CreateCDBFromMesh(aiMesh* mesh, aiMaterial* material) {
