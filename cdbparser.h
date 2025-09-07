@@ -523,6 +523,13 @@ namespace FO1CDB {
 		}
 	}
 
+	float vCenter[3];
+	float vRadius[3];
+	float vCoordMultipliers1[3];
+	float vCoordMultipliers2[3];
+	float vCoordMultipliersInv1[3];
+	float vCoordMultipliersInv2[3];
+
 	bool Parse(std::ifstream& fin) {
 		uint32_t tmp;
 		fin.read((char*)&tmp, 4);
@@ -599,34 +606,33 @@ namespace FO1CDB {
 			}
 		}
 
-		float values[6];
-		fin.read((char*)values, sizeof(values));
+		fin.read((char*)vCenter, sizeof(vCenter));
+		fin.read((char*)vRadius, sizeof(vRadius));
 		if (bDumpIntoTextFile) {
-			WriteFile(std::format("vCenter.x: {}", values[0]));
-			WriteFile(std::format("vCenter.y: {}", values[1]));
-			WriteFile(std::format("vCenter.z: {}", values[2]));
-			WriteFile(std::format("vRadius.x: {}", values[3]));
-			WriteFile(std::format("vRadius.y: {}", values[4]));
-			WriteFile(std::format("vRadius.z: {}", values[5]));
+			WriteFile(std::format("vCenter.x: {}", vCenter[0]));
+			WriteFile(std::format("vCenter.y: {}", vCenter[1]));
+			WriteFile(std::format("vCenter.z: {}", vCenter[2]));
+			WriteFile(std::format("vRadius.x: {}", vRadius[0]));
+			WriteFile(std::format("vRadius.y: {}", vRadius[1]));
+			WriteFile(std::format("vRadius.z: {}", vRadius[2]));
 		}
 
-		float values2[3];
-		fin.read((char*)values2, sizeof(values2));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliers1.x: {}", values2[0]));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliers1.y: {}", values2[1]));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliers1.z: {}", values2[2]));
-		fin.read((char*)values2, sizeof(values2));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliers2.x: {}", values2[0]));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliers2.y: {}", values2[1]));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliers2.z: {}", values2[2]));
-		fin.read((char*)values2, sizeof(values2));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv1.x: {}", values2[0]));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv1.y: {}", values2[1]));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv1.z: {}", values2[2]));
-		fin.read((char*)values2, sizeof(values2));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv2.x: {}", values2[0]));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv2.y: {}", values2[1]));
-		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv2.z: {}", values2[2]));
+		fin.read((char*)vCoordMultipliers1, sizeof(vCoordMultipliers1));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliers1.x: {}", vCoordMultipliers1[0]));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliers1.y: {}", vCoordMultipliers1[1]));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliers1.z: {}", vCoordMultipliers1[2]));
+		fin.read((char*)vCoordMultipliers2, sizeof(vCoordMultipliers2));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliers2.x: {}", vCoordMultipliers2[0]));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliers2.y: {}", vCoordMultipliers2[1]));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliers2.z: {}", vCoordMultipliers2[2]));
+		fin.read((char*)vCoordMultipliersInv1, sizeof(vCoordMultipliersInv1));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv1.x: {}", vCoordMultipliersInv1[0]));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv1.y: {}", vCoordMultipliersInv1[1]));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv1.z: {}", vCoordMultipliersInv1[2]));
+		fin.read((char*)vCoordMultipliersInv2, sizeof(vCoordMultipliersInv2));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv2.x: {}", vCoordMultipliersInv2[0]));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv2.y: {}", vCoordMultipliersInv2[1]));
+		if (bDumpIntoTextFile) WriteFile(std::format("vCoordMultipliersInv2.z: {}", vCoordMultipliersInv2[2]));
 
 		fin.read((char*)&tmp, 4);
 		if (bDumpIntoTextFile) WriteFile(std::format("nRegionCount: {}", tmp));
@@ -642,8 +648,8 @@ namespace FO1CDB {
 			for (auto& nData : aRegions) {
 				WriteFile(std::format("Region {}", &nData - &aRegions[0]));
 				WriteFile(std::format("polyCount {} hasPolys {} index {} unk {}", nData.nFlags.GetPolyCount(), (int)nData.nFlags.HasPolys(), nData.nFlags.GetIndex(), nData.nFlags.GetUnknownFlag()));
-				auto pos = nData.GetPosition(values2);
-				auto size = nData.GetSize(values2);
+				auto pos = nData.GetPosition(vCoordMultipliersInv2);
+				auto size = nData.GetSize(vCoordMultipliersInv2);
 				WriteFile(std::format("pos {} {} {}", pos.x, pos.y, pos.z));
 				WriteFile(std::format("size {} {} {}", size.x, size.y, size.z));
 			}
@@ -715,24 +721,34 @@ namespace FO1CDB {
 		file.write((char*)&count, 4);
 		file.write((char*)&aPolys[0], sizeof(aPolys[0])*aPolys.size());
 
-		file.write((char*)&nValue1, 4); // center x
-		file.write((char*)&nValue1, 4); // center y
-		file.write((char*)&nValue1, 4); // center z
+		if (bIsRetroDemoCDB && bConvertToFO1) {
+			file.write((char*)vCenter, sizeof(vCenter));
+			file.write((char*)vRadius, sizeof(vRadius));
+			file.write((char*)vCoordMultipliers1, sizeof(vCoordMultipliers1));
+			file.write((char*)vCoordMultipliers2, sizeof(vCoordMultipliers2));
+			file.write((char*)vCoordMultipliersInv1, sizeof(vCoordMultipliersInv1));
+			file.write((char*)vCoordMultipliersInv2, sizeof(vCoordMultipliersInv2));
+		}
+		else {
+			file.write((char*)&nValue1, 4); // center x
+			file.write((char*)&nValue1, 4); // center y
+			file.write((char*)&nValue1, 4); // center z
 
-		auto min = GetAABBMin();
-		auto max = GetAABBMax();
-		auto radius = max;
-		if (std::abs(min.x) > radius.x) radius.x = std::abs(min.x);
-		if (std::abs(min.y) > radius.y) radius.y = std::abs(min.y);
-		if (std::abs(min.z) > radius.z) radius.z = std::abs(min.z);
-		file.write((char*)&radius, sizeof(radius));
+			auto min = GetAABBMin();
+			auto max = GetAABBMax();
+			auto radius = max;
+			if (std::abs(min.x) > radius.x) radius.x = std::abs(min.x);
+			if (std::abs(min.y) > radius.y) radius.y = std::abs(min.y);
+			if (std::abs(min.z) > radius.z) radius.z = std::abs(min.z);
+			file.write((char*)&radius, sizeof(radius));
 
-		auto mult2 = radius * (1.0 / 32767.0);
-		auto mult1 = 1.0 / mult2;
-		file.write((char*)&mult1, sizeof(mult1));
-		file.write((char*)&mult1, sizeof(mult1));
-		file.write((char*)&mult2, sizeof(mult2));
-		file.write((char*)&mult2, sizeof(mult2));
+			auto mult2 = radius * (1.0 / 32767.0);
+			auto mult1 = 1.0 / mult2;
+			file.write((char*)&mult1, sizeof(mult1));
+			file.write((char*)&mult1, sizeof(mult1));
+			file.write((char*)&mult2, sizeof(mult2));
+			file.write((char*)&mult2, sizeof(mult2));
+		}
 
 		count = aRegions.size();
 		file.write((char*)&count, 4);
