@@ -67,6 +67,7 @@ bool bExportAllLODs = false;
 bool bApplyStaticTransforms = false;
 bool bExportXboxBuffers = false;
 bool bAddLightMaterials = false;
+bool bWonkoCoordFlip = false;
 
 // special options
 bool bEmptyOutTrackBVH = false;

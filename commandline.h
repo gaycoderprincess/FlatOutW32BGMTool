@@ -238,6 +238,9 @@ void CMD_ImportAsRetroDemo() {
 void CMD_ToughTrucksStadiumScreen() {
 	bToughTrucksStadiumScreen = true;
 }
+void CMD_WonkoCoordFlip() {
+	bWonkoCoordFlip = true;
+}
 
 struct tCommandlineArgument {
 	std::string name;
@@ -284,6 +287,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-tough_trucks_format", CMD_ImportAsToughTrucks, "Loads the file as a Tough Trucks model instead of a Retro Demo model" },
 		{ "-retro_demo_cdb", CMD_ImportAsRetroDemo, "Loads the file as a Retro Demo collision mesh instead of a FlatOut 1 collision mesh" },
 		{ "-tough_trucks_stadium_screen", CMD_ToughTrucksStadiumScreen, "Imports stadion_screen.tga as the stunt reprojection shader" },
+		{ "-wonko_coord_flip", CMD_WonkoCoordFlip, "Imports a collision .fbx file with mrwonko's flipped coordinate system" },
 
 		// static map options
 		{ "-remove_object_dummies", CMD_W32_RemoveObjectDummies, "Removes all object dummies from an input map file", "W32 editing" },

@@ -837,15 +837,28 @@ namespace FO1CDB {
 			poly.nVertex2.Set(aVertices.size()+3);
 			poly.nVertex3.Set(aVertices.size()+6);
 
-			aVertices.push_back(mesh->mVertices[face->mIndices[2]].x);
-			aVertices.push_back(mesh->mVertices[face->mIndices[2]].y);
-			aVertices.push_back(-mesh->mVertices[face->mIndices[2]].z);
-			aVertices.push_back(mesh->mVertices[face->mIndices[1]].x);
-			aVertices.push_back(mesh->mVertices[face->mIndices[1]].y);
-			aVertices.push_back(-mesh->mVertices[face->mIndices[1]].z);
-			aVertices.push_back(mesh->mVertices[face->mIndices[0]].x);
-			aVertices.push_back(mesh->mVertices[face->mIndices[0]].y);
-			aVertices.push_back(-mesh->mVertices[face->mIndices[0]].z);
+			if (bWonkoCoordFlip) {
+				aVertices.push_back(mesh->mVertices[face->mIndices[2]].x);
+				aVertices.push_back(mesh->mVertices[face->mIndices[2]].y);
+				aVertices.push_back(-mesh->mVertices[face->mIndices[2]].z);
+				aVertices.push_back(mesh->mVertices[face->mIndices[1]].x);
+				aVertices.push_back(mesh->mVertices[face->mIndices[1]].y);
+				aVertices.push_back(-mesh->mVertices[face->mIndices[1]].z);
+				aVertices.push_back(mesh->mVertices[face->mIndices[0]].x);
+				aVertices.push_back(mesh->mVertices[face->mIndices[0]].y);
+				aVertices.push_back(-mesh->mVertices[face->mIndices[0]].z);
+			}
+			else {
+				aVertices.push_back(-mesh->mVertices[face->mIndices[2]].x);
+				aVertices.push_back(mesh->mVertices[face->mIndices[2]].y);
+				aVertices.push_back(mesh->mVertices[face->mIndices[2]].z);
+				aVertices.push_back(-mesh->mVertices[face->mIndices[1]].x);
+				aVertices.push_back(mesh->mVertices[face->mIndices[1]].y);
+				aVertices.push_back(mesh->mVertices[face->mIndices[1]].z);
+				aVertices.push_back(-mesh->mVertices[face->mIndices[0]].x);
+				aVertices.push_back(mesh->mVertices[face->mIndices[0]].y);
+				aVertices.push_back(mesh->mVertices[face->mIndices[0]].z);
+			}
 
 			int tmp = 0;
 			do {
@@ -968,6 +981,7 @@ namespace FO1CDB {
 				auto topLeft = position;
 				topLeft.z -= sizeHalf.z;
 
+				children.reserve(2);
 				children.push_back({});
 				children.push_back({});
 				auto child = &children[children.size()-2];
@@ -985,10 +999,11 @@ namespace FO1CDB {
 				auto topLeft = position;
 				topLeft.x -= sizeHalf.x;
 
+				children.reserve(2);
 				children.push_back({});
-				auto child = &children[children.size()-1];
+				children.push_back({});
+				auto child = &children[children.size()-2];
 				child->Generate(topLeft, sizeHalf, vertices, coordMult);
-				children.push_back({});
 				child = &children[children.size()-1];
 				topLeft.x += sizeHalf.x * 2;
 				child->Generate(topLeft, sizeHalf, vertices, coordMult);
