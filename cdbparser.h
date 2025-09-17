@@ -978,11 +978,15 @@ namespace FO1CDB {
 			auto pos = data.GetPosition(coordMult);
 			auto min = pos - data.GetSize(coordMult);
 			auto max = pos + data.GetSize(coordMult);
+			tCDBRegion* lastRegion = nullptr;
 			for (auto& poly : aPolys) {
 				auto polyMin = poly.GetAABBMin(vertices);
 				auto polyMax = poly.GetAABBMax(vertices);
 				//if (vertsAdded[&poly-&aFBXPolys[0]]) continue;
-				if (!IsPolyIntersecting(polyMin, polyMax, min, max)) continue;
+				if (!IsPolyIntersecting(polyMin, polyMax, min, max)) {
+					lastRegion = nullptr;
+					continue;
+				}
 				vertsAdded[&poly-&aPolys[0]] = true;
 
 				//if (RecalculateAABB(polyMin, polyMax, coordMult)) {
@@ -998,27 +1002,53 @@ namespace FO1CDB {
 				polyMid.y = std::lerp(polyMin.y, polyMax.y, 0.5);
 				polyMid.z = std::lerp(polyMin.z, polyMax.z, 0.5);
 
-				NyaVec3 polySize = {polyMax.x - polyMin.x, polyMax.y - polyMin.y, polyMax.z - polyMin.z};
+				// reuse last region if it's a neighboring poly
+				/*if (lastRegion) {
+					lastRegion->nFlags.SetPolyCount(lastRegion->nFlags.GetPolyCount()+1);
 
-				tCDBRegion region;
-				region.nFlags.SetHasPolys(true);
-				region.nFlags.SetIndex(&poly-&aPolys[0]);
-				region.nFlags.SetUnknownFlag(0xF);
-				region.nFlags.SetPolyCount(1);
-				region.SetPosition(polyMid, coordMult);
-				region.SetSize(polySize, coordMult); // todo is this big enough
-				meshChildren.push_back(region);
+					for (int i = 0; i < lastRegion->nFlags.GetPolyCount()-1; i++) {
+						auto min = aPolys[lastRegion->nFlags.GetIndex()+i].GetAABBMin(vertices);
+						auto max = aPolys[lastRegion->nFlags.GetIndex()+i].GetAABBMax(vertices);
+						polyMin.x = std::min(polyMin.x, min.x);
+						polyMin.y = std::min(polyMin.y, min.y);
+						polyMin.z = std::min(polyMin.z, min.z);
+						polyMax.x = std::max(polyMax.x, max.x);
+						polyMax.y = std::max(polyMax.y, max.y);
+						polyMax.z = std::max(polyMax.z, max.z);
+					}
+					polyMid.x = std::lerp(polyMin.x, polyMax.x, 0.5);
+					polyMid.y = std::lerp(polyMin.y, polyMax.y, 0.5);
+					polyMid.z = std::lerp(polyMin.z, polyMax.z, 0.5);
+
+					NyaVec3 polySize = {polyMax.x - polyMin.x, polyMax.y - polyMin.y, polyMax.z - polyMin.z};
+					lastRegion->SetPosition(polyMid, coordMult);
+					lastRegion->SetSize(polySize, coordMult);
+				}
+				else*/ {
+					NyaVec3 polySize = {polyMax.x - polyMin.x, polyMax.y - polyMin.y, polyMax.z - polyMin.z};
+
+					tCDBRegion region;
+					region.nFlags.SetHasPolys(true);
+					region.nFlags.SetIndex(&poly-&aPolys[0]);
+					region.nFlags.SetUnknownFlag(0xF);
+					region.nFlags.SetPolyCount(1);
+					region.SetPosition(polyMid, coordMult);
+					region.SetSize(polySize, coordMult); // todo is this big enough
+					meshChildren.push_back(region);
+					lastRegion = &meshChildren[meshChildren.size()-1];
+				}
 			}
 		}
 
+		const static inline int nMinRegionSize = 4;
 		void Generate(const NyaVec3& position, const NyaVec3& size, float* vertices, float coordMult[3]) {
 			data.nFlags.SetIndex(1);
 			data.nFlags.SetUnknownFlag(0xF); // todo no idea what this is
 			data.SetPosition(position, coordMult);
 			data.SetSize(size, coordMult);
 
-			if (data.nXSize < 16 || size.x < 4) {
-				if (data.nZSize < 16 || size.z < 4) {
+			if (data.nXSize < 16 || size.x < nMinRegionSize) {
+				if (data.nZSize < 16 || size.z < nMinRegionSize) {
 					GenerateMeshChildren(vertices, coordMult);
 					// add a bit of leeway, todo this is kinda hacky
 					//auto newSize = size;
