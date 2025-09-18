@@ -1,10 +1,24 @@
 void WriteMaterialToFile(std::ofstream& file, const tMaterial& material) {
+	int shader = material.nShaderId;
+	if (bConvertToFO1) {
+		// static specular -> static prelit
+		if (shader == 36) shader = 0;
+		// reflecting window static -> static prelit
+		if (shader == 34) shader = 0;
+		// reflecting window dynamic -> dynamic diffuse
+		if (shader == 35) shader = 0;
+		
+		if (shader >= 34) {
+			WriteConsole(std::format("Found unsupported material {} ({})", shader, GetShaderName(shader, 0x10002)), LOG_WARNINGS);
+		}
+	}
+	
 	file.write((char*)&material.identifier, 4);
 	file.write(material.sName.c_str(), material.sName.length() + 1);
 	file.write((char*)&material.nAlpha, 4);
 	file.write((char*)&material.v92, 4);
 	file.write((char*)&material.nNumTextures, 4);
-	file.write((char*)&material.nShaderId, 4);
+	file.write((char*)&shader, 4);
 	file.write((char*)&material.nUseColormap, 4);
 	file.write((char*)&material.v74, 4);
 	file.write((char*)material.v108, sizeof(material.v108));
