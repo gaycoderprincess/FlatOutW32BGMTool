@@ -882,10 +882,10 @@ namespace FO1CDB {
 			auto face = &mesh->mFaces[i];
 			tCDBPoly poly;
 			poly.nFlags = 27;
-			if (materialId >= 21 && materialId <= 27) poly.nFlags = 3; // object
-			if (materialId == 25) poly.nFlags = 1; // tree
-			if (materialId == 28) poly.nFlags = 6; // water
-			poly.SetMaterial(materialId); // todo
+			if (materialId >= CONCRETE_OBJECT && materialId <= RUBBER_OBJECT) poly.nFlags = 3; // object
+			if (materialId == TREE_OBJECT) poly.nFlags = 1; // tree
+			if (materialId == WATER) poly.nFlags = 6; // water
+			poly.SetMaterial(materialId);
 			poly.nVertex1.Set(aVertices.size());
 			poly.nVertex2.Set(aVertices.size()+3);
 			poly.nVertex3.Set(aVertices.size()+6);
