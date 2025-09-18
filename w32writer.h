@@ -1,10 +1,14 @@
 void WriteMaterialToFile(std::ofstream& file, const tMaterial& material) {
+	std::string name = material.sName;
 	int shader = material.nShaderId;
 	if (bConvertToFO1) {
 		// static specular -> static prelit
 		if (shader == 36) shader = 0;
 		// reflecting window static -> static prelit
-		if (shader == 34) shader = 0;
+		if (shader == 34) {
+			name = "water";
+			shader = 0;
+		}
 		// reflecting window dynamic -> dynamic diffuse
 		if (shader == 35) shader = 0;
 		
@@ -14,7 +18,7 @@ void WriteMaterialToFile(std::ofstream& file, const tMaterial& material) {
 	}
 	
 	file.write((char*)&material.identifier, 4);
-	file.write(material.sName.c_str(), material.sName.length() + 1);
+	file.write(name.c_str(), name.length() + 1);
 	file.write((char*)&material.nAlpha, 4);
 	file.write((char*)&material.v92, 4);
 	file.write((char*)&material.nNumTextures, 4);
