@@ -10,7 +10,7 @@ void WriteMaterialToFile(std::ofstream& file, const tMaterial& material) {
 			shader = 0;
 		}
 		// reflecting window dynamic -> dynamic diffuse
-		if (shader == 35) shader = 0;
+		if (shader == 35) shader = 3;
 		
 		if (shader >= 34) {
 			WriteConsole(std::format("Found unsupported material {} ({})", shader, GetShaderName(shader, 0x10002)), LOG_WARNINGS);
