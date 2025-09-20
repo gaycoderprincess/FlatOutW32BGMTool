@@ -106,6 +106,9 @@ void CMD_EmptyTrackBVH() {
 void CMD_EmptyPlantVDB() {
 	bCreateEmptyPlantVDB = true;
 }
+void CMD_NoFO1Water() {
+	bNoFO1Water = true;
+}
 void CMD_W32_ImportMovedProps() {
 	bImportPropsFromFBX = true;
 	bLoadFBX = true;
@@ -300,6 +303,7 @@ tCommandlineArgument aArguments[] = {
 		{ "-disable_car_collisions", CMD_W32_DisableCarCollisions, "Disables car-to-car collisions in an input map file" },
 		{ "-empty_bvh_gen", CMD_EmptyTrackBVH, "Takes a track_bvh.gen file as the first argument and generates a new empty one, disables all culling" },
 		{ "-empty_plant_vdb", CMD_EmptyPlantVDB, "Generates an empty plant_vdb.gen, removes all grass from the map" },
+		{ "-no_fo1_water", CMD_NoFO1Water, "Disables water material conversion when converting an FO2 track to FO1" },
 
 		// map fbx import options
 		{ "-import_moved_props", CMD_W32_ImportMovedProps, "Imports moved prop positions from an .fbx, takes an .fbx file as the second argument", "W32 + FBX editing" },

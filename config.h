@@ -72,3 +72,4 @@ bool bWonkoCoordFlip = false;
 // special options
 bool bEmptyOutTrackBVH = false;
 bool bCreateEmptyPlantVDB = false;
+bool bNoFO1Water = false;

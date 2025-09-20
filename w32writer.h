@@ -6,7 +6,7 @@ void WriteMaterialToFile(std::ofstream& file, const tMaterial& material) {
 		if (shader == 36) shader = 0;
 		// reflecting window static -> static prelit
 		if (shader == 34) {
-			name = "water";
+			if (!bNoFO1Water) name = "water";
 			shader = 0;
 		}
 		// reflecting window dynamic -> dynamic diffuse
