@@ -235,9 +235,6 @@ void CMD_ReplaceCommonWithGrille() {
 void CMD_ImportAsToughTrucks() {
 	bIsToughTrucksModel = true;
 }
-void CMD_ImportAsRetroDemo() {
-	bIsRetroDemoCDB = true;
-}
 void CMD_ToughTrucksStadiumScreen() {
 	bToughTrucksStadiumScreen = true;
 }
@@ -288,7 +285,6 @@ tCommandlineArgument aArguments[] = {
 		{ "-no_material_priorities", CMD_NoMaterialPriorities, "Disables automatic sorting for materials" },
 		{ "-replace_common_with_grille", CMD_ReplaceCommonWithGrille, "Replaces all instances of common.tga with grille.tga, useful for FO1->FOUC menucars" },
 		{ "-tough_trucks_format", CMD_ImportAsToughTrucks, "Loads the file as a Tough Trucks model instead of a Retro Demo model" },
-		{ "-retro_demo_cdb", CMD_ImportAsRetroDemo, "Loads the file as a Retro Demo collision mesh instead of a FlatOut 1 collision mesh" },
 		{ "-tough_trucks_stadium_screen", CMD_ToughTrucksStadiumScreen, "Imports stadion_screen.tga as the stunt reprojection shader" },
 		{ "-wonko_coord_flip", CMD_WonkoCoordFlip, "Imports a collision .fbx file with mrwonko's flipped coordinate system" },
 

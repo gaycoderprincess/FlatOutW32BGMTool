@@ -584,6 +584,8 @@ namespace FO1CDB {
 	float vCoordMultipliersInv2[3];
 
 	bool Parse(std::ifstream& fin) {
+		if (bIsToughTrucksModel) bIsRetroDemoCDB = false;
+
 		uint32_t tmp;
 		fin.read((char*)&tmp, 4);
 		if (bDumpIntoTextFile) WriteFile(std::format("nValue1: 0x{:X}", tmp));
@@ -649,6 +651,9 @@ namespace FO1CDB {
 			for (int i = 0; i < tmp; i++) {
 				tCDBPoly value;
 				fin.read((char*)&value, sizeof(tCDBPoly));
+				if (bIsToughTrucksModel) {
+					value.SetMaterial(ConvertRetroDemoMaterial(value.GetMaterial()));
+				}
 				aPolys.push_back(value);
 			}
 		}
@@ -774,7 +779,7 @@ namespace FO1CDB {
 		file.write((char*)&count, 4);
 		file.write((char*)&aPolys[0], sizeof(aPolys[0])*aPolys.size());
 
-		if (bIsRetroDemoCDB && bConvertToFO1) {
+		if (bConvertToFO1) {
 			file.write((char*)vCenter, sizeof(vCenter));
 			file.write((char*)vRadius, sizeof(vRadius));
 			file.write((char*)vCoordMultipliers1, sizeof(vCoordMultipliers1));
