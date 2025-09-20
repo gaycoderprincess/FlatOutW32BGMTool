@@ -1,7 +1,7 @@
 void WriteMaterialToFile(std::ofstream& file, const tMaterial& material) {
 	std::string name = material.sName;
 	int shader = material.nShaderId;
-	if (bConvertToFO1) {
+	if (bConvertToFO1 || nExportFileVersion == 0x10005) {
 		// static specular -> static prelit
 		if (shader == 36) shader = 0;
 		// reflecting window static -> static prelit
