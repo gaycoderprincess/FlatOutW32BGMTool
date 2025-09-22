@@ -1367,7 +1367,7 @@ void FillBGMFromFBX() {
 }
 
 void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, aiMesh* mesh) {
-	WriteConsole("Exporting " + (std::string)node->mName.C_Str() + " into surface " + std::to_string(surface - &aSurfaces[0]), LOG_ALL);
+	//WriteConsole("Exporting " + (std::string)node->mName.C_Str() + " into surface " + std::to_string(surface - &aSurfaces[0]), LOG_ALL);
 
 	auto fbxMaterial = pParsedFBXScene->mMaterials[mesh->mMaterialIndex];
 	auto material = FindMaterialIDByName(fbxMaterial->GetName().C_Str(), bNoMaterialReuse);
@@ -1381,7 +1381,7 @@ void ImportSurfaceFromFBX(tSurface* surface, aiNode* node, bool isStaticModel, a
 		newMat._bIsCustom = true;
 		aMaterials.push_back(newMat);
 	}
-	WriteConsole("Assigning material " + aMaterials[material].sName + " to " + node->mName.C_Str(), LOG_ALL);
+	//WriteConsole("Assigning material " + aMaterials[material].sName + " to " + node->mName.C_Str(), LOG_ALL);
 	surface->nMaterialId = material;
 
 	uint32_t bufFlags;
